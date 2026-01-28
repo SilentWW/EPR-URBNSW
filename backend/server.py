@@ -87,6 +87,8 @@ class WooCommerceSettings(BaseModel):
     consumer_key: str
     consumer_secret: str
     enabled: bool = True
+    auto_sync_enabled: bool = False
+    auto_sync_interval: int = 60  # Minutes (default: 1 hour)
 
 # Product Models
 class ProductCreate(BaseModel):
