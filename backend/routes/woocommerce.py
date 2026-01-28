@@ -1,10 +1,11 @@
 """
 WooCommerce Integration Router
 Two-way sync for products, orders, customers, and stock
+Includes automatic hourly sync functionality
 """
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import httpx
 import base64
 import asyncio
@@ -16,6 +17,10 @@ router = APIRouter(prefix="/woocommerce", tags=["WooCommerce"])
 
 # Database will be injected from main app
 db = None
+
+# Auto-sync scheduler state
+_auto_sync_task = None
+_auto_sync_running = False
 
 def set_db(database):
     global db
