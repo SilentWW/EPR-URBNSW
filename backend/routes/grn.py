@@ -299,10 +299,18 @@ async def create_grn(
         "notes": data.notes,
         "sync_to_woo": data.sync_to_woo,
         "woo_sync_status": "pending" if data.sync_to_woo else None,
+        "po_id": data.po_id,
         "created_by": user_id,
         "created_at": get_current_timestamp()
     }
     await db.grns.insert_one(grn)
+    
+    # Update linked Purchase Order status if present
+    if data.po_id:
+        await db.purchase_orders.update_one(
+            {"id": data.po_id, "company_id": company_id},
+            {"$set": {"status": "received", "updated_at": get_current_timestamp()}}
+        )
     
     # Create automatic finance entries
     await create_grn_finance_entries(company_id, grn_id, grn_number, supplier["name"], total_cost, user_id)
