@@ -114,7 +114,18 @@ export const Suppliers = () => {
       setDialogOpen(false);
       fetchSuppliers();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Operation failed');
+      // Handle Pydantic validation errors (which return detail as array/object)
+      const detail = error.response?.data?.detail;
+      let errorMessage = 'Operation failed';
+      if (typeof detail === 'string') {
+        errorMessage = detail;
+      } else if (Array.isArray(detail)) {
+        // Pydantic validation errors are arrays of error objects
+        errorMessage = detail.map(err => err.msg || err.message || JSON.stringify(err)).join(', ');
+      } else if (detail && typeof detail === 'object') {
+        errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+      }
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
