@@ -278,12 +278,31 @@ async def _sync_products_task(company_id: str, sync_id: str, direction: str, use
                 try:
                     woo_data = {
                         "name": erp_product["name"],
-                        "sku": erp_product["sku"],
-                        "regular_price": str(erp_product["selling_price"]),
+                        "sku": erp_product.get("sku", ""),
+                        "regular_price": str(erp_product.get("regular_price") or erp_product.get("selling_price", 0)),
                         "description": erp_product.get("description", ""),
-                        "manage_stock": True,
-                        "stock_quantity": erp_product["stock_quantity"]
+                        "short_description": erp_product.get("short_description", ""),
+                        "manage_stock": erp_product.get("manage_stock", True),
+                        "stock_quantity": erp_product.get("stock_quantity", 0),
+                        "status": "publish" if erp_product.get("visibility") == "public" else "private"
                     }
+                    
+                    # Add sale price if set
+                    if erp_product.get("sale_price"):
+                        woo_data["sale_price"] = str(erp_product["sale_price"])
+                    
+                    # Add weight if set
+                    if erp_product.get("weight"):
+                        woo_data["weight"] = str(erp_product["weight"])
+                    
+                    # Add tags if set
+                    if erp_product.get("tags"):
+                        tags = [{"name": tag.strip()} for tag in erp_product["tags"].split(",")]
+                        woo_data["tags"] = tags
+                    
+                    # Add attributes if set
+                    if erp_product.get("attributes"):
+                        woo_data["attributes"] = erp_product["attributes"]
                     
                     result = await client.post("products", woo_data)
                     
