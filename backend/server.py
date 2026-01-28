@@ -1693,192 +1693,1135 @@ async def seed_demo_data(current_user: dict = Depends(get_current_user)):
     # Check if demo data exists
     products_count = await db.products.count_documents({"company_id": company_id})
     if products_count > 0:
-        return {"message": "Demo data already exists"}
+        return {"message": "Demo data already exists", "hint": "Delete existing data first or use a new account"}
     
-    # Categories
-    categories = ["Electronics", "Clothing", "Home & Garden", "Sports", "Books"]
+    timestamp = datetime.now(timezone.utc).isoformat()
     
-    # Create demo products
+    # ============== SUPPLIERS (10 suppliers with full details) ==============
+    demo_suppliers = [
+        {
+            "name": "Tech Imports Ltd",
+            "email": "sales@techimports.lk",
+            "phone": "+94112345678",
+            "mobile": "+94771234567",
+            "contact_person": "Mr. Amal Silva",
+            "designation": "Sales Manager",
+            "address": "No. 45, Union Place, Colombo 02",
+            "city": "Colombo",
+            "country": "Sri Lanka",
+            "postal_code": "00200",
+            "tax_id": "TIN123456789",
+            "payment_terms": "Net 30",
+            "bank_name": "Commercial Bank",
+            "bank_account": "8012345678",
+            "notes": "Primary supplier for electronics. Offers 5% discount on bulk orders.",
+            "category": "Electronics"
+        },
+        {
+            "name": "Fashion Wholesale Co",
+            "email": "orders@fashionwholesale.lk",
+            "phone": "+94112345679",
+            "mobile": "+94772345678",
+            "contact_person": "Mrs. Kumari Fernando",
+            "designation": "Procurement Head",
+            "address": "No. 78, Galle Road, Dehiwala",
+            "city": "Dehiwala",
+            "country": "Sri Lanka",
+            "postal_code": "10350",
+            "tax_id": "TIN234567890",
+            "payment_terms": "Net 45",
+            "bank_name": "Sampath Bank",
+            "bank_account": "1023456789",
+            "notes": "Reliable clothing supplier. Handles returns within 14 days.",
+            "category": "Clothing"
+        },
+        {
+            "name": "Home Essentials PVT",
+            "email": "info@homeessentials.lk",
+            "phone": "+94112345680",
+            "mobile": "+94773456789",
+            "contact_person": "Mr. Ruwan Perera",
+            "designation": "Director",
+            "address": "No. 23, Duplication Road, Colombo 03",
+            "city": "Colombo",
+            "country": "Sri Lanka",
+            "postal_code": "00300",
+            "tax_id": "TIN345678901",
+            "payment_terms": "Net 15",
+            "bank_name": "HNB",
+            "bank_account": "2034567890",
+            "notes": "Home goods supplier with fast delivery.",
+            "category": "Home & Garden"
+        },
+        {
+            "name": "Sports Zone International",
+            "email": "procurement@sportszone.lk",
+            "phone": "+94112345681",
+            "mobile": "+94774567890",
+            "contact_person": "Mr. Dinesh Jayawardena",
+            "designation": "Supply Chain Manager",
+            "address": "No. 156, High Level Road, Nugegoda",
+            "city": "Nugegoda",
+            "country": "Sri Lanka",
+            "postal_code": "10250",
+            "tax_id": "TIN456789012",
+            "payment_terms": "Net 30",
+            "bank_name": "BOC",
+            "bank_account": "3045678901",
+            "notes": "Exclusive distributor for fitness equipment.",
+            "category": "Sports"
+        },
+        {
+            "name": "Global Gadgets Inc",
+            "email": "supply@globalgadgets.com",
+            "phone": "+94112345682",
+            "mobile": "+94775678901",
+            "contact_person": "Ms. Priya Sharma",
+            "designation": "Regional Manager",
+            "address": "No. 89, Park Street, Colombo 02",
+            "city": "Colombo",
+            "country": "Sri Lanka",
+            "postal_code": "00200",
+            "tax_id": "TIN567890123",
+            "payment_terms": "Net 60",
+            "bank_name": "HSBC",
+            "bank_account": "4056789012",
+            "notes": "International supplier with warranty support.",
+            "category": "Electronics"
+        },
+    ]
+    
+    supplier_ids = {}
+    for s in demo_suppliers:
+        sid = str(uuid.uuid4())
+        supplier_ids[s["name"]] = {"id": sid, "name": s["name"], "category": s.get("category")}
+        await db.suppliers.insert_one({
+            "id": sid,
+            "company_id": company_id,
+            **s,
+            "total_purchases": 0,
+            "total_paid": 0,
+            "outstanding_balance": 0,
+            "is_active": True,
+            "created_at": timestamp,
+            "updated_at": timestamp
+        })
+    
+    # ============== PRODUCTS (15 products with full WooCommerce fields) ==============
     demo_products = [
-        {"sku": "ELEC-001", "name": "Wireless Earbuds", "category": "Electronics", "cost_price": 1500, "selling_price": 2500, "stock_quantity": 50},
-        {"sku": "ELEC-002", "name": "Bluetooth Speaker", "category": "Electronics", "cost_price": 3000, "selling_price": 4500, "stock_quantity": 30},
-        {"sku": "ELEC-003", "name": "Smart Watch", "category": "Electronics", "cost_price": 8000, "selling_price": 12000, "stock_quantity": 25},
-        {"sku": "CLTH-001", "name": "Cotton T-Shirt", "category": "Clothing", "cost_price": 500, "selling_price": 1200, "stock_quantity": 100},
-        {"sku": "CLTH-002", "name": "Denim Jeans", "category": "Clothing", "cost_price": 1500, "selling_price": 3500, "stock_quantity": 60},
-        {"sku": "HOME-001", "name": "LED Desk Lamp", "category": "Home & Garden", "cost_price": 800, "selling_price": 1500, "stock_quantity": 40},
-        {"sku": "HOME-002", "name": "Plant Pot Set", "category": "Home & Garden", "cost_price": 600, "selling_price": 1200, "stock_quantity": 80},
-        {"sku": "SPRT-001", "name": "Yoga Mat", "category": "Sports", "cost_price": 700, "selling_price": 1500, "stock_quantity": 45},
-        {"sku": "SPRT-002", "name": "Dumbbells Set", "category": "Sports", "cost_price": 2000, "selling_price": 3500, "stock_quantity": 20},
-        {"sku": "BOOK-001", "name": "Business Guide Book", "category": "Books", "cost_price": 400, "selling_price": 800, "stock_quantity": 70},
+        {
+            "sku": "ELEC-001",
+            "name": "Premium Wireless Earbuds Pro",
+            "description": "<p>Experience crystal-clear audio with our Premium Wireless Earbuds Pro. Features active noise cancellation, 30-hour battery life, and IPX5 water resistance. Perfect for workouts, commuting, and daily use.</p><ul><li>Bluetooth 5.3 connectivity</li><li>Touch controls</li><li>Voice assistant support</li></ul>",
+            "short_description": "Premium wireless earbuds with ANC and 30-hour battery life.",
+            "category": "Electronics",
+            "cost_price": 4500,
+            "regular_price": 7999,
+            "sale_price": 6999,
+            "selling_price": 6999,
+            "stock_quantity": 150,
+            "weight": 0.05,
+            "visibility": "public",
+            "tags": "wireless, earbuds, bluetooth, audio, music, tech",
+            "manage_stock": True,
+            "low_stock_threshold": 20
+        },
+        {
+            "sku": "ELEC-002",
+            "name": "Portable Bluetooth Speaker 20W",
+            "description": "<p>Powerful 20W portable speaker with deep bass and 360° surround sound. Waterproof IPX7 rating makes it perfect for outdoor adventures. Connect up to 2 speakers for stereo mode.</p>",
+            "short_description": "20W waterproof Bluetooth speaker with 360° sound.",
+            "category": "Electronics",
+            "cost_price": 3500,
+            "regular_price": 5999,
+            "sale_price": None,
+            "selling_price": 5999,
+            "stock_quantity": 85,
+            "weight": 0.8,
+            "visibility": "public",
+            "tags": "speaker, bluetooth, portable, waterproof, outdoor, music",
+            "manage_stock": True,
+            "low_stock_threshold": 15
+        },
+        {
+            "sku": "ELEC-003",
+            "name": "Smart Fitness Watch Series 5",
+            "description": "<p>Track your health and fitness with our advanced Smart Watch Series 5. Features heart rate monitoring, SpO2 sensor, GPS, sleep tracking, and 100+ workout modes. 7-day battery life with always-on display.</p>",
+            "short_description": "Advanced fitness smartwatch with health monitoring.",
+            "category": "Electronics",
+            "cost_price": 12000,
+            "regular_price": 19999,
+            "sale_price": 17999,
+            "selling_price": 17999,
+            "stock_quantity": 65,
+            "weight": 0.045,
+            "visibility": "public",
+            "tags": "smartwatch, fitness, health, gps, sports, wearable",
+            "manage_stock": True,
+            "low_stock_threshold": 10
+        },
+        {
+            "sku": "CLTH-001",
+            "name": "Organic Cotton T-Shirt - Navy Blue",
+            "description": "<p>Sustainable fashion meets comfort. Our organic cotton t-shirt is made from 100% GOTS certified cotton. Pre-shrunk, breathable, and incredibly soft. Available in sizes S-XXL.</p>",
+            "short_description": "100% organic cotton t-shirt, soft and sustainable.",
+            "category": "Clothing",
+            "cost_price": 800,
+            "regular_price": 1999,
+            "sale_price": 1499,
+            "selling_price": 1499,
+            "stock_quantity": 250,
+            "weight": 0.2,
+            "visibility": "public",
+            "tags": "tshirt, cotton, organic, sustainable, fashion, clothing",
+            "manage_stock": True,
+            "low_stock_threshold": 50
+        },
+        {
+            "sku": "CLTH-002",
+            "name": "Classic Fit Denim Jeans",
+            "description": "<p>Timeless style with modern comfort. Our classic fit jeans feature stretch denim for all-day comfort. 5-pocket styling, zip fly, and a versatile medium wash that goes with everything.</p>",
+            "short_description": "Classic fit stretch denim jeans in medium wash.",
+            "category": "Clothing",
+            "cost_price": 2200,
+            "regular_price": 4999,
+            "sale_price": None,
+            "selling_price": 4999,
+            "stock_quantity": 180,
+            "weight": 0.6,
+            "visibility": "public",
+            "tags": "jeans, denim, classic, fashion, pants, clothing",
+            "manage_stock": True,
+            "low_stock_threshold": 30
+        },
+        {
+            "sku": "CLTH-003",
+            "name": "Lightweight Rain Jacket",
+            "description": "<p>Stay dry in style with our packable rain jacket. Waterproof fabric with sealed seams, adjustable hood, and zippered pockets. Folds into its own pocket for easy storage.</p>",
+            "short_description": "Packable waterproof rain jacket with hood.",
+            "category": "Clothing",
+            "cost_price": 1800,
+            "regular_price": 3999,
+            "sale_price": 3499,
+            "selling_price": 3499,
+            "stock_quantity": 95,
+            "weight": 0.3,
+            "visibility": "public",
+            "tags": "jacket, rain, waterproof, outdoor, packable, clothing",
+            "manage_stock": True,
+            "low_stock_threshold": 20
+        },
+        {
+            "sku": "HOME-001",
+            "name": "LED Smart Desk Lamp",
+            "description": "<p>Illuminate your workspace with our smart LED desk lamp. Features 5 brightness levels, 3 color temperatures, USB charging port, and touch controls. Eye-caring technology reduces strain.</p>",
+            "short_description": "Smart LED desk lamp with USB port and touch controls.",
+            "category": "Home & Garden",
+            "cost_price": 1500,
+            "regular_price": 2999,
+            "sale_price": 2499,
+            "selling_price": 2499,
+            "stock_quantity": 120,
+            "weight": 1.2,
+            "visibility": "public",
+            "tags": "lamp, led, desk, office, smart, lighting, home",
+            "manage_stock": True,
+            "low_stock_threshold": 25
+        },
+        {
+            "sku": "HOME-002",
+            "name": "Ceramic Plant Pot Set (3 pcs)",
+            "description": "<p>Bring nature indoors with our elegant ceramic pot set. Includes 3 different sizes with bamboo drainage trays. Modern minimalist design suits any decor. Perfect for succulents and small plants.</p>",
+            "short_description": "Set of 3 ceramic plant pots with drainage trays.",
+            "category": "Home & Garden",
+            "cost_price": 1200,
+            "regular_price": 2499,
+            "sale_price": None,
+            "selling_price": 2499,
+            "stock_quantity": 75,
+            "weight": 2.5,
+            "visibility": "public",
+            "tags": "pot, plant, ceramic, garden, decor, home, indoor",
+            "manage_stock": True,
+            "low_stock_threshold": 15
+        },
+        {
+            "sku": "HOME-003",
+            "name": "Bamboo Kitchen Organizer",
+            "description": "<p>Declutter your kitchen with our eco-friendly bamboo organizer. Multiple compartments for utensils, spices, and accessories. Water-resistant finish and anti-slip base.</p>",
+            "short_description": "Eco-friendly bamboo kitchen storage organizer.",
+            "category": "Home & Garden",
+            "cost_price": 900,
+            "regular_price": 1799,
+            "sale_price": 1499,
+            "selling_price": 1499,
+            "stock_quantity": 110,
+            "weight": 0.8,
+            "visibility": "public",
+            "tags": "organizer, kitchen, bamboo, storage, eco, home",
+            "manage_stock": True,
+            "low_stock_threshold": 20
+        },
+        {
+            "sku": "SPRT-001",
+            "name": "Professional Yoga Mat 6mm",
+            "description": "<p>Elevate your practice with our professional-grade yoga mat. 6mm thickness provides excellent cushioning. Non-slip surface, alignment guides, and eco-friendly TPE material. Includes carrying strap.</p>",
+            "short_description": "6mm professional yoga mat with alignment guides.",
+            "category": "Sports",
+            "cost_price": 1100,
+            "regular_price": 2499,
+            "sale_price": None,
+            "selling_price": 2499,
+            "stock_quantity": 90,
+            "weight": 1.5,
+            "visibility": "public",
+            "tags": "yoga, mat, fitness, exercise, gym, sports, wellness",
+            "manage_stock": True,
+            "low_stock_threshold": 15
+        },
+        {
+            "sku": "SPRT-002",
+            "name": "Adjustable Dumbbell Set 20kg",
+            "description": "<p>Complete home gym solution with our adjustable dumbbells. Easily switch between 2kg to 20kg per hand. Space-saving design replaces 10 individual weights. Chrome-plated for durability.</p>",
+            "short_description": "Adjustable dumbbells 2-20kg per hand with storage.",
+            "category": "Sports",
+            "cost_price": 8500,
+            "regular_price": 14999,
+            "sale_price": 12999,
+            "selling_price": 12999,
+            "stock_quantity": 40,
+            "weight": 42.0,
+            "visibility": "public",
+            "tags": "dumbbell, weights, fitness, gym, home, workout, strength",
+            "manage_stock": True,
+            "low_stock_threshold": 10
+        },
+        {
+            "sku": "SPRT-003",
+            "name": "Resistance Bands Set (5 pcs)",
+            "description": "<p>Versatile workout anywhere with our 5-piece resistance band set. Different resistance levels from light to extra heavy. Includes door anchor, handles, and ankle straps. Portable carrying bag included.</p>",
+            "short_description": "5-piece resistance band set with accessories.",
+            "category": "Sports",
+            "cost_price": 800,
+            "regular_price": 1799,
+            "sale_price": 1499,
+            "selling_price": 1499,
+            "stock_quantity": 130,
+            "weight": 0.5,
+            "visibility": "public",
+            "tags": "resistance, bands, fitness, workout, portable, gym, exercise",
+            "manage_stock": True,
+            "low_stock_threshold": 25
+        },
+        {
+            "sku": "ELEC-004",
+            "name": "Wireless Charging Pad 15W",
+            "description": "<p>Fast wireless charging for all Qi-enabled devices. 15W max output for quick charging. LED indicator, foreign object detection, and overheat protection. Slim design fits any desk.</p>",
+            "short_description": "15W fast wireless charging pad with safety features.",
+            "category": "Electronics",
+            "cost_price": 1200,
+            "regular_price": 2499,
+            "sale_price": 1999,
+            "selling_price": 1999,
+            "stock_quantity": 200,
+            "weight": 0.15,
+            "visibility": "public",
+            "tags": "charger, wireless, fast, qi, phone, tech, accessories",
+            "manage_stock": True,
+            "low_stock_threshold": 40
+        },
+        {
+            "sku": "CLTH-004",
+            "name": "Sports Performance Polo",
+            "description": "<p>Stay cool under pressure with our moisture-wicking polo. Breathable fabric, UV protection, and anti-odor technology. Perfect for golf, tennis, or casual wear.</p>",
+            "short_description": "Moisture-wicking sports polo with UV protection.",
+            "category": "Clothing",
+            "cost_price": 1100,
+            "regular_price": 2499,
+            "sale_price": None,
+            "selling_price": 2499,
+            "stock_quantity": 160,
+            "weight": 0.25,
+            "visibility": "public",
+            "tags": "polo, sports, performance, golf, tennis, clothing, activewear",
+            "manage_stock": True,
+            "low_stock_threshold": 30
+        },
+        {
+            "sku": "HOME-004",
+            "name": "Aromatherapy Essential Oil Diffuser",
+            "description": "<p>Create a calming atmosphere with our ultrasonic diffuser. 300ml capacity, 7 LED mood lights, and whisper-quiet operation. Auto shut-off when water runs out. Timer settings up to 6 hours.</p>",
+            "short_description": "Ultrasonic aromatherapy diffuser with mood lighting.",
+            "category": "Home & Garden",
+            "cost_price": 1400,
+            "regular_price": 2999,
+            "sale_price": 2499,
+            "selling_price": 2499,
+            "stock_quantity": 85,
+            "weight": 0.45,
+            "visibility": "public",
+            "tags": "diffuser, aromatherapy, essential, oil, home, wellness, relaxation",
+            "manage_stock": True,
+            "low_stock_threshold": 15
+        },
     ]
     
     product_ids = {}
     for p in demo_products:
         pid = str(uuid.uuid4())
-        product_ids[p["sku"]] = {"id": pid, "name": p["name"], "price": p["selling_price"]}
+        product_ids[p["sku"]] = {
+            "id": pid, 
+            "name": p["name"], 
+            "sku": p["sku"],
+            "cost_price": p["cost_price"],
+            "selling_price": p["selling_price"],
+            "category": p["category"]
+        }
         await db.products.insert_one({
             "id": pid,
             "company_id": company_id,
             **p,
-            "low_stock_threshold": 10,
             "woo_product_id": None,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "attributes": [],
+            "created_at": timestamp,
+            "updated_at": timestamp
         })
     
-    # Create demo customers
+    # ============== CUSTOMERS (10 customers with full details) ==============
     demo_customers = [
-        {"name": "Kasun Perera", "email": "kasun@example.com", "phone": "+94771234567", "address": "123 Galle Road, Colombo"},
-        {"name": "Nimali Silva", "email": "nimali@example.com", "phone": "+94772345678", "address": "456 Kandy Road, Kandy"},
-        {"name": "Ruwan Fernando", "email": "ruwan@example.com", "phone": "+94773456789", "address": "789 Beach Road, Galle"},
-        {"name": "Chamari Jayawardena", "email": "chamari@example.com", "phone": "+94774567890", "address": "321 Hill Street, Nuwara Eliya"},
-        {"name": "Dinesh Kumara", "email": "dinesh@example.com", "phone": "+94775678901", "address": "654 Lake Road, Negombo"},
+        {
+            "name": "Kasun Rajitha Perera",
+            "email": "kasun.perera@gmail.com",
+            "phone": "+94771234567",
+            "mobile": "+94711234567",
+            "address": "No. 123, Galle Road, Colombo 03",
+            "city": "Colombo",
+            "country": "Sri Lanka",
+            "postal_code": "00300",
+            "company_name": "Perera Holdings",
+            "tax_id": "TIN987654321",
+            "customer_type": "Regular",
+            "credit_limit": 100000,
+            "notes": "VIP customer, prefers cash on delivery"
+        },
+        {
+            "name": "Nimali Jayasinghe Silva",
+            "email": "nimali.silva@yahoo.com",
+            "phone": "+94772345678",
+            "mobile": "+94712345678",
+            "address": "No. 456, Kandy Road, Peradeniya",
+            "city": "Kandy",
+            "country": "Sri Lanka",
+            "postal_code": "20400",
+            "company_name": None,
+            "tax_id": None,
+            "customer_type": "Regular",
+            "credit_limit": 50000,
+            "notes": "Frequent buyer of home products"
+        },
+        {
+            "name": "Ruwan Bandara Fernando",
+            "email": "ruwan.fernando@hotmail.com",
+            "phone": "+94773456789",
+            "mobile": "+94713456789",
+            "address": "No. 789, Beach Road, Unawatuna",
+            "city": "Galle",
+            "country": "Sri Lanka",
+            "postal_code": "80600",
+            "company_name": "Fernando Enterprises",
+            "tax_id": "TIN876543210",
+            "customer_type": "Wholesale",
+            "credit_limit": 250000,
+            "notes": "Wholesale customer, orders monthly"
+        },
+        {
+            "name": "Chamari Dilhani Jayawardena",
+            "email": "chamari.j@gmail.com",
+            "phone": "+94774567890",
+            "mobile": "+94714567890",
+            "address": "No. 321, Hill Street, Nuwara Eliya",
+            "city": "Nuwara Eliya",
+            "country": "Sri Lanka",
+            "postal_code": "22200",
+            "company_name": None,
+            "tax_id": None,
+            "customer_type": "Regular",
+            "credit_limit": 75000,
+            "notes": "Prefers eco-friendly products"
+        },
+        {
+            "name": "Dinesh Lakshman Kumara",
+            "email": "dinesh.kumara@outlook.com",
+            "phone": "+94775678901",
+            "mobile": "+94715678901",
+            "address": "No. 654, Lake Road, Negombo",
+            "city": "Negombo",
+            "country": "Sri Lanka",
+            "postal_code": "11500",
+            "company_name": "Kumara Sports",
+            "tax_id": "TIN765432109",
+            "customer_type": "Retail",
+            "credit_limit": 150000,
+            "notes": "Sports equipment buyer, gym owner"
+        },
+        {
+            "name": "Sachini Kaveesha Wickramasinghe",
+            "email": "sachini.w@gmail.com",
+            "phone": "+94776789012",
+            "mobile": "+94716789012",
+            "address": "No. 987, Temple Road, Anuradhapura",
+            "city": "Anuradhapura",
+            "country": "Sri Lanka",
+            "postal_code": "50000",
+            "company_name": None,
+            "tax_id": None,
+            "customer_type": "Regular",
+            "credit_limit": 50000,
+            "notes": "New customer, first purchase in electronics"
+        },
+        {
+            "name": "Prasanna Viraj De Silva",
+            "email": "prasanna.desilva@company.lk",
+            "phone": "+94777890123",
+            "mobile": "+94717890123",
+            "address": "No. 147, Main Street, Jaffna",
+            "city": "Jaffna",
+            "country": "Sri Lanka",
+            "postal_code": "40000",
+            "company_name": "De Silva Trading",
+            "tax_id": "TIN654321098",
+            "customer_type": "Wholesale",
+            "credit_limit": 300000,
+            "notes": "Large volume orders, net 45 payment terms"
+        },
+        {
+            "name": "Thilini Madhushani Rathnayake",
+            "email": "thilini.r@gmail.com",
+            "phone": "+94778901234",
+            "mobile": "+94718901234",
+            "address": "No. 258, Station Road, Matara",
+            "city": "Matara",
+            "country": "Sri Lanka",
+            "postal_code": "81000",
+            "company_name": None,
+            "tax_id": None,
+            "customer_type": "Regular",
+            "credit_limit": 60000,
+            "notes": "Fashion conscious, buys clothing regularly"
+        },
     ]
     
-    customer_ids = []
+    customer_ids = {}
     for c in demo_customers:
         cid = str(uuid.uuid4())
-        customer_ids.append({"id": cid, "name": c["name"]})
+        customer_ids[c["name"]] = {"id": cid, "name": c["name"], "type": c.get("customer_type")}
         await db.customers.insert_one({
             "id": cid,
             "company_id": company_id,
             **c,
+            "total_purchases": 0,
+            "total_paid": 0,
+            "outstanding_balance": 0,
+            "is_active": True,
             "woo_customer_id": None,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "created_at": timestamp,
+            "updated_at": timestamp
         })
     
-    # Create demo suppliers
-    demo_suppliers = [
-        {"name": "Tech Imports Ltd", "email": "tech@imports.lk", "phone": "+94112345678", "contact_person": "Mr. Silva"},
-        {"name": "Fashion Wholesale", "email": "fashion@wholesale.lk", "phone": "+94112345679", "contact_person": "Mrs. Fernando"},
-        {"name": "Home Essentials", "email": "home@essentials.lk", "phone": "+94112345680", "contact_person": "Mr. Perera"},
+    # ============== PURCHASE ORDERS (5 POs with full details) ==============
+    po_list = [
+        {
+            "supplier": "Tech Imports Ltd",
+            "items": [
+                {"sku": "ELEC-001", "qty": 50, "discount_percent": 5},
+                {"sku": "ELEC-002", "qty": 30, "discount_percent": 3},
+                {"sku": "ELEC-003", "qty": 25, "discount_percent": 0},
+            ],
+            "status": "received",
+            "payment_status": "paid",
+            "days_ago": 15,
+            "delivery_address": "Warehouse A, No. 45, Industrial Zone, Colombo 15",
+            "shipping_method": "Standard Delivery",
+            "expected_delivery": 7,
+            "notes": "Urgent order for holiday season stock replenishment"
+        },
+        {
+            "supplier": "Fashion Wholesale Co",
+            "items": [
+                {"sku": "CLTH-001", "qty": 100, "discount_percent": 10},
+                {"sku": "CLTH-002", "qty": 75, "discount_percent": 8},
+                {"sku": "CLTH-003", "qty": 50, "discount_percent": 5},
+            ],
+            "status": "pending",
+            "payment_status": "partial",
+            "paid_percent": 50,
+            "days_ago": 5,
+            "delivery_address": "Warehouse B, No. 78, Free Trade Zone, Katunayake",
+            "shipping_method": "Express Delivery",
+            "expected_delivery": 3,
+            "notes": "New season collection, handle with care"
+        },
+        {
+            "supplier": "Home Essentials PVT",
+            "items": [
+                {"sku": "HOME-001", "qty": 40, "discount_percent": 0},
+                {"sku": "HOME-002", "qty": 30, "discount_percent": 5},
+                {"sku": "HOME-003", "qty": 35, "discount_percent": 0},
+            ],
+            "status": "pending",
+            "payment_status": "unpaid",
+            "days_ago": 2,
+            "delivery_address": "Main Store, No. 123, Galle Road, Colombo 03",
+            "shipping_method": "Standard Delivery",
+            "expected_delivery": 5,
+            "notes": "Q1 inventory restock"
+        },
+        {
+            "supplier": "Sports Zone International",
+            "items": [
+                {"sku": "SPRT-001", "qty": 45, "discount_percent": 5},
+                {"sku": "SPRT-002", "qty": 20, "discount_percent": 10},
+                {"sku": "SPRT-003", "qty": 60, "discount_percent": 8},
+            ],
+            "status": "received",
+            "payment_status": "paid",
+            "days_ago": 20,
+            "delivery_address": "Warehouse A, No. 45, Industrial Zone, Colombo 15",
+            "shipping_method": "Standard Delivery",
+            "expected_delivery": 7,
+            "notes": "Fitness equipment for new gym clients"
+        },
+        {
+            "supplier": "Global Gadgets Inc",
+            "items": [
+                {"sku": "ELEC-004", "qty": 100, "discount_percent": 15},
+                {"sku": "CLTH-004", "qty": 80, "discount_percent": 0},
+            ],
+            "status": "pending",
+            "payment_status": "unpaid",
+            "days_ago": 1,
+            "delivery_address": "Warehouse B, No. 78, Free Trade Zone, Katunayake",
+            "shipping_method": "Air Freight",
+            "expected_delivery": 10,
+            "notes": "International order, customs clearance required"
+        },
     ]
     
-    supplier_ids = []
-    for s in demo_suppliers:
-        sid = str(uuid.uuid4())
-        supplier_ids.append({"id": sid, "name": s["name"]})
-        await db.suppliers.insert_one({
-            "id": sid,
-            "company_id": company_id,
-            **s,
-            "address": "Colombo, Sri Lanka",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        })
-    
-    # Create demo sales orders
-    for i, cust in enumerate(customer_ids[:3]):
+    po_ids = []
+    for po_data in po_list:
+        supplier = supplier_ids.get(po_data["supplier"])
+        if not supplier:
+            continue
+            
         items = []
-        product_list = list(product_ids.values())[:3]
-        for j, prod in enumerate(product_list):
-            qty = (j + 1) * 2
+        subtotal = 0
+        for item_data in po_data["items"]:
+            product = product_ids.get(item_data["sku"])
+            if not product:
+                continue
+            
+            unit_price = product["cost_price"]
+            discount = item_data.get("discount_percent", 0)
+            discounted_price = unit_price * (1 - discount/100)
+            line_total = discounted_price * item_data["qty"]
+            subtotal += line_total
+            
             items.append({
-                "product_id": prod["id"],
-                "product_name": prod["name"],
-                "sku": list(product_ids.keys())[j],
-                "quantity": qty,
-                "unit_price": prod["price"],
-                "total": prod["price"] * qty
+                "product_id": product["id"],
+                "product_name": product["name"],
+                "sku": item_data["sku"],
+                "quantity": item_data["qty"],
+                "unit_price": unit_price,
+                "discount_percent": discount,
+                "discounted_price": discounted_price,
+                "total": line_total
             })
         
-        subtotal = sum(item["total"] for item in items)
-        order_id = str(uuid.uuid4())
-        order_number = f"SO-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+        if not items:
+            continue
+            
+        po_id = str(uuid.uuid4())
+        order_number = f"PO-{(datetime.now(timezone.utc) - timedelta(days=po_data['days_ago'])).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
         
-        status = ["completed", "pending", "completed"][i]
-        payment_status = ["paid", "unpaid", "partial"][i]
-        paid = [subtotal, 0, subtotal * 0.5][i]
+        paid_amount = 0
+        if po_data["payment_status"] == "paid":
+            paid_amount = subtotal
+        elif po_data["payment_status"] == "partial":
+            paid_amount = subtotal * po_data.get("paid_percent", 50) / 100
         
-        await db.sales_orders.insert_one({
-            "id": order_id,
+        po_record = {
+            "id": po_id,
             "order_number": order_number,
             "company_id": company_id,
-            "customer_id": cust["id"],
-            "customer_name": cust["name"],
+            "supplier_id": supplier["id"],
+            "supplier_name": supplier["name"],
             "items": items,
             "subtotal": subtotal,
-            "discount": 0,
-            "tax": 0,
-            "total": subtotal,
-            "status": status,
-            "payment_status": payment_status,
-            "paid_amount": paid,
-            "notes": None,
-            "woo_order_id": None,
+            "tax_amount": subtotal * 0.08,  # 8% tax
+            "shipping_cost": 1500,
+            "total": subtotal + (subtotal * 0.08) + 1500,
+            "status": po_data["status"],
+            "payment_status": po_data["payment_status"],
+            "paid_amount": paid_amount,
+            "delivery_address": po_data["delivery_address"],
+            "shipping_method": po_data["shipping_method"],
+            "expected_delivery_date": (datetime.now(timezone.utc) + timedelta(days=po_data["expected_delivery"])).isoformat(),
+            "notes": po_data["notes"],
             "created_by": user_id,
-            "created_at": (datetime.now(timezone.utc) - timedelta(days=i*2)).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        })
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=po_data["days_ago"])).isoformat(),
+            "updated_at": timestamp
+        }
+        await db.purchase_orders.insert_one(po_record)
+        po_ids.append({"id": po_id, "number": order_number, "status": po_data["status"], "supplier": supplier["name"]})
         
-        # Accounting entry
-        await db.accounting_entries.insert_one({
-            "id": str(uuid.uuid4()),
-            "company_id": company_id,
-            "entry_type": "income",
-            "category": "Sales",
-            "amount": subtotal,
-            "description": f"Sales Order {order_number}",
-            "reference_type": "sales_order",
-            "reference_id": order_id,
-            "created_by": user_id,
-            "created_at": (datetime.now(timezone.utc) - timedelta(days=i*2)).isoformat()
-        })
-    
-    # Create demo purchase orders
-    for i, supp in enumerate(supplier_ids[:2]):
-        items = []
-        product_list = list(product_ids.values())[i*2:(i+1)*2+1]
-        for j, prod in enumerate(product_list):
-            cost = prod["price"] * 0.6  # 60% of selling price
-            qty = 20
-            items.append({
-                "product_id": prod["id"],
-                "product_name": prod["name"],
-                "sku": list(product_ids.keys())[i*2+j],
-                "quantity": qty,
-                "unit_price": cost,
-                "total": cost * qty
-            })
-        
-        subtotal = sum(item["total"] for item in items)
-        order_id = str(uuid.uuid4())
-        order_number = f"PO-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
-        
-        await db.purchase_orders.insert_one({
-            "id": order_id,
-            "order_number": order_number,
-            "company_id": company_id,
-            "supplier_id": supp["id"],
-            "supplier_name": supp["name"],
-            "items": items,
-            "subtotal": subtotal,
-            "total": subtotal,
-            "status": "received" if i == 0 else "pending",
-            "payment_status": "paid" if i == 0 else "unpaid",
-            "paid_amount": subtotal if i == 0 else 0,
-            "notes": None,
-            "created_by": user_id,
-            "created_at": (datetime.now(timezone.utc) - timedelta(days=i*3)).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        })
-        
-        # Accounting entry
+        # Create accounting entry for purchases
         await db.accounting_entries.insert_one({
             "id": str(uuid.uuid4()),
             "company_id": company_id,
             "entry_type": "expense",
-            "category": "Purchases",
-            "amount": subtotal,
-            "description": f"Purchase Order {order_number}",
+            "category": "Inventory Purchases",
+            "amount": po_record["total"],
+            "description": f"Purchase Order {order_number} from {supplier['name']}",
             "reference_type": "purchase_order",
-            "reference_id": order_id,
+            "reference_id": po_id,
             "created_by": user_id,
-            "created_at": (datetime.now(timezone.utc) - timedelta(days=i*3)).isoformat()
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=po_data["days_ago"])).isoformat()
         })
     
-    return {"message": "Demo data seeded successfully"}
+    # ============== GOODS RECEIVED NOTES (3 GRNs) ==============
+    grn_list = [
+        {
+            "supplier": "Tech Imports Ltd",
+            "items": [
+                {"sku": "ELEC-001", "qty": 50, "cost": 4500, "regular": 7999, "sale": 6999},
+                {"sku": "ELEC-002", "qty": 30, "cost": 3500, "regular": 5999, "sale": None},
+            ],
+            "days_ago": 10,
+            "notes": "Electronics shipment received in good condition"
+        },
+        {
+            "supplier": "Sports Zone International",
+            "items": [
+                {"sku": "SPRT-001", "qty": 45, "cost": 1100, "regular": 2499, "sale": None},
+                {"sku": "SPRT-002", "qty": 20, "cost": 8500, "regular": 14999, "sale": 12999},
+            ],
+            "days_ago": 15,
+            "notes": "Sports equipment delivery complete"
+        },
+        {
+            "supplier": "Home Essentials PVT",
+            "items": [
+                {"sku": "HOME-001", "qty": 40, "cost": 1500, "regular": 2999, "sale": 2499},
+                {"sku": "HOME-002", "qty": 30, "cost": 1200, "regular": 2499, "sale": None},
+            ],
+            "days_ago": 8,
+            "notes": "Home products received, quality verified"
+        },
+    ]
+    
+    for grn_data in grn_list:
+        supplier = supplier_ids.get(grn_data["supplier"])
+        if not supplier:
+            continue
+            
+        grn_items = []
+        total_cost = 0
+        
+        for item_data in grn_data["items"]:
+            product = product_ids.get(item_data["sku"])
+            if not product:
+                continue
+                
+            line_cost = item_data["cost"] * item_data["qty"]
+            total_cost += line_cost
+            
+            grn_items.append({
+                "product_id": product["id"],
+                "product_name": product["name"],
+                "sku": item_data["sku"],
+                "quantity": item_data["qty"],
+                "cost_price": item_data["cost"],
+                "regular_price": item_data["regular"],
+                "sale_price": item_data["sale"],
+                "total_cost": line_cost
+            })
+        
+        if not grn_items:
+            continue
+            
+        grn_id = str(uuid.uuid4())
+        grn_number = f"GRN-{(datetime.now(timezone.utc) - timedelta(days=grn_data['days_ago'])).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+        
+        await db.grns.insert_one({
+            "id": grn_id,
+            "grn_number": grn_number,
+            "company_id": company_id,
+            "supplier_id": supplier["id"],
+            "supplier_name": supplier["name"],
+            "received_date": (datetime.now(timezone.utc) - timedelta(days=grn_data["days_ago"])).isoformat(),
+            "items": grn_items,
+            "total_cost": total_cost,
+            "status": "received",
+            "notes": grn_data["notes"],
+            "sync_to_woo": True,
+            "woo_sync_status": "pending",
+            "created_by": user_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=grn_data["days_ago"])).isoformat()
+        })
+        
+        # Create double-entry journal entry for GRN
+        await db.journal_entries.insert_one({
+            "id": str(uuid.uuid4()),
+            "company_id": company_id,
+            "date": (datetime.now(timezone.utc) - timedelta(days=grn_data["days_ago"])).isoformat(),
+            "description": f"Inventory Purchase - {grn_number} from {supplier['name']}",
+            "reference_type": "grn",
+            "reference_id": grn_id,
+            "entries": [
+                {"account_code": "1300", "account_name": "Inventory", "debit": total_cost, "credit": 0},
+                {"account_code": "2100", "account_name": "Accounts Payable", "debit": 0, "credit": total_cost}
+            ],
+            "total_debit": total_cost,
+            "total_credit": total_cost,
+            "status": "posted",
+            "is_auto_generated": True,
+            "created_by": user_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=grn_data["days_ago"])).isoformat()
+        })
+    
+    # ============== SALES ORDERS (8 orders with full details) ==============
+    sales_list = [
+        {
+            "customer": "Kasun Rajitha Perera",
+            "items": [
+                {"sku": "ELEC-001", "qty": 2},
+                {"sku": "ELEC-003", "qty": 1},
+                {"sku": "HOME-001", "qty": 1},
+            ],
+            "status": "completed",
+            "payment_status": "paid",
+            "payment_method": "Bank Transfer",
+            "days_ago": 12,
+            "shipping_address": "No. 123, Galle Road, Colombo 03",
+            "notes": "VIP customer order - express shipping"
+        },
+        {
+            "customer": "Nimali Jayasinghe Silva",
+            "items": [
+                {"sku": "HOME-001", "qty": 2},
+                {"sku": "HOME-002", "qty": 1},
+                {"sku": "HOME-004", "qty": 1},
+            ],
+            "status": "completed",
+            "payment_status": "paid",
+            "payment_method": "Cash",
+            "days_ago": 10,
+            "shipping_address": "No. 456, Kandy Road, Peradeniya",
+            "notes": "Gift wrapping requested"
+        },
+        {
+            "customer": "Ruwan Bandara Fernando",
+            "items": [
+                {"sku": "CLTH-001", "qty": 25},
+                {"sku": "CLTH-002", "qty": 15},
+                {"sku": "CLTH-003", "qty": 10},
+                {"sku": "CLTH-004", "qty": 20},
+            ],
+            "status": "processing",
+            "payment_status": "partial",
+            "paid_percent": 60,
+            "payment_method": "Bank Transfer",
+            "days_ago": 5,
+            "shipping_address": "No. 789, Beach Road, Unawatuna",
+            "notes": "Wholesale order - bulk discount applied"
+        },
+        {
+            "customer": "Dinesh Lakshman Kumara",
+            "items": [
+                {"sku": "SPRT-001", "qty": 5},
+                {"sku": "SPRT-002", "qty": 2},
+                {"sku": "SPRT-003", "qty": 3},
+            ],
+            "status": "completed",
+            "payment_status": "paid",
+            "payment_method": "Credit Card",
+            "days_ago": 8,
+            "shipping_address": "No. 654, Lake Road, Negombo",
+            "notes": "Gym equipment order"
+        },
+        {
+            "customer": "Sachini Kaveesha Wickramasinghe",
+            "items": [
+                {"sku": "ELEC-002", "qty": 1},
+                {"sku": "ELEC-004", "qty": 2},
+            ],
+            "status": "pending",
+            "payment_status": "unpaid",
+            "payment_method": None,
+            "days_ago": 2,
+            "shipping_address": "No. 987, Temple Road, Anuradhapura",
+            "notes": "Awaiting payment confirmation"
+        },
+        {
+            "customer": "Prasanna Viraj De Silva",
+            "items": [
+                {"sku": "ELEC-001", "qty": 30},
+                {"sku": "ELEC-002", "qty": 20},
+                {"sku": "ELEC-003", "qty": 15},
+                {"sku": "ELEC-004", "qty": 50},
+            ],
+            "status": "processing",
+            "payment_status": "partial",
+            "paid_percent": 40,
+            "payment_method": "Bank Transfer",
+            "days_ago": 3,
+            "shipping_address": "No. 147, Main Street, Jaffna",
+            "notes": "Large wholesale order - net 45 terms"
+        },
+        {
+            "customer": "Thilini Madhushani Rathnayake",
+            "items": [
+                {"sku": "CLTH-001", "qty": 3},
+                {"sku": "CLTH-002", "qty": 2},
+                {"sku": "CLTH-004", "qty": 2},
+            ],
+            "status": "completed",
+            "payment_status": "paid",
+            "payment_method": "Cash",
+            "days_ago": 6,
+            "shipping_address": "No. 258, Station Road, Matara",
+            "notes": "Regular customer - fashion items"
+        },
+        {
+            "customer": "Chamari Dilhani Jayawardena",
+            "items": [
+                {"sku": "HOME-003", "qty": 2},
+                {"sku": "HOME-004", "qty": 1},
+                {"sku": "SPRT-001", "qty": 1},
+            ],
+            "status": "cancelled",
+            "payment_status": "refunded",
+            "payment_method": "Bank Transfer",
+            "days_ago": 4,
+            "shipping_address": "No. 321, Hill Street, Nuwara Eliya",
+            "notes": "Order cancelled by customer - full refund processed"
+        },
+    ]
+    
+    for order_data in sales_list:
+        customer = customer_ids.get(order_data["customer"])
+        if not customer:
+            continue
+            
+        items = []
+        subtotal = 0
+        total_cost = 0
+        
+        for item_data in order_data["items"]:
+            product = product_ids.get(item_data["sku"])
+            if not product:
+                continue
+            
+            line_total = product["selling_price"] * item_data["qty"]
+            line_cost = product["cost_price"] * item_data["qty"]
+            subtotal += line_total
+            total_cost += line_cost
+            
+            items.append({
+                "product_id": product["id"],
+                "product_name": product["name"],
+                "sku": item_data["sku"],
+                "quantity": item_data["qty"],
+                "unit_price": product["selling_price"],
+                "cost_price": product["cost_price"],
+                "total": line_total
+            })
+        
+        if not items:
+            continue
+            
+        order_id = str(uuid.uuid4())
+        order_number = f"SO-{(datetime.now(timezone.utc) - timedelta(days=order_data['days_ago'])).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+        
+        discount = subtotal * 0.05 if len(items) > 3 else 0  # 5% discount for 4+ items
+        tax = (subtotal - discount) * 0.08  # 8% tax
+        total = subtotal - discount + tax
+        
+        paid_amount = 0
+        if order_data["payment_status"] == "paid":
+            paid_amount = total
+        elif order_data["payment_status"] == "partial":
+            paid_amount = total * order_data.get("paid_percent", 50) / 100
+        elif order_data["payment_status"] == "refunded":
+            paid_amount = 0
+        
+        order_record = {
+            "id": order_id,
+            "order_number": order_number,
+            "company_id": company_id,
+            "customer_id": customer["id"],
+            "customer_name": customer["name"],
+            "items": items,
+            "subtotal": subtotal,
+            "discount": discount,
+            "tax": tax,
+            "total": total,
+            "total_cost": total_cost,
+            "gross_profit": total - discount - total_cost,
+            "status": order_data["status"],
+            "payment_status": order_data["payment_status"],
+            "payment_method": order_data.get("payment_method"),
+            "paid_amount": paid_amount,
+            "shipping_address": order_data["shipping_address"],
+            "notes": order_data["notes"],
+            "woo_order_id": None,
+            "created_by": user_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=order_data["days_ago"])).isoformat(),
+            "updated_at": timestamp
+        }
+        await db.sales_orders.insert_one(order_record)
+        
+        # Create journal entries for completed/processing orders
+        if order_data["status"] not in ["cancelled", "returned"]:
+            # Revenue entry
+            await db.journal_entries.insert_one({
+                "id": str(uuid.uuid4()),
+                "company_id": company_id,
+                "date": (datetime.now(timezone.utc) - timedelta(days=order_data["days_ago"])).isoformat(),
+                "description": f"Sales Revenue - {order_number}",
+                "reference_type": "sales_order",
+                "reference_id": order_id,
+                "entries": [
+                    {
+                        "account_code": "1200" if order_data["payment_status"] != "paid" else "1100",
+                        "account_name": "Accounts Receivable" if order_data["payment_status"] != "paid" else "Cash/Bank",
+                        "debit": total,
+                        "credit": 0
+                    },
+                    {"account_code": "4100", "account_name": "Sales Revenue", "debit": 0, "credit": total}
+                ],
+                "total_debit": total,
+                "total_credit": total,
+                "status": "posted",
+                "is_auto_generated": True,
+                "created_by": user_id,
+                "created_at": (datetime.now(timezone.utc) - timedelta(days=order_data["days_ago"])).isoformat()
+            })
+            
+            # COGS entry
+            if total_cost > 0:
+                await db.journal_entries.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "company_id": company_id,
+                    "date": (datetime.now(timezone.utc) - timedelta(days=order_data["days_ago"])).isoformat(),
+                    "description": f"Cost of Goods Sold - {order_number}",
+                    "reference_type": "sales_order",
+                    "reference_id": order_id,
+                    "entries": [
+                        {"account_code": "5100", "account_name": "Cost of Goods Sold", "debit": total_cost, "credit": 0},
+                        {"account_code": "1300", "account_name": "Inventory", "debit": 0, "credit": total_cost}
+                    ],
+                    "total_debit": total_cost,
+                    "total_credit": total_cost,
+                    "status": "posted",
+                    "is_auto_generated": True,
+                    "created_by": user_id,
+                    "created_at": (datetime.now(timezone.utc) - timedelta(days=order_data["days_ago"])).isoformat()
+                })
+        
+        # Create accounting entry
+        if order_data["status"] not in ["cancelled"]:
+            await db.accounting_entries.insert_one({
+                "id": str(uuid.uuid4()),
+                "company_id": company_id,
+                "entry_type": "income" if order_data["status"] != "cancelled" else "expense",
+                "category": "Sales Revenue",
+                "amount": total if order_data["status"] != "cancelled" else -total,
+                "description": f"Sales Order {order_number} - {customer['name']}",
+                "reference_type": "sales_order",
+                "reference_id": order_id,
+                "created_by": user_id,
+                "created_at": (datetime.now(timezone.utc) - timedelta(days=order_data["days_ago"])).isoformat()
+            })
+    
+    # ============== INITIALIZE CHART OF ACCOUNTS ==============
+    default_accounts = [
+        # Assets (1xxx)
+        {"code": "1100", "name": "Cash/Bank", "category": "Assets", "type": "debit", "balance": 500000},
+        {"code": "1200", "name": "Accounts Receivable", "category": "Assets", "type": "debit", "balance": 125000},
+        {"code": "1300", "name": "Inventory", "category": "Assets", "type": "debit", "balance": 850000},
+        {"code": "1400", "name": "Prepaid Expenses", "category": "Assets", "type": "debit", "balance": 25000},
+        {"code": "1500", "name": "Fixed Assets", "category": "Assets", "type": "debit", "balance": 1500000},
+        
+        # Liabilities (2xxx)
+        {"code": "2100", "name": "Accounts Payable", "category": "Liabilities", "type": "credit", "balance": 175000},
+        {"code": "2200", "name": "Accrued Expenses", "category": "Liabilities", "type": "credit", "balance": 35000},
+        {"code": "2300", "name": "VAT Payable", "category": "Liabilities", "type": "credit", "balance": 45000},
+        {"code": "2400", "name": "Short-term Loans", "category": "Liabilities", "type": "credit", "balance": 200000},
+        
+        # Equity (3xxx)
+        {"code": "3100", "name": "Owner's Capital", "category": "Equity", "type": "credit", "balance": 2000000},
+        {"code": "3200", "name": "Retained Earnings", "category": "Equity", "type": "credit", "balance": 350000},
+        {"code": "3300", "name": "Current Year Earnings", "category": "Equity", "type": "credit", "balance": 95000},
+        
+        # Revenue (4xxx)
+        {"code": "4100", "name": "Sales Revenue", "category": "Revenue", "type": "credit", "balance": 1250000},
+        {"code": "4200", "name": "Sales Returns & Allowances", "category": "Revenue", "type": "debit", "balance": 15000},
+        {"code": "4300", "name": "Service Revenue", "category": "Revenue", "type": "credit", "balance": 75000},
+        {"code": "4400", "name": "Other Income", "category": "Revenue", "type": "credit", "balance": 25000},
+        
+        # Expenses (5xxx)
+        {"code": "5100", "name": "Cost of Goods Sold", "category": "Expenses", "type": "debit", "balance": 750000},
+        {"code": "5200", "name": "Salaries & Wages", "category": "Expenses", "type": "debit", "balance": 180000},
+        {"code": "5300", "name": "Rent Expense", "category": "Expenses", "type": "debit", "balance": 60000},
+        {"code": "5400", "name": "Utilities Expense", "category": "Expenses", "type": "debit", "balance": 25000},
+        {"code": "5500", "name": "Marketing Expense", "category": "Expenses", "type": "debit", "balance": 35000},
+        {"code": "5600", "name": "Office Supplies", "category": "Expenses", "type": "debit", "balance": 12000},
+        {"code": "5700", "name": "Depreciation Expense", "category": "Expenses", "type": "debit", "balance": 45000},
+        {"code": "5800", "name": "Insurance Expense", "category": "Expenses", "type": "debit", "balance": 18000},
+    ]
+    
+    for acc in default_accounts:
+        await db.accounts.insert_one({
+            "id": str(uuid.uuid4()),
+            "company_id": company_id,
+            **acc,
+            "current_balance": acc["balance"],
+            "is_system": True,
+            "created_at": timestamp
+        })
+    
+    # ============== NOTIFICATIONS ==============
+    notifications = [
+        {"type": "low_stock", "title": "Low Stock Alert", "message": "Adjustable Dumbbell Set is running low (40 units remaining)", "priority": "high"},
+        {"type": "payment", "title": "Payment Received", "message": "Payment of LKR 45,000 received from Kasun Rajitha Perera", "priority": "normal"},
+        {"type": "order", "title": "New Order", "message": "New wholesale order received from Prasanna Viraj De Silva", "priority": "high"},
+        {"type": "system", "title": "System Update", "message": "WooCommerce sync completed successfully", "priority": "low"},
+    ]
+    
+    for notif in notifications:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "company_id": company_id,
+            "user_id": user_id,
+            **notif,
+            "is_read": False,
+            "created_at": timestamp
+        })
+    
+    return {
+        "message": "Comprehensive demo data seeded successfully",
+        "data_created": {
+            "suppliers": len(demo_suppliers),
+            "products": len(demo_products),
+            "customers": len(demo_customers),
+            "purchase_orders": len(po_list),
+            "grns": len(grn_list),
+            "sales_orders": len(sales_list),
+            "accounts": len(default_accounts),
+            "notifications": len(notifications)
+        }
+    }
 
 # ============== ROOT ROUTE ==============
 
