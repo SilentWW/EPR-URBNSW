@@ -87,6 +87,7 @@ function AppRoutes() {
       <Route path="/sales-orders" element={<ProtectedRoute><SalesOrders /></ProtectedRoute>} />
       <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
       <Route path="/purchase-orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
+      <Route path="/grn" element={<ProtectedRoute><GRN /></ProtectedRoute>} />
       <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
       <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
