@@ -135,18 +135,22 @@ export default function GRN() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [grnsRes, suppliersRes, productsRes, skuRes, poRes] = await Promise.all([
+      const [grnsRes, suppliersRes, productsRes, skuRes, poRes, catRes, tagsRes] = await Promise.all([
         api.get('/grn'),
         api.get('/suppliers'),
         api.get('/products'),
         api.get('/grn/next-sku'),
-        api.get('/purchase-orders')
+        api.get('/purchase-orders'),
+        api.get('/woocommerce/categories').catch(() => ({ data: [] })),
+        api.get('/woocommerce/tags').catch(() => ({ data: [] }))
       ]);
       setGrns(grnsRes.data);
       setSuppliers(suppliersRes.data);
       setProducts(productsRes.data);
       setNextSku(skuRes.data.next_sku);
       setPurchaseOrders(poRes.data.filter(po => po.status === 'pending')); // Only pending POs
+      setWooCategories(catRes.data || []);
+      setWooTags(tagsRes.data || []);
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
