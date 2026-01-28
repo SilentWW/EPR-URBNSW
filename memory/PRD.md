@@ -46,6 +46,18 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [x] **WooCommerce Manual Sync UI** - Sync All, Products, Orders, Customers buttons
 - [x] **WooCommerce Auto Sync** - Automatic hourly sync with background scheduler
 
+### Phase 3 - GRN & Enhanced Products (COMPLETED ✅)
+- [x] **GRN (Goods Received Note)** - Full inventory receipt workflow
+  - [x] Auto-generate SKU (URBN0001, URBN0002...)
+  - [x] Cost Price (COGS), Regular Price, Sale Price fields
+  - [x] Product Description & Short Description
+  - [x] Visibility (Public/Private)
+  - [x] Tags (comma separated)
+  - [x] Weight (kg)
+  - [x] Stock Management enabled by default
+  - [x] **Automatic Finance Entries** - Debit Inventory, Credit Accounts Payable
+  - [x] **WooCommerce Sync** - Auto-sync products on GRN creation
+
 ## Technical Architecture
 
 ### Backend
