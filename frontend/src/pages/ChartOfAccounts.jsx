@@ -104,7 +104,7 @@ export default function ChartOfAccounts() {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/finance/chart-of-accounts');
+      const response = await api.get('/finance/chart-of-accounts');
       setAccounts(response.data);
     } catch (error) {
       if (error.response?.status === 404 || (Array.isArray(error.response?.data) && error.response?.data.length === 0)) {
@@ -119,7 +119,7 @@ export default function ChartOfAccounts() {
 
   const initializeAccounts = async () => {
     try {
-      await api.post('/api/finance/chart-of-accounts/initialize');
+      await api.post('/finance/chart-of-accounts/initialize');
       toast.success('Chart of accounts initialized');
       fetchAccounts();
     } catch (error) {
@@ -131,13 +131,13 @@ export default function ChartOfAccounts() {
     e.preventDefault();
     try {
       if (editingAccount) {
-        await api.put(`/api/finance/chart-of-accounts/${editingAccount.id}`, {
+        await api.put(`/finance/chart-of-accounts/${editingAccount.id}`, {
           name: formData.name,
           description: formData.description
         });
         toast.success('Account updated');
       } else {
-        await api.post('/api/finance/chart-of-accounts', formData);
+        await api.post('/finance/chart-of-accounts', formData);
         toast.success('Account created');
       }
       setIsModalOpen(false);
@@ -155,7 +155,7 @@ export default function ChartOfAccounts() {
     }
     if (!window.confirm('Are you sure you want to delete this account?')) return;
     try {
-      await api.delete(`/api/finance/chart-of-accounts/${account.id}`);
+      await api.delete(`/finance/chart-of-accounts/${account.id}`);
       toast.success('Account deleted');
       fetchAccounts();
     } catch (error) {
