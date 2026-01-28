@@ -836,7 +836,7 @@ async def get_sync_status(current_user: dict = Depends(get_current_user)):
     
     # Get company settings
     company = await db.companies.find_one({"id": company_id})
-    woo_settings = company.get("woo_settings", {}) if company else {}
+    woo_settings = (company.get("woo_settings") or {}) if company else {}
     
     # Get last sync
     last_sync = await db.woo_sync_logs.find_one(
