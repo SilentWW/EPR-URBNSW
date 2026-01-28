@@ -193,7 +193,8 @@ export default function SystemAdmin() {
 
   const handleDownloadBackup = async (backup) => {
     try {
-      window.open(`${api.defaults.baseURL}/api/admin/backups/${backup.id}/download`, '_blank');
+      const token = localStorage.getItem('erp_token');
+      window.open(`${api.defaults.baseURL}/admin/backups/${backup.id}/download?token=${token}`, '_blank');
     } catch (error) {
       toast.error('Failed to download backup');
     }
