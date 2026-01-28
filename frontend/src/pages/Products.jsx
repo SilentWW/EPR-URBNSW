@@ -309,12 +309,13 @@ export const Products = () => {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="sku">SKU *</Label>
+                  <Label htmlFor="sku">SKU {!selectedProduct && '(Auto-generated)'}</Label>
                   <Input
                     id="sku"
                     value={formData.sku}
                     onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                     required
+                    placeholder="URBN0001"
                     data-testid="product-sku"
                   />
                 </div>
