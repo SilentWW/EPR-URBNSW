@@ -57,6 +57,11 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Stock Management enabled by default
   - [x] **Automatic Finance Entries** - Debit Inventory, Credit Accounts Payable
   - [x] **WooCommerce Sync** - Auto-sync products on GRN creation
+  - [x] **Link PO to GRN** - Create GRN from existing Purchase Order
+  - [x] **SKU Field Logic** - SKU disabled when selecting existing product
+
+### Bug Fixes (Session - Jan 2026)
+- [x] **Supplier Creation Bug** - Fixed React crash "Objects are not valid as a React child" when Pydantic validation errors occurred. Error handling now properly extracts error messages from array/object format.
 
 ## Technical Architecture
 
