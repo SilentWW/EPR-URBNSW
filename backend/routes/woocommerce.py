@@ -825,3 +825,152 @@ async def _full_sync_task(company_id: str, sync_id: str, user_id: str):
                 "errors": [{"error": str(e)}]
             }}
         )
+
+
+# ============== SYNC STATUS ==============
+
+@router.get("/sync-status")
+async def get_sync_status(current_user: dict = Depends(get_current_user)):
+    """Get current sync status including auto-sync info"""
+    company_id = current_user["company_id"]
+    
+    # Get company settings
+    company = await db.companies.find_one({"id": company_id})
+    woo_settings = company.get("woo_settings", {}) if company else {}
+    
+    # Get last sync
+    last_sync = await db.woo_sync_logs.find_one(
+        {"company_id": company_id},
+        {"_id": 0},
+        sort=[("started_at", -1)]
+    )
+    
+    # Calculate next sync time if auto-sync is enabled
+    next_sync = None
+    auto_sync_enabled = woo_settings.get("auto_sync_enabled", False)
+    
+    if auto_sync_enabled and last_sync:
+        interval_minutes = woo_settings.get("auto_sync_interval", 60)
+        last_sync_time = datetime.fromisoformat(last_sync["started_at"].replace('Z', '+00:00'))
+        next_sync = (last_sync_time + timedelta(minutes=interval_minutes)).isoformat()
+    elif auto_sync_enabled:
+        # If no previous sync, next sync is now + interval
+        next_sync = (datetime.now(timezone.utc) + timedelta(minutes=60)).isoformat()
+    
+    return {
+        "auto_sync_enabled": auto_sync_enabled,
+        "auto_sync_interval": woo_settings.get("auto_sync_interval", 60),
+        "last_sync": last_sync["started_at"] if last_sync else None,
+        "last_sync_status": last_sync["status"] if last_sync else None,
+        "next_sync": next_sync,
+        "status": "active" if auto_sync_enabled else "disabled"
+    }
+
+# ============== AUTO SYNC SCHEDULER ==============
+
+async def run_auto_sync_for_company(company_id: str, user_id: str = "system"):
+    """Run automatic sync for a specific company"""
+    try:
+        sync_id = generate_id()
+        
+        # Create sync log
+        sync_record = {
+            "id": sync_id,
+            "company_id": company_id,
+            "sync_type": "auto_full",
+            "direction": "both",
+            "status": "in_progress",
+            "started_at": get_current_timestamp(),
+            "completed_at": None,
+            "sub_syncs": [],
+            "errors": [],
+            "is_auto": True
+        }
+        await db.woo_sync_logs.insert_one(sync_record)
+        
+        # Run the full sync task
+        await _full_sync_task(company_id, sync_id, user_id)
+        
+    except Exception as e:
+        print(f"Auto-sync failed for company {company_id}: {e}")
+
+async def auto_sync_scheduler():
+    """Background task that runs auto-sync for all enabled companies"""
+    global _auto_sync_running
+    
+    while _auto_sync_running:
+        try:
+            # Find all companies with auto-sync enabled
+            companies = await db.companies.find(
+                {"woo_settings.auto_sync_enabled": True, "woo_settings.enabled": True},
+                {"_id": 0, "id": 1, "woo_settings": 1}
+            ).to_list(1000)
+            
+            for company in companies:
+                company_id = company["id"]
+                woo_settings = company.get("woo_settings", {})
+                interval_minutes = woo_settings.get("auto_sync_interval", 60)
+                
+                # Check when last sync was run
+                last_sync = await db.woo_sync_logs.find_one(
+                    {"company_id": company_id, "is_auto": True},
+                    sort=[("started_at", -1)]
+                )
+                
+                should_sync = False
+                if not last_sync:
+                    should_sync = True
+                else:
+                    last_sync_time = datetime.fromisoformat(last_sync["started_at"].replace('Z', '+00:00'))
+                    time_since_last = datetime.now(timezone.utc) - last_sync_time
+                    if time_since_last >= timedelta(minutes=interval_minutes):
+                        should_sync = True
+                
+                if should_sync:
+                    print(f"Running auto-sync for company {company_id}")
+                    await run_auto_sync_for_company(company_id)
+            
+        except Exception as e:
+            print(f"Auto-sync scheduler error: {e}")
+        
+        # Sleep for 1 minute before checking again
+        await asyncio.sleep(60)
+
+def start_auto_sync_scheduler():
+    """Start the auto-sync background scheduler"""
+    global _auto_sync_task, _auto_sync_running
+    
+    if _auto_sync_running:
+        return
+    
+    _auto_sync_running = True
+    _auto_sync_task = asyncio.create_task(auto_sync_scheduler())
+    print("WooCommerce auto-sync scheduler started")
+
+def stop_auto_sync_scheduler():
+    """Stop the auto-sync background scheduler"""
+    global _auto_sync_task, _auto_sync_running
+    
+    _auto_sync_running = False
+    if _auto_sync_task:
+        _auto_sync_task.cancel()
+        _auto_sync_task = None
+    print("WooCommerce auto-sync scheduler stopped")
+
+# ============== MANUAL TRIGGER AUTO SYNC ==============
+
+@router.post("/trigger-auto-sync")
+async def trigger_auto_sync(
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """Manually trigger an auto-sync cycle"""
+    company_id = current_user["company_id"]
+    
+    background_tasks.add_task(
+        run_auto_sync_for_company,
+        company_id,
+        current_user["user_id"]
+    )
+    
+    return {"message": "Auto-sync triggered", "company_id": company_id}
