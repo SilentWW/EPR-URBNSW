@@ -1864,7 +1864,7 @@ async def root():
 app.include_router(api_router)
 
 # Import and configure new modular routers
-from routes import finance, admin, woocommerce
+from routes import finance, admin, woocommerce, grn
 
 # Set database and auth for finance router
 finance.set_db(db)
@@ -1880,6 +1880,10 @@ app.include_router(admin.router, prefix="/api")
 woocommerce.set_db(db)
 woocommerce.set_auth_dependency(get_current_user)
 app.include_router(woocommerce.router, prefix="/api")
+
+# Set database and auth for GRN router
+grn.set_db(db)
+app.include_router(grn.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
