@@ -92,7 +92,7 @@ export const Products = () => {
     fetchProducts();
   }, [search, categoryFilter]);
 
-  const handleOpenDialog = (product = null) => {
+  const handleOpenDialog = async (product = null) => {
     if (product) {
       setSelectedProduct(product);
       setFormData({
@@ -107,7 +107,16 @@ export const Products = () => {
       });
     } else {
       setSelectedProduct(null);
-      setFormData(initialFormData);
+      // Fetch next available SKU for new product
+      try {
+        const skuRes = await api.get('/grn/next-sku');
+        setFormData({
+          ...initialFormData,
+          sku: skuRes.data.next_sku
+        });
+      } catch (error) {
+        setFormData(initialFormData);
+      }
     }
     setDialogOpen(true);
   };
