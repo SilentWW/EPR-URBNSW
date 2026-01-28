@@ -49,17 +49,13 @@ const formatCurrency = (amount) => {
 const initialFormData = {
   sku: '',
   name: '',
-  description: '',
   category: '',
-  cost_price: '',
-  selling_price: '',
-  stock_quantity: '',
-  low_stock_threshold: '10',
 };
 
 export const Products = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [wooCategories, setWooCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
