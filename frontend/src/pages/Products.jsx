@@ -402,7 +402,7 @@ export const Products = () => {
               Delete Product
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{selectedProduct?.name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{selectedProduct?.name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
