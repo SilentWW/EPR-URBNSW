@@ -117,7 +117,7 @@ export const Dashboard = () => {
           <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
             Business Overview
           </h2>
-          <p className="text-slate-500 mt-1">Welcome back! Here's what's happening.</p>
+          <p className="text-slate-500 mt-1">Welcome back! Here&apos;s what&apos;s happening.</p>
         </div>
         <Button
           variant="outline"
