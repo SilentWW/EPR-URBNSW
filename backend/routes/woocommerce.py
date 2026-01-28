@@ -92,7 +92,7 @@ async def get_woo_client(company_id: str) -> WooCommerceClient:
 # ============== CONNECTION TEST ==============
 
 @router.get("/test-connection")
-async def test_connection(current_user: dict = Depends(lambda: get_current_user)):
+async def test_connection(current_user: dict = Depends(get_current_user)):
     """Test WooCommerce connection"""
     try:
         client = await get_woo_client(current_user["company_id"])
@@ -126,7 +126,7 @@ async def test_connection(current_user: dict = Depends(lambda: get_current_user)
 async def get_woo_products(
     page: int = 1,
     per_page: int = 20,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get products from WooCommerce"""
     client = await get_woo_client(current_user["company_id"])
@@ -146,7 +146,7 @@ async def get_woo_products(
 async def sync_products(
     background_tasks: BackgroundTasks,
     direction: str = "both",  # woo_to_erp, erp_to_woo, both
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Sync products between WooCommerce and ERP"""
     company_id = current_user["company_id"]
@@ -310,7 +310,7 @@ async def _sync_products_task(company_id: str, sync_id: str, direction: str, use
 @router.put("/products/{product_id}/sync-stock")
 async def sync_product_stock(
     product_id: str,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Sync single product stock to WooCommerce"""
     company_id = current_user["company_id"]
@@ -344,7 +344,7 @@ async def get_woo_orders(
     page: int = 1,
     per_page: int = 20,
     status: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get orders from WooCommerce"""
     client = await get_woo_client(current_user["company_id"])
@@ -365,7 +365,7 @@ async def get_woo_orders(
 async def sync_orders(
     background_tasks: BackgroundTasks,
     since_date: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Sync orders from WooCommerce to ERP"""
     company_id = current_user["company_id"]
@@ -590,7 +590,7 @@ async def _get_or_create_woo_customer(company_id: str, billing: dict, woo_custom
 @router.post("/customers/sync")
 async def sync_customers(
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Sync customers from WooCommerce"""
     company_id = current_user["company_id"]
@@ -707,7 +707,7 @@ async def _sync_customers_task(company_id: str, sync_id: str):
 async def get_sync_logs(
     sync_type: Optional[str] = None,
     limit: int = 50,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get sync operation logs"""
     query = {"company_id": current_user["company_id"]}
@@ -722,7 +722,7 @@ async def get_sync_logs(
     return logs
 
 @router.get("/sync-logs/{sync_id}")
-async def get_sync_log(sync_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def get_sync_log(sync_id: str, current_user: dict = Depends(get_current_user)):
     """Get specific sync operation details"""
     log = await db.woo_sync_logs.find_one(
         {"id": sync_id, "company_id": current_user["company_id"]},
@@ -738,7 +738,7 @@ async def get_sync_log(sync_id: str, current_user: dict = Depends(lambda: get_cu
 @router.post("/full-sync")
 async def full_sync(
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Perform full sync of all data"""
     company_id = current_user["company_id"]
