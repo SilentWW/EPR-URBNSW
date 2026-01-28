@@ -84,6 +84,16 @@ export const Products = () => {
     }
   };
 
+  const fetchWooCategories = async () => {
+    try {
+      // TODO: Implement WooCommerce categories API call
+      const response = await api.get('/woo/categories');
+      setWooCategories(response.data);
+    } catch (error) {
+      console.error('Failed to fetch WooCommerce categories:', error);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
   }, [search, categoryFilter]);
