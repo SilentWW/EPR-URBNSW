@@ -121,7 +121,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `GET /report/summary` - GRN summary report
 - `GET /` - List all GRNs
 - `GET /{id}` - Get GRN details
-- `POST /` - Create GRN (auto-creates products, inventory, finance entries)
+- `POST /` - Create GRN (auto-creates products, inventory, finance entries, supports po_id to link PO)
 - `POST /{id}/resync` - Re-sync GRN products to WooCommerce
 - `DELETE /{id}` - Delete GRN
 
