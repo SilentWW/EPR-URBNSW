@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { companyAPI, usersAPI } from '../lib/api';
+import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -31,7 +32,23 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Plus, Loader2, Building2, Users, ShoppingBag, Trash2 } from 'lucide-react';
+import { 
+  Plus, 
+  Loader2, 
+  Building2, 
+  Users, 
+  ShoppingBag, 
+  Trash2,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Package,
+  ShoppingCart,
+  UserCheck,
+  Zap,
+  AlertCircle
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Settings = () => {
