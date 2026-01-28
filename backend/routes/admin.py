@@ -36,7 +36,7 @@ def set_auth_dependency(auth_func):
     pass
 
 # Collections categorized
-MASTER_COLLECTIONS = ["users", "companies", "accounts", "tax_rates", "products", "customers", "suppliers"]
+MASTER_COLLECTIONS = ["users", "accounts", "tax_rates", "products", "customers", "suppliers"]
 TRANSACTIONAL_COLLECTIONS = [
     "sales_orders", "purchase_orders", "payments", "inventory_movements",
     "journal_entries", "accounting_entries", "bank_transactions",
