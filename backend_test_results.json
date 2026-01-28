@@ -1,0 +1,166 @@
+{
+  "timestamp": "2026-01-28T17:02:54.721439",
+  "total_tests": 26,
+  "passed_tests": 26,
+  "failed_tests": 0,
+  "success_rate": 100.0,
+  "failed_test_details": [],
+  "all_test_results": [
+    {
+      "test": "User Registration",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Current User",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Dashboard Summary",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Products List",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Create Product",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Single Product",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Update Product",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Delete Product",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Customers List",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Create Customer",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Single Customer",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Update Customer",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Delete Customer",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Create Customer for Order",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Create Product for Order",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Create Sales Order",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Sales Orders List",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Single Sales Order",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Company Info",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Update Company Info",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get WooCommerce Settings",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Update WooCommerce Settings",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Low Stock Products",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Inventory Valuation",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Sales Chart",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    },
+    {
+      "test": "Get Top Products",
+      "success": true,
+      "details": "Status: 200",
+      "error": ""
+    }
+  ]
+}
