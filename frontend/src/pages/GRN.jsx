@@ -749,12 +749,28 @@ export default function GRN() {
                           </Select>
                         </div>
                         <div className="col-span-2">
-                          <Label className="text-sm">Tags (comma separated)</Label>
+                          <div className="flex justify-between items-center mb-1">
+                            <Label className="text-sm">Tags (SEO - comma separated)</Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => suggestTags(idx)}
+                              className="text-xs text-indigo-600 hover:text-indigo-800 h-6 px-2"
+                            >
+                              ✨ Suggest SEO Tags
+                            </Button>
+                          </div>
                           <Input
                             value={item.tags}
                             onChange={(e) => handleItemChange(idx, 'tags', e.target.value)}
-                            placeholder="tag1, tag2, tag3"
+                            placeholder="fashion, clothing, style..."
                           />
+                          {wooTags.length > 0 && (
+                            <p className="text-xs text-slate-400 mt-1">
+                              Popular: {wooTags.slice(0, 5).map(t => t.name).join(', ')}
+                            </p>
+                          )}
                         </div>
                       </div>
 
