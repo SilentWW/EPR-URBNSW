@@ -385,82 +385,294 @@ export const Settings = () => {
 
         {/* WooCommerce Settings */}
         <TabsContent value="woocommerce">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-violet-100">
-                  <ShoppingBag className="w-5 h-5 text-violet-600" />
+          <div className="space-y-6">
+            {/* Connection Settings Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-100">
+                    <ShoppingBag className="w-5 h-5 text-violet-600" />
+                  </div>
+                  <div>
+                    <CardTitle>WooCommerce Connection</CardTitle>
+                    <CardDescription>Connect your WooCommerce store for two-way sync</CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>WooCommerce Integration</CardTitle>
-                  <CardDescription>Connect your WooCommerce store for two-way sync</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div>
-                  <p className="font-medium">Enable Integration</p>
-                  <p className="text-sm text-slate-500">Turn on/off WooCommerce sync</p>
-                </div>
-                <Switch
-                  checked={wooSettings.enabled}
-                  onCheckedChange={(checked) => setWooSettings({ ...wooSettings, enabled: checked })}
-                  data-testid="woo-enabled"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Store URL</Label>
-                  <Input
-                    value={wooSettings.store_url}
-                    onChange={(e) => setWooSettings({ ...wooSettings, store_url: e.target.value })}
-                    placeholder="https://yourstore.com"
-                    data-testid="woo-url"
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Enable Integration</p>
+                    <p className="text-sm text-slate-500">Turn on/off WooCommerce sync</p>
+                  </div>
+                  <Switch
+                    checked={wooSettings.enabled}
+                    onCheckedChange={(checked) => setWooSettings({ ...wooSettings, enabled: checked })}
+                    data-testid="woo-enabled"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Consumer Key</Label>
-                  <Input
-                    value={wooSettings.consumer_key}
-                    onChange={(e) => setWooSettings({ ...wooSettings, consumer_key: e.target.value })}
-                    placeholder="ck_xxxxxxxxxxxxxxxx"
-                    data-testid="woo-key"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Consumer Secret</Label>
-                  <Input
-                    type="password"
-                    value={wooSettings.consumer_secret}
-                    onChange={(e) => setWooSettings({ ...wooSettings, consumer_secret: e.target.value })}
-                    placeholder="cs_xxxxxxxxxxxxxxxx"
-                    data-testid="woo-secret"
-                  />
-                </div>
-              </div>
 
-              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                <p className="text-sm text-amber-800">
-                  <strong>Note:</strong> To get your API credentials, go to your WooCommerce store → 
-                  Settings → Advanced → REST API → Add Key. Select Read/Write permissions.
-                </p>
-              </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Store URL</Label>
+                    <Input
+                      value={wooSettings.store_url}
+                      onChange={(e) => setWooSettings({ ...wooSettings, store_url: e.target.value })}
+                      placeholder="https://yourstore.com"
+                      data-testid="woo-url"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Consumer Key</Label>
+                    <Input
+                      value={wooSettings.consumer_key}
+                      onChange={(e) => setWooSettings({ ...wooSettings, consumer_key: e.target.value })}
+                      placeholder="ck_xxxxxxxxxxxxxxxx"
+                      data-testid="woo-key"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Consumer Secret</Label>
+                    <Input
+                      type="password"
+                      value={wooSettings.consumer_secret}
+                      onChange={(e) => setWooSettings({ ...wooSettings, consumer_secret: e.target.value })}
+                      placeholder="cs_xxxxxxxxxxxxxxxx"
+                      data-testid="woo-secret"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSaveWoo}
-                  disabled={saving}
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                  data-testid="save-woo-btn"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Save WooCommerce Settings
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                {/* Connection Status */}
+                {connectionStatus && (
+                  <div className={`p-4 rounded-lg border ${connectionStatus.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <div className="flex items-center gap-2">
+                      {connectionStatus.success ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600" />
+                      )}
+                      <span className={connectionStatus.success ? 'text-green-700' : 'text-red-700'}>
+                        {connectionStatus.message}
+                      </span>
+                    </div>
+                    {connectionStatus.store_info && (
+                      <div className="mt-2 text-sm text-green-600">
+                        WooCommerce v{connectionStatus.store_info.wc_version} | WordPress v{connectionStatus.store_info.wp_version}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <p className="text-sm text-amber-800">
+                    <strong>Note:</strong> To get your API credentials, go to your WooCommerce store → 
+                    Settings → Advanced → REST API → Add Key. Select Read/Write permissions.
+                  </p>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={handleTestConnection}
+                    disabled={testingConnection || !wooSettings.store_url}
+                    data-testid="test-connection-btn"
+                  >
+                    {testingConnection ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                    Test Connection
+                  </Button>
+                  <Button
+                    onClick={handleSaveWoo}
+                    disabled={saving}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    data-testid="save-woo-btn"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Save Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Auto Sync Settings Card */}
+            {wooSettings.enabled && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Automatic Sync</CardTitle>
+                      <CardDescription>Configure automatic synchronization schedule</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">Enable Auto Sync</p>
+                      <p className="text-sm text-slate-500">Automatically sync every hour</p>
+                    </div>
+                    <Switch
+                      checked={wooSettings.auto_sync_enabled}
+                      onCheckedChange={(checked) => setWooSettings({ ...wooSettings, auto_sync_enabled: checked })}
+                      data-testid="auto-sync-enabled"
+                    />
+                  </div>
+
+                  {wooSettings.auto_sync_enabled && (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 text-green-700">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-medium">Auto sync is active</span>
+                      </div>
+                      <p className="text-sm text-green-600 mt-1">
+                        Products, orders, and customers will sync every hour automatically.
+                      </p>
+                    </div>
+                  )}
+
+                  {syncStatus && (
+                    <div className="p-4 bg-slate-50 rounded-lg">
+                      <p className="text-sm font-medium text-slate-600 mb-2">Last Sync Status</p>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-slate-500">Last Run:</span>
+                          <p className="font-medium">
+                            {syncStatus.last_sync ? new Date(syncStatus.last_sync).toLocaleString() : 'Never'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Next Run:</span>
+                          <p className="font-medium">
+                            {syncStatus.next_sync ? new Date(syncStatus.next_sync).toLocaleString() : 'Not scheduled'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Status:</span>
+                          <p className="font-medium capitalize">{syncStatus.status || 'Idle'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Manual Sync Card */}
+            {wooSettings.enabled && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-100">
+                      <RefreshCw className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Manual Sync</CardTitle>
+                      <CardDescription>Sync data manually when needed</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Button
+                      variant="outline"
+                      className="h-24 flex-col gap-2"
+                      onClick={() => handleManualSync('full')}
+                      disabled={syncing}
+                      data-testid="sync-all-btn"
+                    >
+                      {syncing ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
+                      <span>Sync All</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-24 flex-col gap-2"
+                      onClick={() => handleManualSync('products')}
+                      disabled={syncing}
+                      data-testid="sync-products-btn"
+                    >
+                      {syncing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Package className="w-6 h-6" />}
+                      <span>Sync Products</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-24 flex-col gap-2"
+                      onClick={() => handleManualSync('orders')}
+                      disabled={syncing}
+                      data-testid="sync-orders-btn"
+                    >
+                      {syncing ? <Loader2 className="w-6 h-6 animate-spin" /> : <ShoppingCart className="w-6 h-6" />}
+                      <span>Sync Orders</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-24 flex-col gap-2"
+                      onClick={() => handleManualSync('customers')}
+                      disabled={syncing}
+                      data-testid="sync-customers-btn"
+                    >
+                      {syncing ? <Loader2 className="w-6 h-6 animate-spin" /> : <UserCheck className="w-6 h-6" />}
+                      <span>Sync Customers</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sync History Card */}
+            {wooSettings.enabled && syncLogs.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-slate-100">
+                        <Clock className="w-5 h-5 text-slate-600" />
+                      </div>
+                      <div>
+                        <CardTitle>Sync History</CardTitle>
+                        <CardDescription>Recent synchronization logs</CardDescription>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={fetchSyncLogs}>
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="table-header">
+                        <TableHead className="table-header-cell">Type</TableHead>
+                        <TableHead className="table-header-cell">Status</TableHead>
+                        <TableHead className="table-header-cell">Items</TableHead>
+                        <TableHead className="table-header-cell">Started</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {syncLogs.map((log) => (
+                        <TableRow key={log.id} className="table-row">
+                          <TableCell className="table-cell capitalize">{log.sync_type}</TableCell>
+                          <TableCell className="table-cell">
+                            <Badge variant={log.status === 'completed' ? 'success' : log.status === 'failed' ? 'destructive' : 'secondary'}>
+                              {log.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="table-cell">
+                            {log.items_created || 0} created, {log.items_updated || 0} updated
+                          </TableCell>
+                          <TableCell className="table-cell text-slate-500">
+                            {new Date(log.started_at).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
 
         {/* User Management */}
