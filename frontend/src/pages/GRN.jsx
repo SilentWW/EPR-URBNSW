@@ -94,7 +94,7 @@ export default function GRN() {
         navigate('/grn', { replace: true });
       }
     }
-  }, [searchParams, purchaseOrders]);
+  }, [searchParams, purchaseOrders, navigate]);
 
   const createGRNFromPO = (po) => {
     setFromPO(po);
