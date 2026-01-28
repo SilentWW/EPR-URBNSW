@@ -20,7 +20,12 @@ import {
   Building2,
   ClipboardList,
   Boxes,
-  TrendingUp
+  TrendingUp,
+  BookOpen,
+  Calculator,
+  BarChart3,
+  Shield,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -46,7 +51,17 @@ const menuItems = [
   { icon: CreditCard, label: 'Payments', path: '/payments' },
   { icon: TrendingUp, label: 'Accounting', path: '/accounting' },
   { icon: PieChart, label: 'Reports', path: '/reports' },
+];
+
+const financeMenuItems = [
+  { icon: BookOpen, label: 'Chart of Accounts', path: '/chart-of-accounts' },
+  { icon: Calculator, label: 'General Ledger', path: '/general-ledger' },
+  { icon: BarChart3, label: 'Financial Reports', path: '/financial-reports' },
+];
+
+const adminMenuItems = [
   { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Shield, label: 'System Admin', path: '/system-admin' },
 ];
 
 export const Layout = ({ children }) => {
