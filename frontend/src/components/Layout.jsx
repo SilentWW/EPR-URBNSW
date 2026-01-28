@@ -44,6 +44,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Package, label: 'Products', path: '/products' },
   { icon: Boxes, label: 'Inventory', path: '/inventory' },
+  { icon: PackageCheck, label: 'GRN', path: '/grn' },
   { icon: Users, label: 'Customers', path: '/customers' },
   { icon: Truck, label: 'Suppliers', path: '/suppliers' },
   { icon: ShoppingCart, label: 'Sales Orders', path: '/sales-orders' },
