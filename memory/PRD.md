@@ -43,6 +43,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Restore (with preview and confirmation)
   - [x] System Information Dashboard
 - [x] **WooCommerce Integration Backend** - Two-way sync logic
+- [x] **WooCommerce Manual Sync UI** - Sync All, Products, Orders, Customers buttons
+- [x] **WooCommerce Auto Sync** - Automatic hourly sync with background scheduler
 
 ## Technical Architecture
 
