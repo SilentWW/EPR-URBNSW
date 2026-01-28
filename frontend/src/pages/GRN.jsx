@@ -439,10 +439,24 @@ export default function GRN() {
       </div>
 
       {/* Create GRN Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Goods Received Note</DialogTitle>
+            <DialogTitle>
+              {fromPO ? (
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" />
+                  Create GRN from {fromPO.order_number}
+                </div>
+              ) : (
+                'Create Goods Received Note'
+              )}
+            </DialogTitle>
+            {fromPO && (
+              <p className="text-sm text-slate-500 mt-1">
+                Receiving goods from supplier: {fromPO.supplier_name}
+              </p>
+            )}
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Header Info */}
