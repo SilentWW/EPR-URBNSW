@@ -80,8 +80,8 @@ export default function SystemAdmin() {
     try {
       setLoading(true);
       const [infoRes, backupsRes] = await Promise.all([
-        api.get('/api/admin/system-info'),
-        api.get('/api/admin/backups')
+        api.get('/admin/system-info'),
+        api.get('/admin/backups')
       ]);
       setSystemInfo(infoRes.data);
       setBackups(backupsRes.data);
@@ -94,7 +94,7 @@ export default function SystemAdmin() {
 
   const fetchResetPreview = async (type) => {
     try {
-      const response = await api.get('/api/admin/data-reset/preview', {
+      const response = await api.get('/admin/data-reset/preview', {
         params: { reset_type: type }
       });
       setResetPreview(response.data);
@@ -115,7 +115,7 @@ export default function SystemAdmin() {
     }
 
     try {
-      const response = await api.post('/api/admin/data-reset', {
+      const response = await api.post('/admin/data-reset', {
         reset_type: resetType,
         confirmation_code: resetConfirmation,
         keep_users: true,
@@ -133,7 +133,7 @@ export default function SystemAdmin() {
   const handleCreateBackup = async () => {
     try {
       setBackupLoading(true);
-      await api.post('/api/admin/backups', {
+      await api.post('/admin/backups', {
         name: backupName || undefined,
         description: backupDescription || undefined,
         backup_type: 'full'
@@ -152,7 +152,7 @@ export default function SystemAdmin() {
 
   const fetchRestorePreview = async (backupId) => {
     try {
-      const response = await api.get(`/api/admin/restore/preview/${backupId}`);
+      const response = await api.get(`/admin/restore/preview/${backupId}`);
       setRestorePreview(response.data);
     } catch (error) {
       toast.error('Failed to fetch restore preview');
@@ -166,7 +166,7 @@ export default function SystemAdmin() {
     }
 
     try {
-      const response = await api.post('/api/admin/restore', {
+      const response = await api.post('/admin/restore', {
         backup_id: selectedBackup.id,
         confirmation_code: restoreConfirmation
       });
@@ -183,7 +183,7 @@ export default function SystemAdmin() {
   const handleDeleteBackup = async (backupId) => {
     if (!window.confirm('Are you sure you want to delete this backup?')) return;
     try {
-      await api.delete(`/api/admin/backups/${backupId}`);
+      await api.delete(`/admin/backups/${backupId}`);
       toast.success('Backup deleted');
       fetchData();
     } catch (error) {
