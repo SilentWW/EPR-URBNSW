@@ -71,6 +71,55 @@ async def generate_sku(company_id: str, prefix: str = "URBN") -> str:
 
 # ============== GRN ENDPOINTS ==============
 
+@router.get("/next-sku")
+async def get_next_sku(
+    prefix: str = "URBN",
+    current_user: dict = Depends(get_current_user)
+):
+    """Get the next available SKU"""
+    sku = await generate_sku(current_user["company_id"], prefix)
+    return {"next_sku": sku}
+
+@router.get("/report/summary")
+async def get_grn_summary(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get GRN summary report"""
+    company_id = current_user["company_id"]
+    
+    query = {"company_id": company_id}
+    if start_date:
+        query["received_date"] = {"$gte": start_date}
+    if end_date:
+        if "received_date" in query:
+            query["received_date"]["$lte"] = end_date
+        else:
+            query["received_date"] = {"$lte": end_date}
+    
+    grns = await db.grns.find(query, {"_id": 0}).to_list(10000)
+    
+    total_grns = len(grns)
+    total_cost = sum(g["total_cost"] for g in grns)
+    total_items = sum(len(g["items"]) for g in grns)
+    
+    # Group by supplier
+    by_supplier = {}
+    for g in grns:
+        supplier = g["supplier_name"]
+        if supplier not in by_supplier:
+            by_supplier[supplier] = {"count": 0, "total": 0}
+        by_supplier[supplier]["count"] += 1
+        by_supplier[supplier]["total"] += g["total_cost"]
+    
+    return {
+        "total_grns": total_grns,
+        "total_cost": round(total_cost, 2),
+        "total_items": total_items,
+        "by_supplier": by_supplier
+    }
+
 @router.get("")
 async def get_grns(
     status: Optional[str] = None,
