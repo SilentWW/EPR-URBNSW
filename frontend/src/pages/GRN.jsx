@@ -83,6 +83,53 @@ export default function GRN() {
     fetchData();
   }, []);
 
+  // Check if coming from a PO
+  useEffect(() => {
+    const poId = searchParams.get('po_id');
+    if (poId && purchaseOrders.length > 0) {
+      const po = purchaseOrders.find(p => p.id === poId);
+      if (po) {
+        createGRNFromPO(po);
+        // Clear the URL parameter
+        navigate('/grn', { replace: true });
+      }
+    }
+  }, [searchParams, purchaseOrders]);
+
+  const createGRNFromPO = (po) => {
+    setFromPO(po);
+    
+    // Map PO items to GRN items
+    const grnItems = po.items.map(item => ({
+      product_id: item.product_id,
+      product_name: item.product_name,
+      sku: item.sku || '',
+      description: '',
+      short_description: '',
+      category: '',
+      quantity: item.quantity,
+      cost_price: item.unit_price,
+      regular_price: item.unit_price * 1.3, // Default 30% markup
+      sale_price: '',
+      weight: '',
+      visibility: 'public',
+      tags: '',
+      attributes: []
+    }));
+
+    setFormData({
+      supplier_id: po.supplier_id,
+      reference_number: po.order_number,
+      received_date: new Date().toISOString().split('T')[0],
+      notes: `Created from Purchase Order ${po.order_number}`,
+      sync_to_woo: true,
+      items: grnItems,
+      po_id: po.id
+    });
+    
+    setIsModalOpen(true);
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
