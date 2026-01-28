@@ -40,13 +40,17 @@ import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
 
 export default function GRN() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [grns, setGrns] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedGrn, setExpandedGrn] = useState(null);
   const [nextSku, setNextSku] = useState('');
+  const [fromPO, setFromPO] = useState(null); // Track if GRN is being created from a PO
   
   const [formData, setFormData] = useState({
     supplier_id: '',
@@ -54,7 +58,8 @@ export default function GRN() {
     received_date: new Date().toISOString().split('T')[0],
     notes: '',
     sync_to_woo: true,
-    items: []
+    items: [],
+    po_id: null
   });
 
   const emptyItem = {
