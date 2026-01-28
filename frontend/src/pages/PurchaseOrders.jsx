@@ -58,6 +58,7 @@ const paymentColors = {
 };
 
 export const PurchaseOrders = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
