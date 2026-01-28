@@ -90,7 +90,7 @@ class TestProductsSimplified:
     def test_get_product_categories(self, auth_token):
         """Test getting product categories"""
         headers = {"Authorization": f"Bearer {auth_token}"}
-        response = requests.get(f"{BASE_URL}/api/products/categories", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/products/categories/list", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
