@@ -72,7 +72,7 @@ DEFAULT_CHART_OF_ACCOUNTS = [
 ]
 
 @router.post("/chart-of-accounts/initialize")
-async def initialize_chart_of_accounts(current_user: dict = Depends(lambda: get_current_user)):
+async def initialize_chart_of_accounts(current_user: dict = Depends(get_current_user)):
     """Initialize default chart of accounts for the company"""
     company_id = current_user["company_id"]
     
@@ -114,7 +114,7 @@ async def initialize_chart_of_accounts(current_user: dict = Depends(lambda: get_
 async def get_chart_of_accounts(
     account_type: Optional[str] = None,
     include_inactive: bool = False,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get all accounts in the chart of accounts"""
     query = {"company_id": current_user["company_id"]}
@@ -128,7 +128,7 @@ async def get_chart_of_accounts(
     return accounts
 
 @router.get("/chart-of-accounts/{account_id}")
-async def get_account(account_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def get_account(account_id: str, current_user: dict = Depends(get_current_user)):
     """Get single account details with transaction history"""
     account = await db.accounts.find_one(
         {"id": account_id, "company_id": current_user["company_id"]},
@@ -149,7 +149,7 @@ async def get_account(account_id: str, current_user: dict = Depends(lambda: get_
     return {**account, "recent_transactions": journal_entries}
 
 @router.post("/chart-of-accounts")
-async def create_account(data: AccountCreate, current_user: dict = Depends(lambda: get_current_user)):
+async def create_account(data: AccountCreate, current_user: dict = Depends(get_current_user)):
     """Create a new account"""
     company_id = current_user["company_id"]
     
@@ -183,7 +183,7 @@ async def create_account(data: AccountCreate, current_user: dict = Depends(lambd
     return serialize_doc(account)
 
 @router.put("/chart-of-accounts/{account_id}")
-async def update_account(account_id: str, data: AccountUpdate, current_user: dict = Depends(lambda: get_current_user)):
+async def update_account(account_id: str, data: AccountUpdate, current_user: dict = Depends(get_current_user)):
     """Update an account"""
     account = await db.accounts.find_one(
         {"id": account_id, "company_id": current_user["company_id"]}
@@ -198,7 +198,7 @@ async def update_account(account_id: str, data: AccountUpdate, current_user: dic
     return await db.accounts.find_one({"id": account_id}, {"_id": 0})
 
 @router.delete("/chart-of-accounts/{account_id}")
-async def delete_account(account_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def delete_account(account_id: str, current_user: dict = Depends(get_current_user)):
     """Delete an account (only if not system account and no transactions)"""
     account = await db.accounts.find_one(
         {"id": account_id, "company_id": current_user["company_id"]}
@@ -267,7 +267,7 @@ async def get_journal_entries(
     end_date: Optional[str] = None,
     account_id: Optional[str] = None,
     reference_type: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get journal entries with optional filters"""
     query = {"company_id": current_user["company_id"]}
@@ -288,7 +288,7 @@ async def get_journal_entries(
     return entries
 
 @router.get("/journal-entries/{entry_id}")
-async def get_journal_entry(entry_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def get_journal_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
     """Get single journal entry with full details"""
     entry = await db.journal_entries.find_one(
         {"id": entry_id, "company_id": current_user["company_id"]},
@@ -307,7 +307,7 @@ async def get_journal_entry(entry_id: str, current_user: dict = Depends(lambda: 
     return entry
 
 @router.post("/journal-entries")
-async def create_journal_entry(data: JournalEntryCreate, current_user: dict = Depends(lambda: get_current_user)):
+async def create_journal_entry(data: JournalEntryCreate, current_user: dict = Depends(get_current_user)):
     """Create a manual journal entry with double-entry validation"""
     company_id = current_user["company_id"]
     
@@ -370,7 +370,7 @@ async def create_journal_entry(data: JournalEntryCreate, current_user: dict = De
     return serialize_doc(entry)
 
 @router.post("/journal-entries/{entry_id}/reverse")
-async def reverse_journal_entry(entry_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def reverse_journal_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
     """Create a reversing entry for a journal entry"""
     original = await db.journal_entries.find_one(
         {"id": entry_id, "company_id": current_user["company_id"]}
@@ -452,7 +452,7 @@ async def get_general_ledger(
     account_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get general ledger with running balances"""
     company_id = current_user["company_id"]
@@ -519,7 +519,7 @@ async def get_general_ledger(
 # ============== TAX MANAGEMENT ==============
 
 @router.get("/tax-rates")
-async def get_tax_rates(current_user: dict = Depends(lambda: get_current_user)):
+async def get_tax_rates(current_user: dict = Depends(get_current_user)):
     """Get all tax rates"""
     rates = await db.tax_rates.find(
         {"company_id": current_user["company_id"]},
@@ -528,7 +528,7 @@ async def get_tax_rates(current_user: dict = Depends(lambda: get_current_user)):
     return rates
 
 @router.post("/tax-rates")
-async def create_tax_rate(data: TaxRateCreate, current_user: dict = Depends(lambda: get_current_user)):
+async def create_tax_rate(data: TaxRateCreate, current_user: dict = Depends(get_current_user)):
     """Create a new tax rate"""
     company_id = current_user["company_id"]
     
@@ -549,7 +549,7 @@ async def create_tax_rate(data: TaxRateCreate, current_user: dict = Depends(lamb
     return serialize_doc(rate)
 
 @router.put("/tax-rates/{rate_id}")
-async def update_tax_rate(rate_id: str, data: TaxRateUpdate, current_user: dict = Depends(lambda: get_current_user)):
+async def update_tax_rate(rate_id: str, data: TaxRateUpdate, current_user: dict = Depends(get_current_user)):
     """Update a tax rate"""
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     update_data["updated_at"] = get_current_timestamp()
@@ -566,7 +566,7 @@ async def update_tax_rate(rate_id: str, data: TaxRateUpdate, current_user: dict 
 # ============== ACCOUNTS RECEIVABLE ==============
 
 @router.get("/accounts-receivable")
-async def get_accounts_receivable(current_user: dict = Depends(lambda: get_current_user)):
+async def get_accounts_receivable(current_user: dict = Depends(get_current_user)):
     """Get accounts receivable with aging"""
     company_id = current_user["company_id"]
     
@@ -632,7 +632,7 @@ async def get_accounts_receivable(current_user: dict = Depends(lambda: get_curre
 # ============== ACCOUNTS PAYABLE ==============
 
 @router.get("/accounts-payable")
-async def get_accounts_payable(current_user: dict = Depends(lambda: get_current_user)):
+async def get_accounts_payable(current_user: dict = Depends(get_current_user)):
     """Get accounts payable with aging"""
     company_id = current_user["company_id"]
     
@@ -698,7 +698,7 @@ async def get_accounts_payable(current_user: dict = Depends(lambda: get_current_
 @router.get("/reports/trial-balance")
 async def get_trial_balance(
     as_of_date: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Generate trial balance report"""
     company_id = current_user["company_id"]
@@ -761,7 +761,7 @@ async def get_trial_balance(
 async def get_profit_loss_report(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Generate Profit & Loss (Income Statement) report"""
     company_id = current_user["company_id"]
@@ -829,7 +829,7 @@ async def get_profit_loss_report(
 @router.get("/reports/balance-sheet")
 async def get_balance_sheet(
     as_of_date: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Generate Balance Sheet report"""
     company_id = current_user["company_id"]
@@ -896,7 +896,7 @@ async def get_balance_sheet(
 async def get_cash_flow_report(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Generate Cash Flow Statement"""
     company_id = current_user["company_id"]
@@ -971,7 +971,7 @@ async def get_cash_flow_report(
 # ============== FINANCIAL PERIODS ==============
 
 @router.get("/financial-periods")
-async def get_financial_periods(current_user: dict = Depends(lambda: get_current_user)):
+async def get_financial_periods(current_user: dict = Depends(get_current_user)):
     """Get all financial periods"""
     periods = await db.financial_periods.find(
         {"company_id": current_user["company_id"]},
@@ -980,7 +980,7 @@ async def get_financial_periods(current_user: dict = Depends(lambda: get_current
     return periods
 
 @router.post("/financial-periods")
-async def create_financial_period(data: FinancialPeriodCreate, current_user: dict = Depends(lambda: get_current_user)):
+async def create_financial_period(data: FinancialPeriodCreate, current_user: dict = Depends(get_current_user)):
     """Create a new financial period"""
     company_id = current_user["company_id"]
     
@@ -995,7 +995,7 @@ async def create_financial_period(data: FinancialPeriodCreate, current_user: dic
     return serialize_doc(period)
 
 @router.post("/financial-periods/{period_id}/close")
-async def close_financial_period(period_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def close_financial_period(period_id: str, current_user: dict = Depends(get_current_user)):
     """Close a financial period (prevents further entries)"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
