@@ -1,0 +1,166 @@
+<analysis>**original_problem_statement:**
+The user, a senior ERP system architect, wants to build a cloud-based, web ERP system for their business, with the intention of later selling it as a SaaS product. The system must be low-code/no-code, configurable, and user-friendly for non-technical users.
+
+**Phase 1 Product Requirements (MVP):**
+-   **Core Modules:** User/Role/Company Management, WooCommerce Integration (critical), Product & Inventory, Sales, CRM, Purchasing/Suppliers, Basic Accounting, Payments, Dashboard/Reporting, and Notifications.
+-   **Architecture:** Modular, multi-tenant ready, REST API-based, with a central database.
+-   **Key Logic:** Two-way sync with WooCommerce for orders, customers, payments, products, and stock. All actions must be logged.
+-   **User Preferences:** JWT-based authentication, a light/clean professional theme, pre-populated demo data, and LKR as the primary currency with the Sri Lankan timezone.
+
+**Phase 2 Product Requirements (Current Request):**
+-   **Advanced Finance System:** Implement a professional finance module including a configurable Chart of Accounts, double-entry accounting, General Ledger (GL), Accounts Receivable (AR), Accounts Payable (AP), Tax Management, and advanced financial reporting (Trial Balance, P&L, Balance Sheet, Cash Flow).
+-   **System Admin Controls:**
+    -   **Data Reset:** A safe, controlled feature to reset transactional data while keeping master data, or perform a full system reset.
+    -   **Backup/Restore:** A complete system for manual and scheduled backups (database, files, configs) and secure, multi-tenant-safe restoration.
+-   **Non-Functional Requirements:** High data integrity, enterprise-grade reliability, and auditable transaction trails.
+
+**User's preferred language**: English
+
+**what currently exists?**
+The agent has successfully built and tested the Minimum Viable Product (MVP) of the ERP system based on the initial request. This includes a FastAPI backend and a React frontend with a complete set of modules for basic ERP functions (products, sales, customers, etc.). The system uses JWT authentication, is populated with demo data, and is configured for LKR currency and the Asia/Colombo timezone. The foundational UI pages and backend APIs for all core modules are in place.
+
+**Last working item**:
+    - Last item agent was working: The agent received the new, large feature request for an Advanced Finance System and Admin Controls. The last action was to review the existing codebase (, , etc.) to prepare for implementing these new, complex modules. The agent is about to begin development on the backend.
+    - Status: NOT STARTED
+    - Agent Testing Done: N
+    - Which testing method agent to use? both
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**:
+  Issue 1:  (description with priority order)
+  Issue 2:  Repeat
+  
+  Issues Detail:
+  - Issue 1: 
+     - Attempted fixes: (What failed and why it didn't work )
+     - Next debug checklist: with file & method reference
+     - Why fix this issue and what will be achieved with the fix?
+     - Status:  NOT STARTED/IN PROGRESS/BLOCKED/TESTING PENDING/USER VERIFICATION PENDING/RESOLVED
+     - Is recurring issue? Y/N
+     - Should Test frontend/backend/both after fix?
+     - Blocked on other issue: add issue name
+  - Issue 2: (repeat same)
+
+**In progress Task List**:
+There are no tasks currently in progress. The agent has just finished the planning phase for the new requirements.
+
+**Upcoming and Future Tasks**
+**Upcoming Tasks (P0 - Current Request):**
+-   **Task 1 (P0): Implement Advanced Finance System Backend.** This involves modifying  to include:
+    -   Models and APIs for a configurable Chart of Accounts.
+    -   Logic for double-entry bookkeeping for all financial transactions.
+    -   APIs for a General Ledger, including manual and auto-generated journal entries.
+    -   APIs for Accounts Receivable (AR) and Accounts Payable (AP), including aging logic.
+    -   APIs for configurable Tax Management.
+-   **Task 2 (P0): Implement Admin Controls Backend.** This involves modifying  to add:
+    -   API endpoints for Data Reset (transactional and full) with safety checks.
+    -   API endpoints for Backup and Restore functionality.
+-   **Task 3 (P1): Implement Advanced Finance & Admin Frontend.** Create new React pages and components for:
+    -   Chart of Accounts Management ().
+    -   General Ledger/Journal Entries ().
+    -   Financial Reports: P&L, Balance Sheet, Trial Balance, Cash Flow ().
+    -   System Admin settings for Data Reset and Backup/Restore.
+-   **Task 4 (P1): Implement WooCommerce Integration Logic.** The UI for settings exists, but the core backend logic for the two-way data sync in  is still pending from the original request.
+
+**Future Tasks:**
+-   Payroll Module
+-   Manufacturing Module
+-   SaaS Subscription Billing
+-   Multi-Warehouse Support
+-   Mobile App
+
+**Completed work in this session**
+- **Full-Stack ERP MVP (DONE):**
+  - **Backend ():** Created all APIs and data models for User/Auth, Companies, Products, Inventory, Customers, Suppliers, Sales, Purchases, Payments, and a summary Dashboard.
+  - **Frontend ():**
+    -   Developed React pages for all core modules (, , , etc.).
+    -   Implemented routing (), a main layout (), and authentication state management ().
+    -   Styled the application based on the user's light/clean preference.
+  - **Testing (DONE):** The MVP successfully passed a comprehensive test suite run by the testing agent, which verified user registration, login, and dashboard data rendering.
+  - **Documentation (DONE):** A  file was created in .
+
+**Earlier issues found/mentioned but not fixed**
+   - **Issue 1:** A non-blocking lint warning () was noted in  during compilation.
+     - **Debug checklist:** Review the  hook in  and add the  function to its dependency array.
+     - **Why to solve this issue and what will be achieved with this?** This will ensure the component behaves as expected on re-renders and adheres to React's best practices, preventing potential stale state issues.
+     - **Should Test frontend/backend/both after fix:** frontend
+     - **Is recurring issue?** N
+
+**Known issue recurrence from previous fork**
+  - N/A
+
+**Code Architecture**
+-   **Backend:** Monolithic FastAPI application contained entirely within . It uses Pydantic models for data validation and interacts with a MongoDB database.
+-   **Frontend:** A React Single-Page Application (SPA) located in . It uses a page-based structure () with React Router for navigation and the Context API for state management.
+-   **Database:** MongoDB.
+
+**Key Technical Concepts**
+-   **Backend:** FastAPI, Pydantic, PyMongo, JWT (JSON Web Tokens).
+-   **Frontend:** React, React Router, React Context, Axios.
+-   **Deployment:** The application is containerized and managed by . Hot-reloading is enabled for both services.
+
+**key DB schema**
+The schema is defined by Pydantic models in . Key collections include:
+-   **users:** {email, hashed_password, role, company_id}
+-   **companies:** {name, settings}
+-   **products:** {sku, name, category, cost_price, selling_price, quantity}
+-   **customers:** {name, contact_details, order_history}
+-   **sales_orders:** {customer_id, items, total, status}
+-   (Other collections exist for suppliers, purchase orders, payments, etc.)
+
+**changes in tech stack**
+  - No changes in the tech stack.
+
+**All files of reference**
+-   : The single source of truth for all backend logic, APIs, and database models. **(CRITICAL FILE)**
+-   : The main entry point for the frontend, containing all routing logic.
+-   : Directory containing all React components for the UI pages.
+-   : Manages user authentication state.
+-   : Centralized Axios instance for API calls.
+-   : Contains the product requirements and implemented features.
+-   : Results from the successful test run of the MVP.
+
+**Areas that need refactoring**:
+-   The monolithic  file is over 480 lines long and contains all models, routes, and logic. Before adding the complex financial modules, it should be refactored into a modular structure (e.g., using FastAPI's  for different modules like , , ) to improve maintainability and scalability.
+
+**key api endpoints**
+-   
+-   
+-   
+-   CRUD endpoints for , , , , .
+
+**Critical Info for New Agent**
+-   You are starting a major new phase of development. The user's request for an Advanced Finance System and Admin Controls is extensive and detailed.
+-   **Refactoring is highly recommended:** The backend is in a single file (). To avoid creating an unmanageable monolith, you should break the existing and new code into modular routers and services before or during the implementation of the new features.
+-   **WooCommerce is pending:** A critical requirement from the initial request, the two-way WooCommerce sync, has not been implemented beyond a basic settings UI. This needs to be addressed.
+-   Adhere strictly to the financial requirements: The user has specified double-entry accounting, specific reports, and security controls. These are non-negotiable for a financial system.
+
+**documents and test reports created in this job**
+  - 
+  - 
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages** 
+- **User Message 1:** Requested a major extension of the ERP to include an Advanced Finance System (Chart of Accounts, double-entry, GL, AR/AP, reports) and System Admin Controls (Data Reset, Backup/Restore). **Status: Pending Implementation.**
+- **User Message 2:** Clarified initial preferences: configurable WooCommerce credentials, JWT authentication, a light/clean theme, demo data, and LKR as the currency. **Status: Completed.**
+
+**Project Health Check:**
+- **Working:** The initial MVP of the ERP is fully functional and has passed automated tests.
+- **Broken:** None.
+- **Mocked:** The application currently runs on seeded demo data. The WooCommerce integration is a UI placeholder without functional backend logic.
+
+**3rd Party Integrations**
+-   **WooCommerce:** Required for two-way sync of orders, products, customers, and stock. A settings page exists in the UI, but the backend integration logic is **not yet implemented**.
+
+**Testing status**
+  - Testing agent used after significant changes: YES (after MVP completion)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: []
+  - Known regressions: []
+
+**Credentials to test flow:**
+-   **Email:** 
+-   **Password:** 
+
+**What agent forgot to execute**
+- The core backend logic for the **WooCommerce two-way integration** was not implemented. While a UI was created to store credentials, the functionality to connect to the WooCommerce API, sync orders, products, and inventory is still missing. This was a critical part of the original problem statement.</analysis>
