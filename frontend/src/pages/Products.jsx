@@ -320,7 +320,7 @@ export const Products = () => {
               {selectedProduct ? 'Edit Product' : 'Add New Product'}
             </DialogTitle>
             <DialogDescription>
-              {selectedProduct ? 'Update product details' : 'Add a new product to your inventory'}
+              {selectedProduct ? 'Update product details' : 'Create product placeholder - add stock via GRN'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -333,19 +333,37 @@ export const Products = () => {
                     value={formData.sku}
                     onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                     required
+                    disabled={!!selectedProduct}
                     placeholder="URBN0001"
                     data-testid="product-sku"
+                    className={selectedProduct ? 'bg-slate-100' : ''}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
+                  <Label htmlFor="category">Category (from WooCommerce)</Label>
+                  <Select
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="e.g., Electronics"
-                    data-testid="product-category"
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  >
+                    <SelectTrigger data-testid="product-category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wooCategories.length > 0 ? (
+                        wooCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
@@ -358,60 +376,9 @@ export const Products = () => {
                   data-testid="product-name"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  data-testid="product-description"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cost_price">Cost Price (LKR)</Label>
-                  <Input
-                    id="cost_price"
-                    type="number"
-                    value={formData.cost_price}
-                    onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                    data-testid="product-cost"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="selling_price">Selling Price (LKR) *</Label>
-                  <Input
-                    id="selling_price"
-                    type="number"
-                    value={formData.selling_price}
-                    onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-                    required
-                    data-testid="product-price"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="stock_quantity">Stock Quantity</Label>
-                  <Input
-                    id="stock_quantity"
-                    type="number"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                    data-testid="product-stock"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="low_stock_threshold">Low Stock Alert</Label>
-                  <Input
-                    id="low_stock_threshold"
-                    type="number"
-                    value={formData.low_stock_threshold}
-                    onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
-                    data-testid="product-threshold"
-                  />
-                </div>
-              </div>
+              <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-lg">
+                💡 Cost price, selling price, and stock quantity are set when receiving goods via GRN (Goods Received Note).
+              </p>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
