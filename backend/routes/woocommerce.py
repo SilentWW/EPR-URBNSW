@@ -94,6 +94,81 @@ async def get_woo_client(company_id: str) -> WooCommerceClient:
         consumer_secret=woo_settings["consumer_secret"]
     )
 
+# ============== CATEGORIES & TAGS ==============
+
+@router.get("/categories")
+async def get_woo_categories(current_user: dict = Depends(get_current_user)):
+    """Get product categories from WooCommerce"""
+    try:
+        client = await get_woo_client(current_user["company_id"])
+        categories = await client.get("products/categories", params={"per_page": 100})
+        return [{"id": c["id"], "name": c["name"], "slug": c["slug"], "count": c["count"]} for c in categories]
+    except HTTPException:
+        # If WooCommerce not configured, return local categories
+        products = await db.products.find(
+            {"company_id": current_user["company_id"], "category": {"$ne": None}},
+            {"category": 1}
+        ).to_list(1000)
+        unique_categories = list(set([p["category"] for p in products if p.get("category")]))
+        return [{"id": i, "name": cat, "slug": cat.lower().replace(" ", "-"), "count": 0} for i, cat in enumerate(unique_categories)]
+
+@router.get("/tags")
+async def get_woo_tags(current_user: dict = Depends(get_current_user)):
+    """Get product tags from WooCommerce"""
+    try:
+        client = await get_woo_client(current_user["company_id"])
+        tags = await client.get("products/tags", params={"per_page": 100})
+        return [{"id": t["id"], "name": t["name"], "slug": t["slug"], "count": t["count"]} for t in tags]
+    except HTTPException:
+        # Return empty list if WooCommerce not configured
+        return []
+
+@router.get("/suggest-tags")
+async def suggest_seo_tags(
+    product_name: str,
+    category: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Suggest SEO-friendly tags based on product name and category"""
+    # Generate SEO-friendly tags based on product name
+    words = product_name.lower().split()
+    tags = []
+    
+    # Add category as tag if provided
+    if category:
+        tags.append(category.lower())
+    
+    # Add significant words from product name
+    stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by'}
+    for word in words:
+        if word not in stop_words and len(word) > 2:
+            tags.append(word)
+    
+    # Add common e-commerce SEO tags
+    common_tags = {
+        'clothing': ['fashion', 'style', 'wear', 'apparel'],
+        'electronics': ['tech', 'gadget', 'digital', 'smart'],
+        'home': ['decor', 'interior', 'household', 'living'],
+        'sports': ['fitness', 'active', 'outdoor', 'athletic'],
+        'beauty': ['skincare', 'cosmetics', 'personal-care'],
+        'food': ['organic', 'fresh', 'gourmet', 'natural']
+    }
+    
+    if category:
+        cat_lower = category.lower()
+        for key, values in common_tags.items():
+            if key in cat_lower:
+                tags.extend(values[:2])
+                break
+    
+    # Remove duplicates and limit
+    unique_tags = list(dict.fromkeys(tags))[:10]
+    
+    return {
+        "suggested_tags": unique_tags,
+        "tags_string": ", ".join(unique_tags)
+    }
+
 # ============== CONNECTION TEST ==============
 
 @router.get("/test-connection")
