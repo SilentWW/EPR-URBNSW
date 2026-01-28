@@ -92,25 +92,66 @@ class WooCommerceSettings(BaseModel):
 
 # Product Models
 class ProductCreate(BaseModel):
-    sku: str
+    sku: Optional[str] = None  # Auto-generated if not provided
     name: str
     description: Optional[str] = None
+    short_description: Optional[str] = None
     category: Optional[str] = None
-    cost_price: float = 0.0
-    selling_price: float = 0.0
+    cost_price: float = 0.0  # COGS
+    regular_price: float = 0.0  # WooCommerce Regular Price
+    sale_price: Optional[float] = None  # WooCommerce Sale Price
+    selling_price: float = 0.0  # Actual selling price (sale_price if set, else regular_price)
     stock_quantity: int = 0
     low_stock_threshold: int = 10
+    weight: Optional[float] = None  # Weight in kg
+    visibility: str = "public"  # public or private
+    tags: Optional[str] = None  # Comma separated tags
+    manage_stock: bool = True  # WooCommerce stock management
+    attributes: Optional[List[dict]] = None  # WooCommerce attributes
     woo_product_id: Optional[str] = None
 
 class ProductUpdate(BaseModel):
     sku: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
+    short_description: Optional[str] = None
     category: Optional[str] = None
     cost_price: Optional[float] = None
+    regular_price: Optional[float] = None
+    sale_price: Optional[float] = None
     selling_price: Optional[float] = None
     stock_quantity: Optional[int] = None
     low_stock_threshold: Optional[int] = None
+    weight: Optional[float] = None
+    visibility: Optional[str] = None
+    tags: Optional[str] = None
+    manage_stock: Optional[bool] = None
+    attributes: Optional[List[dict]] = None
+
+# GRN (Goods Received Note) Models
+class GRNItem(BaseModel):
+    product_id: Optional[str] = None  # Existing product or None for new
+    product_name: str
+    sku: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    category: Optional[str] = None
+    quantity: int
+    cost_price: float  # COGS per unit
+    regular_price: float  # WooCommerce regular price
+    sale_price: Optional[float] = None  # WooCommerce sale price
+    weight: Optional[float] = None
+    visibility: str = "public"
+    tags: Optional[str] = None
+    attributes: Optional[List[dict]] = None
+
+class GRNCreate(BaseModel):
+    supplier_id: str
+    reference_number: Optional[str] = None
+    received_date: str
+    items: List[GRNItem]
+    notes: Optional[str] = None
+    sync_to_woo: bool = True
 
 # Customer Models
 class CustomerCreate(BaseModel):
