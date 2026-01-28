@@ -860,6 +860,7 @@ async def _update_account_balance(company_id: str, account_code: str, amount: fl
     await db.accounts.update_one(
         {"id": account["id"]},
         {"$inc": {"balance": change}}
+    )
 
 async def _get_or_create_woo_customer(company_id: str, billing: dict, woo_customer_id: int) -> str:
     """Get or create customer from WooCommerce order data"""
