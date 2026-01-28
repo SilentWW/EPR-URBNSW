@@ -21,6 +21,14 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 
+// Advanced Finance Pages
+import ChartOfAccounts from './pages/ChartOfAccounts';
+import GeneralLedger from './pages/GeneralLedger';
+import FinancialReports from './pages/FinancialReports';
+
+// Admin Pages
+import SystemAdmin from './pages/SystemAdmin';
+
 // Layout
 import Layout from './components/Layout';
 
