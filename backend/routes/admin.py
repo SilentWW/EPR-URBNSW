@@ -19,6 +19,7 @@ from models.admin import (
     ScheduledBackupCreate
 )
 from utils.helpers import serialize_doc, generate_id, get_current_timestamp
+from utils.auth import get_current_user
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -30,12 +31,9 @@ def set_db(database):
     global db
     db = database
 
-# Dependency to get current user (will be set from main app)
-get_current_user = None
-
 def set_auth_dependency(auth_func):
-    global get_current_user
-    get_current_user = auth_func
+    # Not needed with shared auth module
+    pass
 
 # Collections categorized
 MASTER_COLLECTIONS = ["users", "companies", "accounts", "tax_rates", "products", "customers", "suppliers"]
