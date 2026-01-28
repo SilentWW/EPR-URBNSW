@@ -61,6 +61,8 @@ export const Settings = () => {
     consumer_key: '',
     consumer_secret: '',
     enabled: false,
+    auto_sync_enabled: false,
+    auto_sync_interval: 60,
   });
   const [users, setUsers] = useState([]);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
@@ -69,6 +71,13 @@ export const Settings = () => {
     email: '',
     password: '',
   });
+  
+  // WooCommerce sync states
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncLogs, setSyncLogs] = useState([]);
+  const [syncing, setSyncing] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);
 
   const fetchData = async () => {
     try {
