@@ -477,14 +477,17 @@ export default function GRN() {
                             onChange={(e) => handleItemChange(idx, 'product_name', e.target.value)}
                             placeholder="Product name"
                             required
+                            disabled={!!item.product_id}
                           />
                         </div>
                         <div>
-                          <Label className="text-sm">SKU</Label>
+                          <Label className="text-sm">SKU {item.product_id ? '(from product)' : ''}</Label>
                           <Input
                             value={item.sku}
                             onChange={(e) => handleItemChange(idx, 'sku', e.target.value)}
                             placeholder="Auto-generated"
+                            disabled={!!item.product_id}
+                            className={item.product_id ? 'bg-slate-100' : ''}
                           />
                         </div>
                         <div>
@@ -493,6 +496,7 @@ export default function GRN() {
                             value={item.category}
                             onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
                             placeholder="Category"
+                            disabled={!!item.product_id}
                           />
                         </div>
                       </div>
