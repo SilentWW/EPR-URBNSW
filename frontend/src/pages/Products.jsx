@@ -86,11 +86,11 @@ export const Products = () => {
 
   const fetchWooCategories = async () => {
     try {
-      // TODO: Implement WooCommerce categories API call
-      const response = await api.get('/woo/categories');
+      const response = await api.get('/woocommerce/categories');
       setWooCategories(response.data);
     } catch (error) {
       console.error('Failed to fetch WooCommerce categories:', error);
+      // Silently fail - categories will just show local ones
     }
   };
 
