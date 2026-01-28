@@ -92,6 +92,14 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
+      {/* Advanced Finance Routes */}
+      <Route path="/chart-of-accounts" element={<ProtectedRoute><ChartOfAccounts /></ProtectedRoute>} />
+      <Route path="/general-ledger" element={<ProtectedRoute><GeneralLedger /></ProtectedRoute>} />
+      <Route path="/financial-reports" element={<ProtectedRoute><FinancialReports /></ProtectedRoute>} />
+
+      {/* Admin Routes */}
+      <Route path="/system-admin" element={<ProtectedRoute><SystemAdmin /></ProtectedRoute>} />
+
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
