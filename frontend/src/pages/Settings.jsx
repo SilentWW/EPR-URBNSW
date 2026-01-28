@@ -150,10 +150,65 @@ export const Settings = () => {
     try {
       await companyAPI.updateWooSettings(wooSettings);
       toast.success('WooCommerce settings saved');
+      if (wooSettings.enabled) {
+        fetchSyncLogs();
+        fetchSyncStatus();
+      }
     } catch (error) {
       toast.error('Failed to save WooCommerce settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setConnectionStatus(null);
+    try {
+      const response = await api.get('/woocommerce/test-connection');
+      setConnectionStatus(response.data);
+      if (response.data.success) {
+        toast.success('Connection successful!');
+      } else {
+        toast.error(response.data.message || 'Connection failed');
+      }
+    } catch (error) {
+      setConnectionStatus({ success: false, message: error.response?.data?.detail || 'Connection failed' });
+      toast.error('Connection test failed');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleManualSync = async (syncType) => {
+    setSyncing(true);
+    try {
+      let endpoint = '/woocommerce/full-sync';
+      let message = 'Full sync started';
+      
+      if (syncType === 'products') {
+        endpoint = '/woocommerce/products/sync';
+        message = 'Product sync started';
+      } else if (syncType === 'orders') {
+        endpoint = '/woocommerce/orders/sync';
+        message = 'Order sync started';
+      } else if (syncType === 'customers') {
+        endpoint = '/woocommerce/customers/sync';
+        message = 'Customer sync started';
+      }
+      
+      const response = await api.post(endpoint);
+      toast.success(message);
+      
+      // Poll for completion
+      setTimeout(() => {
+        fetchSyncLogs();
+        fetchSyncStatus();
+        setSyncing(false);
+      }, 3000);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Sync failed');
+      setSyncing(false);
     }
   };
 
