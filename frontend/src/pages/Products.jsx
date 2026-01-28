@@ -105,6 +105,7 @@ export const Products = () => {
 
   useEffect(() => {
     fetchData();
+    fetchWooCategories();
   }, []);
 
   const handleOpenDialog = async (product = null) => {
