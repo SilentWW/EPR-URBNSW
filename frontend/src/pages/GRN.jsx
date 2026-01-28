@@ -203,6 +203,33 @@ export default function GRN() {
     setFormData({ ...formData, items: newItems });
   };
 
+  const suggestTags = async (idx) => {
+    const item = formData.items[idx];
+    if (!item.product_name) {
+      toast.error('Please enter a product name first');
+      return;
+    }
+    
+    try {
+      const response = await api.get('/woocommerce/suggest-tags', {
+        params: {
+          product_name: item.product_name,
+          category: item.category
+        }
+      });
+      
+      const newItems = [...formData.items];
+      newItems[idx] = {
+        ...newItems[idx],
+        tags: response.data.tags_string
+      };
+      setFormData({ ...formData, items: newItems });
+      toast.success('SEO tags suggested!');
+    } catch (error) {
+      toast.error('Failed to suggest tags');
+    }
+  };
+
   const calculateTotals = () => {
     return formData.items.reduce((sum, item) => sum + (item.quantity * item.cost_price), 0);
   };
