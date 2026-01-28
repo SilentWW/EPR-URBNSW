@@ -10,6 +10,7 @@ import base64
 import asyncio
 
 from utils.helpers import serialize_doc, generate_id, get_current_timestamp
+from utils.auth import get_current_user
 
 router = APIRouter(prefix="/woocommerce", tags=["WooCommerce"])
 
@@ -20,12 +21,9 @@ def set_db(database):
     global db
     db = database
 
-# Dependency to get current user (will be set from main app)
-get_current_user = None
-
 def set_auth_dependency(auth_func):
-    global get_current_user
-    get_current_user = auth_func
+    # Not needed with shared auth module
+    pass
 
 # ============== WOOCOMMERCE CLIENT ==============
 
