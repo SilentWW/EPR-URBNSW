@@ -525,19 +525,45 @@ async def get_product(product_id: str, current_user: dict = Depends(get_current_
 
 @api_router.post("/products")
 async def create_product(data: ProductCreate, current_user: dict = Depends(get_current_user)):
+    company_id = current_user["company_id"]
+    
+    # Auto-generate SKU if not provided
+    sku = data.sku
+    if not sku:
+        # Find highest existing SKU number
+        products_list = await db.products.find(
+            {"company_id": company_id, "sku": {"$regex": "^URBN"}},
+            {"sku": 1}
+        ).to_list(10000)
+        
+        max_num = 0
+        for p in products_list:
+            existing_sku = p.get("sku", "")
+            if existing_sku.startswith("URBN"):
+                try:
+                    num = int(existing_sku[4:])
+                    if num > max_num:
+                        max_num = num
+                except ValueError:
+                    continue
+        sku = f"URBN{max_num + 1:04d}"
+    
     # Check SKU uniqueness
     existing = await db.products.find_one({
-        "sku": data.sku,
-        "company_id": current_user["company_id"]
+        "sku": sku,
+        "company_id": company_id
     })
     if existing:
         raise HTTPException(status_code=400, detail="SKU already exists")
     
     product_id = str(uuid.uuid4())
+    product_data = data.model_dump()
+    product_data["sku"] = sku  # Use generated or provided SKU
+    
     product = {
         "id": product_id,
-        "company_id": current_user["company_id"],
-        **data.model_dump(),
+        "company_id": company_id,
+        **product_data,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
@@ -547,7 +573,7 @@ async def create_product(data: ProductCreate, current_user: dict = Depends(get_c
     if data.stock_quantity > 0:
         await db.inventory_movements.insert_one({
             "id": str(uuid.uuid4()),
-            "company_id": current_user["company_id"],
+            "company_id": company_id,
             "product_id": product_id,
             "movement_type": "in",
             "quantity": data.stock_quantity,
