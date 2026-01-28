@@ -269,7 +269,7 @@ export default function ChartOfAccounts() {
               >
                 <div className="flex items-center gap-3">
                   <Icon className="w-5 h-5" />
-                  <span className="font-semibold capitalize">{type}s</span>
+                  <span className="font-semibold capitalize">{type === 'liability' ? 'Liabilities' : `${type}s`}</span>
                   <span className="text-sm opacity-70">({typeAccounts.length})</span>
                 </div>
                 {expandedTypes[type] ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
