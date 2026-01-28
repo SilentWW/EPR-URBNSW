@@ -1815,10 +1815,28 @@ async def seed_demo_data(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/")
 async def root():
-    return {"message": "E1 ERP System API", "version": "1.0.0"}
+    return {"message": "E1 ERP System API", "version": "2.0.0"}
 
 # Include the router in the main app
 app.include_router(api_router)
+
+# Import and configure new modular routers
+from routes import finance, admin, woocommerce
+
+# Set database and auth for finance router
+finance.set_db(db)
+finance.set_auth_dependency(get_current_user)
+app.include_router(finance.router, prefix="/api")
+
+# Set database and auth for admin router
+admin.set_db(db)
+admin.set_auth_dependency(get_current_user)
+app.include_router(admin.router, prefix="/api")
+
+# Set database and auth for woocommerce router
+woocommerce.set_db(db)
+woocommerce.set_auth_dependency(get_current_user)
+app.include_router(woocommerce.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
