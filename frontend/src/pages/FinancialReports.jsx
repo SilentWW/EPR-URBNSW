@@ -45,25 +45,25 @@ export default function FinancialReports() {
       setLoading(true);
       switch (reportType) {
         case 'trial-balance':
-          const tbResponse = await api.get('/api/finance/reports/trial-balance', {
+          const tbResponse = await api.get('/finance/reports/trial-balance', {
             params: { as_of_date: endDate }
           });
           setTrialBalance(tbResponse.data);
           break;
         case 'profit-loss':
-          const plResponse = await api.get('/api/finance/reports/profit-loss', {
+          const plResponse = await api.get('/finance/reports/profit-loss', {
             params: { start_date: startDate, end_date: endDate }
           });
           setProfitLoss(plResponse.data);
           break;
         case 'balance-sheet':
-          const bsResponse = await api.get('/api/finance/reports/balance-sheet', {
+          const bsResponse = await api.get('/finance/reports/balance-sheet', {
             params: { as_of_date: endDate }
           });
           setBalanceSheet(bsResponse.data);
           break;
         case 'cash-flow':
-          const cfResponse = await api.get('/api/finance/reports/cash-flow', {
+          const cfResponse = await api.get('/finance/reports/cash-flow', {
             params: { start_date: startDate, end_date: endDate }
           });
           setCashFlow(cfResponse.data);
