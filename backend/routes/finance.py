@@ -14,27 +14,20 @@ from models.finance import (
     FinancialPeriodCreate, AgingBucket
 )
 from utils.helpers import serialize_doc, generate_id, get_current_timestamp, get_financial_year_dates
+from utils.auth import get_current_user
 
 router = APIRouter(prefix="/finance", tags=["Finance"])
 
 # Database will be injected from main app
 db = None
-_get_current_user_func = None
 
 def set_db(database):
     global db
     db = database
 
 def set_auth_dependency(auth_func):
-    global _get_current_user_func
-    _get_current_user_func = auth_func
-
-async def get_current_user_dep():
-    """Wrapper to get the injected auth dependency"""
-    if _get_current_user_func is None:
-        raise HTTPException(status_code=500, detail="Auth not configured")
-    # The actual dependency will be resolved by FastAPI
-    return _get_current_user_func
+    # Not needed with shared auth module
+    pass
 
 # ============== CHART OF ACCOUNTS ==============
 
