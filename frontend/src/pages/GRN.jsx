@@ -133,16 +133,18 @@ export default function GRN() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [grnsRes, suppliersRes, productsRes, skuRes] = await Promise.all([
+      const [grnsRes, suppliersRes, productsRes, skuRes, poRes] = await Promise.all([
         api.get('/grn'),
         api.get('/suppliers'),
         api.get('/products'),
-        api.get('/grn/next-sku')
+        api.get('/grn/next-sku'),
+        api.get('/purchase-orders')
       ]);
       setGrns(grnsRes.data);
       setSuppliers(suppliersRes.data);
       setProducts(productsRes.data);
       setNextSku(skuRes.data.next_sku);
+      setPurchaseOrders(poRes.data.filter(po => po.status === 'pending')); // Only pending POs
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
