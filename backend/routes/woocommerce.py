@@ -514,7 +514,7 @@ async def sync_orders(
     }
 
 async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user_id: str):
-    """Background task to sync orders"""
+    """Background task to sync orders with double-entry accounting"""
     try:
         client = await get_woo_client(company_id)
         items_processed = 0
@@ -542,19 +542,25 @@ async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user
                         "woo_order_id": str(woo_order["id"])
                     })
                     
+                    # Map WooCommerce status
+                    woo_status_map = {
+                        "pending": "pending",
+                        "processing": "processing",
+                        "on-hold": "pending",
+                        "completed": "completed",
+                        "cancelled": "cancelled",
+                        "refunded": "returned",
+                        "failed": "cancelled"
+                    }
+                    
+                    new_status = woo_status_map.get(woo_order["status"], "pending")
+                    order_total = float(woo_order["total"])
+                    
                     if existing:
-                        # Update status if changed
-                        woo_status_map = {
-                            "pending": "pending",
-                            "processing": "processing",
-                            "on-hold": "pending",
-                            "completed": "completed",
-                            "cancelled": "cancelled",
-                            "refunded": "returned"
-                        }
+                        old_status = existing["status"]
                         
-                        new_status = woo_status_map.get(woo_order["status"], "pending")
-                        if existing["status"] != new_status:
+                        # Handle status changes with accounting entries
+                        if old_status != new_status:
                             await db.sales_orders.update_one(
                                 {"id": existing["id"]},
                                 {"$set": {
@@ -563,6 +569,21 @@ async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user
                                 }}
                             )
                             items_updated += 1
+                            
+                            # Handle returns/cancellations - reverse the accounting
+                            if new_status in ["cancelled", "returned"] and old_status not in ["cancelled", "returned"]:
+                                await _create_return_journal_entry(
+                                    company_id, existing["id"], woo_order["id"], 
+                                    order_total, new_status, user_id
+                                )
+                                
+                                # Restore inventory for returned/cancelled orders
+                                for item in existing.get("items", []):
+                                    if item.get("product_id"):
+                                        await db.products.update_one(
+                                            {"id": item["product_id"]},
+                                            {"$inc": {"stock_quantity": item["quantity"]}}
+                                        )
                     else:
                         # Create or find customer
                         customer_id = await _get_or_create_woo_customer(
@@ -571,8 +592,10 @@ async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user
                             woo_order.get("customer_id")
                         )
                         
-                        # Create order items
+                        # Create order items and update inventory
                         order_items = []
+                        total_cost = 0
+                        
                         for line_item in woo_order.get("line_items", []):
                             # Try to find matching product
                             product = await db.products.find_one({
@@ -583,12 +606,25 @@ async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user
                                 ]
                             })
                             
+                            item_cost = 0
+                            if product:
+                                item_cost = (product.get("cost_price", 0) or 0) * line_item["quantity"]
+                                total_cost += item_cost
+                                
+                                # Deduct stock for completed/processing orders
+                                if new_status in ["completed", "processing"]:
+                                    await db.products.update_one(
+                                        {"id": product["id"]},
+                                        {"$inc": {"stock_quantity": -line_item["quantity"]}}
+                                    )
+                            
                             order_items.append({
                                 "product_id": product["id"] if product else None,
                                 "product_name": line_item["name"],
                                 "sku": line_item.get("sku", ""),
                                 "quantity": line_item["quantity"],
                                 "unit_price": float(line_item["price"]),
+                                "cost_price": product.get("cost_price", 0) if product else 0,
                                 "total": float(line_item["total"])
                             })
                         
@@ -611,10 +647,11 @@ async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user
                             "subtotal": float(woo_order.get("subtotal", 0)),
                             "discount": float(woo_order.get("discount_total", 0)),
                             "tax": float(woo_order.get("total_tax", 0)),
-                            "total": float(woo_order["total"]),
-                            "status": woo_status_map.get(woo_order["status"], "pending"),
+                            "total": order_total,
+                            "total_cost": total_cost,
+                            "status": new_status,
                             "payment_status": payment_status,
-                            "paid_amount": float(woo_order["total"]) if payment_status == "paid" else 0,
+                            "paid_amount": order_total if payment_status == "paid" else 0,
                             "notes": woo_order.get("customer_note"),
                             "woo_order_id": str(woo_order["id"]),
                             "created_by": user_id,
@@ -624,19 +661,12 @@ async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user
                         await db.sales_orders.insert_one(sales_order)
                         items_created += 1
                         
-                        # Create accounting entry
-                        await db.accounting_entries.insert_one({
-                            "id": generate_id(),
-                            "company_id": company_id,
-                            "entry_type": "income",
-                            "category": "Sales",
-                            "amount": float(woo_order["total"]),
-                            "description": f"WooCommerce Order {woo_order['id']}",
-                            "reference_type": "sales_order",
-                            "reference_id": order_id,
-                            "created_by": user_id,
-                            "created_at": get_current_timestamp()
-                        })
+                        # Create double-entry journal entries for completed/paid orders
+                        if new_status not in ["cancelled", "returned", "pending"]:
+                            await _create_sales_journal_entry(
+                                company_id, order_id, woo_order["id"],
+                                order_total, total_cost, payment_status, user_id
+                            )
                         
                 except Exception as e:
                     errors.append({
@@ -667,6 +697,169 @@ async def _sync_orders_task(company_id: str, sync_id: str, since_date: str, user
                 "errors": [{"error": str(e)}]
             }}
         )
+
+async def _create_sales_journal_entry(company_id: str, order_id: str, woo_order_id: str,
+                                       total: float, cost: float, payment_status: str, user_id: str):
+    """Create double-entry journal entries for a sale"""
+    timestamp = get_current_timestamp()
+    
+    # Journal Entry 1: Record Revenue
+    # Debit: Accounts Receivable (or Cash if paid)
+    # Credit: Sales Revenue
+    revenue_entry = {
+        "id": generate_id(),
+        "company_id": company_id,
+        "date": timestamp,
+        "description": f"Sales Revenue - WooCommerce Order #{woo_order_id}",
+        "reference_type": "sales_order",
+        "reference_id": order_id,
+        "entries": [
+            {
+                "account_code": "1200" if payment_status != "paid" else "1100",  # AR or Cash
+                "account_name": "Accounts Receivable" if payment_status != "paid" else "Cash/Bank",
+                "debit": total,
+                "credit": 0
+            },
+            {
+                "account_code": "4100",
+                "account_name": "Sales Revenue",
+                "debit": 0,
+                "credit": total
+            }
+        ],
+        "total_debit": total,
+        "total_credit": total,
+        "status": "posted",
+        "created_by": user_id,
+        "created_at": timestamp
+    }
+    await db.journal_entries.insert_one(revenue_entry)
+    
+    # Journal Entry 2: Record Cost of Goods Sold (if cost > 0)
+    if cost > 0:
+        cogs_entry = {
+            "id": generate_id(),
+            "company_id": company_id,
+            "date": timestamp,
+            "description": f"Cost of Goods Sold - WooCommerce Order #{woo_order_id}",
+            "reference_type": "sales_order",
+            "reference_id": order_id,
+            "entries": [
+                {
+                    "account_code": "5100",
+                    "account_name": "Cost of Goods Sold",
+                    "debit": cost,
+                    "credit": 0
+                },
+                {
+                    "account_code": "1300",
+                    "account_name": "Inventory",
+                    "debit": 0,
+                    "credit": cost
+                }
+            ],
+            "total_debit": cost,
+            "total_credit": cost,
+            "status": "posted",
+            "created_by": user_id,
+            "created_at": timestamp
+        }
+        await db.journal_entries.insert_one(cogs_entry)
+    
+    # Update account balances
+    await _update_account_balance(company_id, "1200" if payment_status != "paid" else "1100", total, "debit")
+    await _update_account_balance(company_id, "4100", total, "credit")
+    if cost > 0:
+        await _update_account_balance(company_id, "5100", cost, "debit")
+        await _update_account_balance(company_id, "1300", cost, "credit")
+
+async def _create_return_journal_entry(company_id: str, order_id: str, woo_order_id: str,
+                                        total: float, status: str, user_id: str):
+    """Create reversal journal entries for returns/cancellations"""
+    timestamp = get_current_timestamp()
+    
+    # Reverse the sales revenue entry
+    reversal_entry = {
+        "id": generate_id(),
+        "company_id": company_id,
+        "date": timestamp,
+        "description": f"Sales {'Return' if status == 'returned' else 'Cancellation'} - WooCommerce Order #{woo_order_id}",
+        "reference_type": "sales_return",
+        "reference_id": order_id,
+        "entries": [
+            {
+                "account_code": "4200",
+                "account_name": "Sales Returns & Allowances",
+                "debit": total,
+                "credit": 0
+            },
+            {
+                "account_code": "1200",
+                "account_name": "Accounts Receivable",
+                "debit": 0,
+                "credit": total
+            }
+        ],
+        "total_debit": total,
+        "total_credit": total,
+        "status": "posted",
+        "created_by": user_id,
+        "created_at": timestamp
+    }
+    await db.journal_entries.insert_one(reversal_entry)
+    
+    # Update account balances
+    await _update_account_balance(company_id, "4200", total, "debit")
+    await _update_account_balance(company_id, "1200", total, "credit")
+
+async def _update_account_balance(company_id: str, account_code: str, amount: float, side: str):
+    """Update account balance - create account if doesn't exist"""
+    account = await db.accounts.find_one({
+        "company_id": company_id,
+        "code": account_code
+    })
+    
+    if not account:
+        # Create the account if it doesn't exist
+        account_templates = {
+            "1100": {"name": "Cash/Bank", "category": "Assets", "type": "debit"},
+            "1200": {"name": "Accounts Receivable", "category": "Assets", "type": "debit"},
+            "1300": {"name": "Inventory", "category": "Assets", "type": "debit"},
+            "2100": {"name": "Accounts Payable", "category": "Liabilities", "type": "credit"},
+            "4100": {"name": "Sales Revenue", "category": "Revenue", "type": "credit"},
+            "4200": {"name": "Sales Returns & Allowances", "category": "Revenue", "type": "debit"},
+            "5100": {"name": "Cost of Goods Sold", "category": "Expenses", "type": "debit"},
+        }
+        
+        template = account_templates.get(account_code, {
+            "name": f"Account {account_code}",
+            "category": "Assets",
+            "type": "debit"
+        })
+        
+        account = {
+            "id": generate_id(),
+            "company_id": company_id,
+            "code": account_code,
+            "name": template["name"],
+            "category": template["category"],
+            "type": template["type"],
+            "balance": 0,
+            "is_system": True,
+            "created_at": get_current_timestamp()
+        }
+        await db.accounts.insert_one(account)
+    
+    # Calculate balance change based on account type and entry side
+    account_type = account.get("type", "debit")
+    if account_type == "debit":
+        change = amount if side == "debit" else -amount
+    else:
+        change = amount if side == "credit" else -amount
+    
+    await db.accounts.update_one(
+        {"id": account["id"]},
+        {"$inc": {"balance": change}}
 
 async def _get_or_create_woo_customer(company_id: str, billing: dict, woo_customer_id: int) -> str:
     """Get or create customer from WooCommerce order data"""
