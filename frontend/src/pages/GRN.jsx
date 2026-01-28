@@ -312,10 +312,34 @@ export default function GRN() {
           <h1 className="text-2xl font-bold text-slate-900">Goods Received Notes</h1>
           <p className="text-slate-500 mt-1">Manage inventory receipts and WooCommerce sync</p>
         </div>
-        <Button onClick={() => { resetForm(); handleAddItem(); setIsModalOpen(true); }} data-testid="create-grn-btn">
-          <Plus className="w-4 h-4 mr-2" />
-          New GRN
-        </Button>
+        <div className="flex gap-2">
+          {purchaseOrders.length > 0 && (
+            <Select
+              onValueChange={(poId) => {
+                const po = purchaseOrders.find(p => p.id === poId);
+                if (po) createGRNFromPO(po);
+              }}
+            >
+              <SelectTrigger className="w-48" data-testid="create-from-po-select">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4" />
+                  <span>Create from PO</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {purchaseOrders.map(po => (
+                  <SelectItem key={po.id} value={po.id}>
+                    {po.order_number} - {po.supplier_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={() => { resetForm(); handleAddItem(); setIsModalOpen(true); }} data-testid="create-grn-btn">
+            <Plus className="w-4 h-4 mr-2" />
+            New GRN
+          </Button>
+        </div>
       </div>
 
       {/* GRN List */}
