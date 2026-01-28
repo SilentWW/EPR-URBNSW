@@ -94,6 +94,11 @@ export const Products = () => {
     }
   };
 
+  const fetchData = async () => {
+    // Initial data fetch
+    await fetchProducts();
+  };
+
   useEffect(() => {
     fetchProducts();
   }, [search, categoryFilter]);
