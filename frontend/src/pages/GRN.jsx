@@ -620,13 +620,34 @@ export default function GRN() {
                           />
                         </div>
                         <div>
-                          <Label className="text-sm">Category</Label>
-                          <Input
+                          <Label className="text-sm">Category (WooCommerce)</Label>
+                          <Select
                             value={item.category}
-                            onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
-                            placeholder="Category"
+                            onValueChange={(value) => handleItemChange(idx, 'category', value)}
                             disabled={!!item.product_id}
-                          />
+                          >
+                            <SelectTrigger className={item.product_id ? 'bg-slate-100' : ''}>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {wooCategories.length > 0 ? (
+                                wooCategories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.name}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <>
+                                  <SelectItem value="Clothing">Clothing</SelectItem>
+                                  <SelectItem value="Electronics">Electronics</SelectItem>
+                                  <SelectItem value="Home & Garden">Home & Garden</SelectItem>
+                                  <SelectItem value="Sports">Sports</SelectItem>
+                                  <SelectItem value="Beauty">Beauty</SelectItem>
+                                  <SelectItem value="Food & Beverages">Food & Beverages</SelectItem>
+                                </>
+                              )}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
