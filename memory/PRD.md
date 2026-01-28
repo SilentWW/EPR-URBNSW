@@ -52,13 +52,34 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Cost Price (COGS), Regular Price, Sale Price fields
   - [x] Product Description & Short Description
   - [x] Visibility (Public/Private)
-  - [x] Tags (comma separated)
+  - [x] Tags (comma separated) with **SEO Tag Suggestions**
   - [x] Weight (kg)
   - [x] Stock Management enabled by default
   - [x] **Automatic Finance Entries** - Debit Inventory, Credit Accounts Payable
-  - [x] **WooCommerce Sync** - Auto-sync products on GRN creation
+  - [x] **WooCommerce Sync** - Auto-sync products with stock management enabled
   - [x] **Link PO to GRN** - Create GRN from existing Purchase Order
   - [x] **SKU Field Logic** - SKU disabled when selecting existing product
+  - [x] **WooCommerce Category Dropdown** - Select categories from WooCommerce
+  - [x] **SEO Tags Button** - Generate SEO-friendly tags automatically
+
+### Phase 4 - WooCommerce Order Sync with Finance (COMPLETED ✅)
+- [x] **Order Sync from WooCommerce**
+  - [x] Sync completed/processing orders as income
+  - [x] **Double-entry accounting** for sales:
+    - Debit: Accounts Receivable/Cash
+    - Credit: Sales Revenue
+  - [x] **COGS tracking**:
+    - Debit: Cost of Goods Sold
+    - Credit: Inventory
+  - [x] **Returns/Cancellations handling**:
+    - Reverse journal entries
+    - Restore inventory
+  - [x] Automatic customer creation from WooCommerce orders
+
+### Simplified Product Creation (COMPLETED ✅)
+- [x] **Product form simplified** - Only SKU, Name, Category
+- [x] Cost price, selling price, stock quantity set via GRN
+- [x] WooCommerce category dropdown in product form
 
 ### Bug Fixes (Session - Jan 2026)
 - [x] **Supplier Creation Bug** - Fixed React crash "Objects are not valid as a React child" when Pydantic validation errors occurred. Error handling now properly extracts error messages from array/object format.
