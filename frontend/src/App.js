@@ -20,6 +20,7 @@ import Accounting from './pages/Accounting';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
+import GRN from './pages/GRN';
 
 // Advanced Finance Pages
 import ChartOfAccounts from './pages/ChartOfAccounts';
