@@ -111,6 +111,15 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `GET /restore/preview/{id}` - Preview restore
 - `POST /restore` - Execute restore
 
+### GRN Module (/api/grn)
+- `GET /next-sku` - Get next available SKU (URBN0001...)
+- `GET /report/summary` - GRN summary report
+- `GET /` - List all GRNs
+- `GET /{id}` - Get GRN details
+- `POST /` - Create GRN (auto-creates products, inventory, finance entries)
+- `POST /{id}/resync` - Re-sync GRN products to WooCommerce
+- `DELETE /{id}` - Delete GRN
+
 ### WooCommerce Module (/api/woocommerce)
 - `GET /test-connection` - Test WooCommerce connection
 - `POST /products/sync` - Sync products
