@@ -217,15 +217,30 @@ async def _sync_products_task(company_id: str, sync_id: str, direction: str, use
                             "woo_product_id": str(woo_product["id"])
                         })
                         
+                        # Extract tags
+                        tags = ", ".join([t["name"] for t in woo_product.get("tags", [])])
+                        
+                        # Get regular and sale price
+                        regular_price = float(woo_product.get("regular_price") or woo_product.get("price") or 0)
+                        sale_price = float(woo_product.get("sale_price") or 0) if woo_product.get("sale_price") else None
+                        
                         product_data = {
                             "woo_product_id": str(woo_product["id"]),
                             "sku": woo_product.get("sku") or f"WOO-{woo_product['id']}",
                             "name": woo_product["name"],
                             "description": woo_product.get("description", ""),
+                            "short_description": woo_product.get("short_description", ""),
                             "category": woo_product["categories"][0]["name"] if woo_product.get("categories") else None,
-                            "cost_price": float(woo_product.get("regular_price") or 0) * 0.7,  # Estimate cost
-                            "selling_price": float(woo_product.get("regular_price") or woo_product.get("price") or 0),
+                            "cost_price": regular_price * 0.7,  # Estimate cost at 70% of regular price
+                            "regular_price": regular_price,
+                            "sale_price": sale_price,
+                            "selling_price": sale_price if sale_price else regular_price,
                             "stock_quantity": woo_product.get("stock_quantity") or 0,
+                            "weight": float(woo_product.get("weight") or 0) if woo_product.get("weight") else None,
+                            "visibility": "public" if woo_product.get("status") == "publish" else "private",
+                            "tags": tags,
+                            "manage_stock": woo_product.get("manage_stock", True),
+                            "attributes": woo_product.get("attributes", []),
                             "updated_at": get_current_timestamp()
                         }
                         
