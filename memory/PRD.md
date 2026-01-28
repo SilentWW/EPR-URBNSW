@@ -1,160 +1,164 @@
 # E1 ERP System - Product Requirements Document
 
-## Project Overview
-A cloud-based, web ERP system optimized for online sellers, WooCommerce businesses, and small/medium enterprises. Built with multi-tenant SaaS architecture.
+## Overview
+A cloud-based, web ERP system designed for businesses with a modular architecture. Built with FastAPI backend and React frontend, featuring advanced finance and admin capabilities.
 
-## Technology Stack
-- **Backend**: FastAPI (Python)
-- **Frontend**: React with Tailwind CSS + Shadcn UI
-- **Database**: MongoDB
-- **Authentication**: JWT-based
-- **Currency**: LKR (Sri Lankan Rupee)
-- **Timezone**: Asia/Colombo
+## Original Problem Statement
+Build a cloud-based ERP system for business operations with the intention of selling as a SaaS product. System must be low-code/no-code, configurable, and user-friendly for non-technical users.
 
 ## User Personas
-1. **Admin** - Full access to all modules including user management
-2. **Manager** - Access to operations and reports
-3. **Accounts** - Access to financial modules
-4. **Store** - Access to inventory and sales
-5. **Staff** - Basic access
+1. **Business Owner** - Needs overview of operations, financial reports, WooCommerce integration
+2. **Accountant** - Needs Chart of Accounts, General Ledger, journal entries, financial reports
+3. **Operations Manager** - Needs inventory, sales, purchase orders
+4. **System Admin** - Needs backup/restore, data reset, user management
 
-## Core Requirements (Static)
+## Core Requirements
 
-### 1. User & Role Management
-- User registration with company creation
-- JWT authentication (24-hour token)
-- Role-based permissions (Admin, Manager, Accounts, Store, Staff)
-- Activity audit logs
-
-### 2. Company Settings
-- Company profile (name, address, email, phone)
-- Currency configuration
-- Timezone settings
-- Tax rate configuration
-
-### 3. WooCommerce Integration (Configurable)
-- Store URL, Consumer Key, Consumer Secret fields
-- Enable/disable toggle
-- Designed for two-way sync (products, orders, customers, stock)
-
-### 4. Product & Inventory Management
-- Product master (SKU, name, category, cost/selling price)
-- Stock quantity tracking
-- Low stock alerts
-- Inventory movements (in/out/adjustment)
-- Inventory valuation report
-
-### 5. Customer Management (CRM)
-- Customer database with contact details
-- Order history per customer
-- Outstanding balance tracking
-
-### 6. Supplier Management
-- Supplier master with contact info
-- Purchase order history
-- Payables tracking
-
-### 7. Sales Management
-- Sales orders (manual + WooCommerce)
-- Auto-invoice generation
-- Discounts support
-- Returns handling (stock restoration + accounting reversal)
-- Payment status tracking
-
-### 8. Purchase Management
-- Purchase orders
-- Goods received functionality
-- Supplier invoices
-- Cost price updates
-
-### 9. Basic Accounting
-- Income tracking (auto from sales)
-- Expense tracking (auto from purchases + manual)
-- Profit & Loss summary with charts
-- Customer receivables
-- Supplier payables
-
-### 10. Payments & Banking
-- Multiple payment methods (cash, bank, card, online)
-- Payment recording against orders
-- Cash/bank balance tracking
-
-### 11. Dashboard & Reporting
-- Business overview dashboard
-- Sales metrics & trends (7/30 days)
-- Top selling products
-- Low stock alerts
-- Export to CSV
-
-### 12. Notifications
-- Low stock alerts
-- Pending payment alerts
-
-## What's Been Implemented (January 2026)
-
-### Backend (server.py)
-- [x] JWT Authentication (register, login, me)
-- [x] Company management with WooCommerce settings
-- [x] User management (CRUD + role updates)
-- [x] Products CRUD with categories
-- [x] Inventory movements with stock tracking
-- [x] Customers CRUD with order history
-- [x] Suppliers CRUD with purchase history
-- [x] Sales Orders with auto-inventory deduction
-- [x] Purchase Orders with goods received
-- [x] Payments with bank/cash ledger
-- [x] Accounting entries with P&L
-- [x] Dashboard summary & charts
-- [x] Reports with date filtering
-- [x] Notifications API
-- [x] Demo data seeding
-
-### Frontend Pages
-- [x] Login & Registration
-- [x] Dashboard with charts
-- [x] Products (list, add, edit, delete)
-- [x] Inventory movements & valuation
-- [x] Customers (list, add, edit, delete)
-- [x] Suppliers (list, add, edit, delete)
-- [x] Sales Orders (create, view, payment, return)
-- [x] Invoices list
-- [x] Purchase Orders (create, view, receive, payment)
-- [x] Payments with balance summary
-- [x] Accounting with P&L charts
-- [x] Reports with export
-- [x] Settings (company, WooCommerce, users)
+### Phase 1 - MVP (COMPLETED ✅)
+- [x] User/Role/Company Management with JWT Authentication
+- [x] Products & Inventory Management
+- [x] Sales Orders & Invoicing
+- [x] Customer Management (CRM)
+- [x] Supplier/Purchasing Management
+- [x] Basic Accounting (entries, receivables, payables)
+- [x] Payments Tracking
+- [x] Dashboard & Basic Reports
 - [x] Notifications
+- [x] WooCommerce Settings UI
 
-## Prioritized Backlog
+### Phase 2 - Advanced Finance & Admin (COMPLETED ✅)
+- [x] **Chart of Accounts** - 28 default accounts, configurable hierarchy
+- [x] **Double-Entry Bookkeeping** - Validated journal entries
+- [x] **General Ledger** - Transaction history with running balances
+- [x] **Accounts Receivable** - Aging analysis
+- [x] **Accounts Payable** - Aging analysis
+- [x] **Financial Reports**:
+  - [x] Trial Balance
+  - [x] Profit & Loss Statement
+  - [x] Balance Sheet
+  - [x] Cash Flow Statement
+- [x] **System Admin Controls**:
+  - [x] Data Reset (transactional/full with confirmation)
+  - [x] Backup (local storage, compressed)
+  - [x] Restore (with preview and confirmation)
+  - [x] System Information Dashboard
+- [x] **WooCommerce Integration Backend** - Two-way sync logic
 
-### P0 (Critical - Done)
-- [x] Core authentication
-- [x] Dashboard
-- [x] Product management
-- [x] Sales & Purchase orders
-- [x] Basic accounting
+## Technical Architecture
 
-### P1 (High Priority - Future)
-- [ ] Actual WooCommerce API sync implementation
-- [ ] Webhook handlers for real-time Woo updates
-- [ ] PDF invoice generation
-- [ ] Email notifications
+### Backend
+- **Framework**: FastAPI
+- **Database**: MongoDB
+- **Authentication**: JWT
+- **Structure**: Modular routers
+  - `/app/backend/server.py` - Main application with existing routes
+  - `/app/backend/routes/finance.py` - Finance module (Chart of Accounts, GL, Reports)
+  - `/app/backend/routes/admin.py` - Admin module (Backup, Restore, Reset)
+  - `/app/backend/routes/woocommerce.py` - WooCommerce integration
 
-### P2 (Medium Priority - Future)
-- [ ] Multi-warehouse support
-- [ ] Advanced reporting
-- [ ] Subscription billing for SaaS
-- [ ] Mobile responsive improvements
+### Frontend
+- **Framework**: React
+- **UI Components**: Shadcn/UI
+- **Routing**: React Router
+- **State**: Context API
+- **Styling**: Tailwind CSS
 
-### P3 (Low Priority - Future)
-- [ ] Payroll module
-- [ ] Manufacturing module
-- [ ] Advanced accounting (double-entry)
-- [ ] Mobile app
+### Key Configuration
+- **Currency**: LKR (Sri Lankan Rupee)
+- **Timezone**: Asia/Colombo
+- **Financial Year**: April 1 - March 31
+- **Backup Storage**: Local (/app/backend/backups)
 
-## Next Action Items
-1. Implement actual WooCommerce API integration (currently UI-ready)
-2. Add PDF invoice generation
-3. Email notifications for alerts
-4. Date range filters on all reports
-5. Export functionality for all data tables
+## API Endpoints
+
+### Finance Module (/api/finance)
+- `POST /chart-of-accounts/initialize` - Initialize default accounts
+- `GET /chart-of-accounts` - List all accounts
+- `POST /chart-of-accounts` - Create account
+- `PUT /chart-of-accounts/{id}` - Update account
+- `DELETE /chart-of-accounts/{id}` - Delete account
+- `GET /journal-entries` - List journal entries
+- `POST /journal-entries` - Create journal entry
+- `POST /journal-entries/{id}/reverse` - Reverse entry
+- `GET /general-ledger` - Get general ledger
+- `GET /reports/trial-balance` - Trial balance report
+- `GET /reports/profit-loss` - P&L report
+- `GET /reports/balance-sheet` - Balance sheet report
+- `GET /reports/cash-flow` - Cash flow report
+
+### Admin Module (/api/admin)
+- `GET /system-info` - System statistics
+- `GET /backups` - List backups
+- `POST /backups` - Create backup
+- `GET /backups/{id}/download` - Download backup
+- `DELETE /backups/{id}` - Delete backup
+- `GET /data-reset/preview` - Preview reset impact
+- `POST /data-reset` - Execute data reset
+- `GET /restore/preview/{id}` - Preview restore
+- `POST /restore` - Execute restore
+
+### WooCommerce Module (/api/woocommerce)
+- `GET /test-connection` - Test WooCommerce connection
+- `POST /products/sync` - Sync products
+- `POST /orders/sync` - Sync orders
+- `POST /customers/sync` - Sync customers
+- `POST /full-sync` - Full two-way sync
+- `GET /sync-logs` - Get sync history
+
+## Testing Status
+- **Backend Tests**: 24/24 passed (100%)
+- **Frontend Tests**: 17/17 passed (100%)
+- **Last Test Run**: iteration_2.json
+
+## Known Limitations
+1. WooCommerce integration requires actual store credentials to test
+2. Scheduled backups UI exists but scheduler not implemented
+3. Reports based on current account balances (period filtering needs enhancement)
+
+## Future/Backlog (P2)
+- [ ] Payroll Module
+- [ ] Manufacturing Module
+- [ ] SaaS Subscription Billing
+- [ ] Multi-Warehouse Support
+- [ ] Mobile App
+- [ ] PDF Export for Reports
+- [ ] Scheduled Backup Automation
+- [ ] Multi-Currency Support
+- [ ] Bank Reconciliation
+
+## Test Credentials
+- **Email**: admin@example.com
+- **Password**: admin123
+
+## File Structure
+```
+/app/
+├── backend/
+│   ├── server.py          # Main FastAPI application
+│   ├── routes/
+│   │   ├── finance.py     # Finance module routes
+│   │   ├── admin.py       # Admin module routes
+│   │   └── woocommerce.py # WooCommerce integration
+│   ├── models/
+│   │   ├── finance.py     # Finance data models
+│   │   └── admin.py       # Admin data models
+│   ├── utils/
+│   │   ├── helpers.py     # Common utilities
+│   │   └── auth.py        # Authentication utilities
+│   └── backups/           # Backup storage
+├── frontend/
+│   └── src/
+│       ├── pages/
+│       │   ├── ChartOfAccounts.jsx
+│       │   ├── GeneralLedger.jsx
+│       │   ├── FinancialReports.jsx
+│       │   └── SystemAdmin.jsx
+│       └── components/
+│           └── Layout.jsx # Main navigation
+└── memory/
+    └── PRD.md            # This file
+```
+
+---
+*Last Updated: January 28, 2026*
+*Version: 2.0.0*
