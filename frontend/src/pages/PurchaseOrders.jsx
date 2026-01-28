@@ -294,10 +294,16 @@ export const PurchaseOrders = () => {
                             View Details
                           </DropdownMenuItem>
                           {order.status === 'pending' && (
-                            <DropdownMenuItem onClick={() => handleReceiveOrder(order)}>
-                              <PackageCheck className="w-4 h-4 mr-2" />
-                              Receive Goods
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem onClick={() => navigate(`/grn?po_id=${order.id}`)}>
+                                <FileInput className="w-4 h-4 mr-2" />
+                                Receive as GRN
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleReceiveOrder(order)}>
+                                <PackageCheck className="w-4 h-4 mr-2" />
+                                Quick Receive
+                              </DropdownMenuItem>
+                            </>
                           )}
                           {order.payment_status !== 'paid' && (
                             <DropdownMenuItem onClick={() => {
