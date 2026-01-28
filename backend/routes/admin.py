@@ -47,7 +47,7 @@ ALL_COLLECTIONS = MASTER_COLLECTIONS + TRANSACTIONAL_COLLECTIONS
 # ============== DATA RESET ==============
 
 @router.post("/data-reset", response_model=DataResetResponse)
-async def reset_data(request: DataResetRequest, current_user: dict = Depends(lambda: get_current_user)):
+async def reset_data(request: DataResetRequest, current_user: dict = Depends(get_current_user)):
     """
     Reset system data with safety checks.
     Requires admin role and confirmation code "RESET"
@@ -159,7 +159,7 @@ async def reset_data(request: DataResetRequest, current_user: dict = Depends(lam
 @router.get("/data-reset/preview")
 async def preview_reset(
     reset_type: str,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Preview what will be affected by a data reset"""
     if current_user["role"] != "admin":
@@ -187,7 +187,7 @@ async def preview_reset(
 # ============== BACKUP ==============
 
 @router.get("/backups")
-async def list_backups(current_user: dict = Depends(lambda: get_current_user)):
+async def list_backups(current_user: dict = Depends(get_current_user)):
     """List all backups for the company"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -202,7 +202,7 @@ async def list_backups(current_user: dict = Depends(lambda: get_current_user)):
 @router.post("/backups", response_model=BackupResponse)
 async def create_backup(
     data: BackupCreate,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Create a new backup"""
     if current_user["role"] != "admin":
@@ -335,7 +335,7 @@ async def _create_backup_internal(
         raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
 
 @router.get("/backups/{backup_id}")
-async def get_backup(backup_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def get_backup(backup_id: str, current_user: dict = Depends(get_current_user)):
     """Get backup details"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -350,7 +350,7 @@ async def get_backup(backup_id: str, current_user: dict = Depends(lambda: get_cu
     return backup
 
 @router.get("/backups/{backup_id}/download")
-async def download_backup(backup_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def download_backup(backup_id: str, current_user: dict = Depends(get_current_user)):
     """Download backup file"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -374,7 +374,7 @@ async def download_backup(backup_id: str, current_user: dict = Depends(lambda: g
     )
 
 @router.delete("/backups/{backup_id}")
-async def delete_backup(backup_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def delete_backup(backup_id: str, current_user: dict = Depends(get_current_user)):
     """Delete a backup"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -399,7 +399,7 @@ async def delete_backup(backup_id: str, current_user: dict = Depends(lambda: get
 @router.post("/restore", response_model=RestoreResponse)
 async def restore_backup(
     request: RestoreRequest,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Restore data from a backup.
@@ -486,7 +486,7 @@ async def restore_backup(
         raise HTTPException(status_code=500, detail=f"Restore failed: {str(e)}")
 
 @router.get("/restore/preview/{backup_id}")
-async def preview_restore(backup_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def preview_restore(backup_id: str, current_user: dict = Depends(get_current_user)):
     """Preview what will be restored from a backup"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -521,7 +521,7 @@ async def preview_restore(backup_id: str, current_user: dict = Depends(lambda: g
 # ============== SCHEDULED BACKUPS ==============
 
 @router.get("/backup-schedules")
-async def get_backup_schedules(current_user: dict = Depends(lambda: get_current_user)):
+async def get_backup_schedules(current_user: dict = Depends(get_current_user)):
     """Get all scheduled backups"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -536,7 +536,7 @@ async def get_backup_schedules(current_user: dict = Depends(lambda: get_current_
 @router.post("/backup-schedules")
 async def create_backup_schedule(
     data: ScheduledBackupCreate,
-    current_user: dict = Depends(lambda: get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Create a scheduled backup"""
     if current_user["role"] != "admin":
@@ -557,7 +557,7 @@ async def create_backup_schedule(
     return serialize_doc(schedule)
 
 @router.delete("/backup-schedules/{schedule_id}")
-async def delete_backup_schedule(schedule_id: str, current_user: dict = Depends(lambda: get_current_user)):
+async def delete_backup_schedule(schedule_id: str, current_user: dict = Depends(get_current_user)):
     """Delete a scheduled backup"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -575,7 +575,7 @@ async def delete_backup_schedule(schedule_id: str, current_user: dict = Depends(
 # ============== SYSTEM INFO ==============
 
 @router.get("/system-info")
-async def get_system_info(current_user: dict = Depends(lambda: get_current_user)):
+async def get_system_info(current_user: dict = Depends(get_current_user)):
     """Get system information and statistics"""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
