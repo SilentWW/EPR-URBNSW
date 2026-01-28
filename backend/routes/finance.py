@@ -19,17 +19,22 @@ router = APIRouter(prefix="/finance", tags=["Finance"])
 
 # Database will be injected from main app
 db = None
+_get_current_user_func = None
 
 def set_db(database):
     global db
     db = database
 
-# Dependency to get current user (will be set from main app)
-get_current_user = None
-
 def set_auth_dependency(auth_func):
-    global get_current_user
-    get_current_user = auth_func
+    global _get_current_user_func
+    _get_current_user_func = auth_func
+
+async def get_current_user_dep():
+    """Wrapper to get the injected auth dependency"""
+    if _get_current_user_func is None:
+        raise HTTPException(status_code=500, detail="Auth not configured")
+    # The actual dependency will be resolved by FastAPI
+    return _get_current_user_func
 
 # ============== CHART OF ACCOUNTS ==============
 
