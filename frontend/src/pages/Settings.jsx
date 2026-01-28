@@ -93,13 +93,39 @@ export const Settings = () => {
           consumer_key: wooRes.data.consumer_key || '',
           consumer_secret: wooRes.data.consumer_secret || '',
           enabled: wooRes.data.enabled || false,
+          auto_sync_enabled: wooRes.data.auto_sync_enabled || false,
+          auto_sync_interval: wooRes.data.auto_sync_interval || 60,
         });
       }
       setUsers(usersRes.data);
+      
+      // Fetch sync logs if WooCommerce is enabled
+      if (wooRes.data?.enabled) {
+        fetchSyncLogs();
+        fetchSyncStatus();
+      }
     } catch (error) {
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSyncLogs = async () => {
+    try {
+      const response = await api.get('/woocommerce/sync-logs', { params: { limit: 10 } });
+      setSyncLogs(response.data);
+    } catch (error) {
+      console.error('Failed to fetch sync logs');
+    }
+  };
+
+  const fetchSyncStatus = async () => {
+    try {
+      const response = await api.get('/woocommerce/sync-status');
+      setSyncStatus(response.data);
+    } catch (error) {
+      console.error('Failed to fetch sync status');
     }
   };
 
