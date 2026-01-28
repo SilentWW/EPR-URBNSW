@@ -46,6 +46,8 @@ export default function GRN() {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [wooCategories, setWooCategories] = useState([]);
+  const [wooTags, setWooTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedGrn, setExpandedGrn] = useState(null);
