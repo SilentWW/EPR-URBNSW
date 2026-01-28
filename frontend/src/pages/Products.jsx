@@ -98,6 +98,10 @@ export const Products = () => {
     fetchProducts();
   }, [search, categoryFilter]);
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const handleOpenDialog = async (product = null) => {
     if (product) {
       setSelectedProduct(product);
