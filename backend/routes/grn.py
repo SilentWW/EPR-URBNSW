@@ -44,6 +44,7 @@ class GRNCreate(BaseModel):
     items: List[GRNItem]
     notes: Optional[str] = None
     sync_to_woo: bool = True
+    po_id: Optional[str] = None  # Link to Purchase Order
 
 # ============== SKU GENERATION ==============
 
