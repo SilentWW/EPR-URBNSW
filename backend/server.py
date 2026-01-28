@@ -1853,6 +1853,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on application startup"""
+    # Start WooCommerce auto-sync scheduler
+    woocommerce.start_auto_sync_scheduler()
+    logger.info("Application started with auto-sync scheduler")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    # Stop auto-sync scheduler
+    woocommerce.stop_auto_sync_scheduler()
     client.close()
+    logger.info("Application shutdown complete")
