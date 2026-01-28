@@ -104,6 +104,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `POST /customers/sync` - Sync customers
 - `POST /full-sync` - Full two-way sync
 - `GET /sync-logs` - Get sync history
+- `GET /sync-status` - Get auto-sync status and next run time
+- `POST /trigger-auto-sync` - Manually trigger auto-sync cycle
 
 ## Testing Status
 - **Backend Tests**: 24/24 passed (100%)
