@@ -157,9 +157,10 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `POST /trigger-auto-sync` - Manually trigger auto-sync cycle
 
 ## Testing Status
-- **Backend Tests**: 28/28 passed (100%)
-- **Frontend Tests**: 28/28 passed (100%)
-- **Last Test Run**: iteration_3.json (Jan 28, 2026)
+- **Backend Tests**: 22/22 passed (100%)
+- **Frontend Tests**: 13/13 passed (100%)
+- **Last Test Run**: iteration_4.json (Jan 28, 2026)
+- **Finance Module**: Fully tested - Chart of Accounts, Journal Entries, P&L, Balance Sheet, Cash Flow
 
 ## Known Limitations
 1. WooCommerce integration requires actual store credentials to test
