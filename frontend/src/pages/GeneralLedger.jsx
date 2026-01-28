@@ -59,10 +59,10 @@ export default function GeneralLedger() {
     try {
       setLoading(true);
       const [entriesRes, accountsRes] = await Promise.all([
-        api.get('/api/finance/journal-entries', {
+        api.get('/finance/journal-entries', {
           params: { start_date: startDate, end_date: endDate }
         }),
-        api.get('/api/finance/chart-of-accounts')
+        api.get('/finance/chart-of-accounts')
       ]);
       setEntries(entriesRes.data);
       setAccounts(accountsRes.data);
@@ -123,7 +123,7 @@ export default function GeneralLedger() {
     }
 
     try {
-      await api.post('/api/finance/journal-entries', {
+      await api.post('/finance/journal-entries', {
         entry_date: formData.entry_date,
         description: formData.description,
         reference_number: formData.reference_number,
@@ -141,7 +141,7 @@ export default function GeneralLedger() {
   const handleReverse = async (entryId) => {
     if (!window.confirm('Are you sure you want to reverse this entry?')) return;
     try {
-      await api.post(`/api/finance/journal-entries/${entryId}/reverse`);
+      await api.post(`/finance/journal-entries/${entryId}/reverse`);
       toast.success('Entry reversed');
       fetchData();
     } catch (error) {
