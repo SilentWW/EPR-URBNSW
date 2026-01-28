@@ -425,7 +425,7 @@ async def create_grn_finance_entries(
     })
 
 async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list):
-    """Sync GRN products to WooCommerce"""
+    """Sync GRN products to WooCommerce with full stock management"""
     try:
         # Import WooCommerce client
         from routes.woocommerce import get_woo_client
@@ -442,10 +442,30 @@ async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list)
                     "description": product.get("description", ""),
                     "short_description": product.get("short_description", ""),
                     "regular_price": str(product.get("regular_price", 0)),
-                    "manage_stock": product.get("manage_stock", True),
+                    # IMPORTANT: Enable stock management in WooCommerce
+                    "manage_stock": True,
                     "stock_quantity": product.get("stock_quantity", 0),
+                    "stock_status": "instock" if product.get("stock_quantity", 0) > 0 else "outofstock",
                     "status": "publish" if product.get("visibility") == "public" else "private",
                 }
+                
+                # Add category if set
+                if product.get("category"):
+                    # Try to find or create category in WooCommerce
+                    try:
+                        categories = await client.get("products/categories", params={
+                            "search": product["category"]
+                        })
+                        if categories:
+                            woo_data["categories"] = [{"id": categories[0]["id"]}]
+                        else:
+                            # Create the category
+                            new_cat = await client.post("products/categories", {
+                                "name": product["category"]
+                            })
+                            woo_data["categories"] = [{"id": new_cat["id"]}]
+                    except:
+                        pass  # Skip category if can't sync
                 
                 # Add sale price if set
                 if product.get("sale_price"):
@@ -455,9 +475,19 @@ async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list)
                 if product.get("weight"):
                     woo_data["weight"] = str(product["weight"])
                 
-                # Add tags if set
-                if product.get("tags"):
-                    tags = [{"name": tag.strip()} for tag in product["tags"].split(",")]
+                # Add tags if set - generate SEO tags if not provided
+                tags_str = product.get("tags", "")
+                if not tags_str and product.get("name"):
+                    # Auto-generate SEO tags
+                    words = product["name"].lower().split()
+                    stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with'}
+                    auto_tags = [w for w in words if w not in stop_words and len(w) > 2][:5]
+                    if product.get("category"):
+                        auto_tags.append(product["category"].lower())
+                    tags_str = ", ".join(auto_tags)
+                
+                if tags_str:
+                    tags = [{"name": tag.strip()} for tag in tags_str.split(",") if tag.strip()]
                     woo_data["tags"] = tags
                 
                 # Add attributes if set
