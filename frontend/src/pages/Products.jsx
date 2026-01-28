@@ -114,12 +114,7 @@ export const Products = () => {
       setFormData({
         sku: product.sku,
         name: product.name,
-        description: product.description || '',
         category: product.category || '',
-        cost_price: product.cost_price.toString(),
-        selling_price: product.selling_price.toString(),
-        stock_quantity: product.stock_quantity.toString(),
-        low_stock_threshold: product.low_stock_threshold.toString(),
       });
     } else {
       setSelectedProduct(null);
@@ -143,15 +138,22 @@ export const Products = () => {
 
     try {
       const data = {
-        ...formData,
-        cost_price: parseFloat(formData.cost_price) || 0,
-        selling_price: parseFloat(formData.selling_price) || 0,
-        stock_quantity: parseInt(formData.stock_quantity) || 0,
-        low_stock_threshold: parseInt(formData.low_stock_threshold) || 10,
+        sku: formData.sku,
+        name: formData.name,
+        category: formData.category,
+        // Set defaults for price and stock - will be updated via GRN
+        cost_price: 0,
+        selling_price: 0,
+        stock_quantity: 0,
+        low_stock_threshold: 10,
       };
 
       if (selectedProduct) {
-        await productsAPI.update(selectedProduct.id, data);
+        // Only update name and category for existing products
+        await productsAPI.update(selectedProduct.id, {
+          name: formData.name,
+          category: formData.category
+        });
         toast.success('Product updated successfully');
       } else {
         await productsAPI.create(data);
