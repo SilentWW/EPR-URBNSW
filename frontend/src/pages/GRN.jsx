@@ -453,14 +453,14 @@ export default function GRN() {
                       <div>
                         <Label className="text-sm">Existing Product (optional)</Label>
                         <Select
-                          value={item.product_id}
-                          onValueChange={(value) => handleItemChange(idx, 'product_id', value)}
+                          value={item.product_id || "new"}
+                          onValueChange={(value) => handleItemChange(idx, 'product_id', value === "new" ? "" : value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select existing or create new" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Create New Product</SelectItem>
+                            <SelectItem value="new">Create New Product</SelectItem>
                             {products.map(p => (
                               <SelectItem key={p.id} value={p.id}>{p.sku} - {p.name}</SelectItem>
                             ))}
