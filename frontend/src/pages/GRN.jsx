@@ -258,8 +258,10 @@ export default function GRN() {
       received_date: new Date().toISOString().split('T')[0],
       notes: '',
       sync_to_woo: true,
-      items: []
+      items: [],
+      po_id: null
     });
+    setFromPO(null);
   };
 
   const handleResync = async (grnId) => {
