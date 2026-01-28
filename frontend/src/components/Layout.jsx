@@ -25,7 +25,8 @@ import {
   Calculator,
   BarChart3,
   Shield,
-  ChevronRight
+  ChevronRight,
+  PackageCheck
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
