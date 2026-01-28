@@ -1,0 +1,174 @@
+{
+  "identity": {
+    "persona": "E1",
+    "philosophy": "Soft Precision - A blend of Swiss clarity and organic approachability. Clean, airy, professional, but not sterile.",
+    "principles": [
+      "Fusion over Imitation: Mix 'Soft Utility' with 'Swiss Precision'.",
+      "Emotion First: The app should feel 'Organized' and 'Calm'.",
+      "Content is King: Data is the hero, UI is the stage.",
+      "Zoom In: Focus on essential details.",
+      "Negative Space: Generous padding to reduce cognitive load."
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "heading": "Outfit, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "heading": "600",
+      "body_regular": "400",
+      "body_medium": "500",
+      "body_bold": "600"
+    },
+    "sizes": {
+      "h1": "text-4xl md:text-5xl tracking-tight",
+      "h2": "text-3xl md:text-4xl tracking-tight",
+      "h3": "text-2xl md:text-3xl tracking-tight",
+      "h4": "text-xl md:text-2xl tracking-tight",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed",
+      "body_sm": "text-sm leading-relaxed",
+      "caption": "text-xs tracking-wide uppercase"
+    },
+    "imports": [
+      "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#4F46E5",
+        "foreground": "#FFFFFF",
+        "hover": "#4338CA",
+        "light": "#E0E7FF"
+      },
+      "secondary": {
+        "DEFAULT": "#64748B",
+        "foreground": "#FFFFFF",
+        "light": "#F1F5F9"
+      },
+      "accent": {
+        "DEFAULT": "#F59E0B",
+        "foreground": "#FFFFFF",
+        "light": "#FEF3C7"
+      },
+      "background": {
+        "app": "#F8FAFC",
+        "card": "#FFFFFF",
+        "sidebar": "#FFFFFF"
+      },
+      "text": {
+        "primary": "#0F172A",
+        "secondary": "#64748B",
+        "muted": "#94A3B8"
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#3B82F6"
+      }
+    },
+    "gradients": {
+      "primary_soft": "linear-gradient(135deg, #4F46E5 0%, #818CF8 100%)",
+      "surface_shimmer": "linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 100%)"
+    }
+  },
+  "layout": {
+    "grid_system": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "form": "grid grid-cols-1 md:grid-cols-2 gap-6",
+      "detail": "grid grid-cols-1 lg:grid-cols-3 gap-8"
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-8 lg:p-10",
+      "section_gap": "gap-8",
+      "item_gap": "gap-4"
+    },
+    "sidebar": {
+      "width": "w-64",
+      "collapsed_width": "w-16",
+      "style": "border-r border-slate-100 bg-white h-screen sticky top-0"
+    },
+    "header": {
+      "height": "h-16",
+      "style": "border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-200 rounded-lg px-6 py-2.5 font-medium",
+      "secondary": "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all duration-200 rounded-lg px-6 py-2.5 font-medium",
+      "ghost": "hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors rounded-lg px-4 py-2",
+      "destructive": "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors rounded-lg px-6 py-2.5 font-medium"
+    },
+    "cards": {
+      "base": "bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300 p-6",
+      "interactive": "cursor-pointer hover:border-primary/20 hover:ring-2 hover:ring-primary/5"
+    },
+    "inputs": {
+      "base": "flex h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200",
+      "label": "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700 mb-2 block"
+    },
+    "tables": {
+      "container": "w-full overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm",
+      "header": "bg-slate-50/50 border-b border-slate-100",
+      "header_cell": "h-12 px-4 text-left align-middle font-medium text-slate-500 text-xs uppercase tracking-wider",
+      "row": "border-b border-slate-50 transition-colors hover:bg-slate-50/50 data-[state=selected]:bg-slate-50",
+      "cell": "p-4 align-middle text-sm text-slate-700"
+    },
+    "badges": {
+      "base": "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "success": "border-transparent bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+      "warning": "border-transparent bg-amber-50 text-amber-700 hover:bg-amber-100",
+      "error": "border-transparent bg-red-50 text-red-700 hover:bg-red-100",
+      "neutral": "border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "soft": "0 2px 10px rgba(0, 0, 0, 0.03)",
+      "medium": "0 4px 20px rgba(0, 0, 0, 0.05)",
+      "float": "0 10px 30px rgba(0, 0, 0, 0.08)"
+    },
+    "glassmorphism": {
+      "default": "bg-white/70 backdrop-blur-xl border border-white/20 shadow-sm"
+    },
+    "borders": {
+      "subtle": "border border-slate-100",
+      "highlight": "border-l-4 border-primary"
+    }
+  },
+  "motion": {
+    "transitions": {
+      "default": "transition-all duration-200 ease-in-out",
+      "slow": "transition-all duration-500 ease-out"
+    },
+    "animations": {
+      "fade_in": "animate-in fade-in duration-500",
+      "slide_up": "animate-in slide-in-from-bottom-4 duration-500 fade-in",
+      "scale_in": "animate-in zoom-in-95 duration-300 fade-in"
+    }
+  },
+  "images": {
+    "dashboard_welcome": "https://images.unsplash.com/photo-1765648580890-732fa6d769c5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwyfHxidXNpbmVzcyUyMG93bmVyJTIwd29ya2luZyUyMGxhcHRvcCUyMGNhZmV8ZW58MHx8fHwxNzY5NjE4ODUxfDA&ixlib=rb-4.1.0&q=85",
+    "inventory_empty": "https://images.unsplash.com/photo-1619070284836-e850273d69ac?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB3YXJlaG91c2UlMjBsb2dpc3RpY3N8ZW58MHx8fHwxNzY5NjE4ODQ5fDA&ixlib=rb-4.1.0&q=85",
+    "login_bg": "https://images.unsplash.com/photo-1768796369926-2e25a1e4fc9b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjB3YXJlaG91c2UlMjBsb2dpc3RpY3N8ZW58MHx8fHwxNzY5NjE4ODQ5fDA&ixlib=rb-4.1.0&q=85"
+  },
+  "universal_guidelines": [
+    "DO NOT use 'Inter' for headings. Use 'Outfit'.",
+    "DO NOT use generic teal (#1B93A4). Use Indigo (#4F46E5) or Violet.",
+    "DO NOT use full-screen gradients. Use subtle noise or clean whites.",
+    "ALWAYS use 'data-testid' on interactive elements.",
+    "ALWAYS use 'sonner' for toasts.",
+    "ALWAYS use 'lucide-react' for icons.",
+    "Prefer 'Cardless' designs for dense data (use tables/lists with dividers).",
+    "Use 'Bento' grids for dashboards, not equal squares.",
+    "Inputs must have a background color (slate-50), not just a border.",
+    "Buttons must have a 'pill' or 'rounded-lg' shape, never sharp rectangles.",
+    "Add 'micro-interactions' to every hover state (scale, lift, or color shift)."
+  ],
+  "instructions_to_main_agent": "You are building a React + Tailwind + Shadcn ERP. Use the colors and typography defined here. Override the default Shadcn variables in 'index.css' with the palette provided. Create a 'Layout' component that implements the Sidebar and Header specs. Use the 'Outfit' font for all headings (h1-h4) and 'Inter' for body text. Ensure all forms use the 'inputs' styling defined above."
+}
