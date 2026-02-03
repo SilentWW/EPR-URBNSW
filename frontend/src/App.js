@@ -106,6 +106,10 @@ function AppRoutes() {
       {/* Admin Routes */}
       <Route path="/system-admin" element={<ProtectedRoute><SystemAdmin /></ProtectedRoute>} />
 
+      {/* Simple Finance Routes */}
+      <Route path="/investors" element={<ProtectedRoute><Investors /></ProtectedRoute>} />
+      <Route path="/quick-transactions" element={<ProtectedRoute><QuickTransactions /></ProtectedRoute>} />
+
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
