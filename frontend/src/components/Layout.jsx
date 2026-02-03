@@ -26,7 +26,10 @@ import {
   BarChart3,
   Shield,
   ChevronRight,
-  PackageCheck
+  PackageCheck,
+  Wallet,
+  Zap,
+  UserPlus
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -56,6 +59,8 @@ const menuItems = [
 ];
 
 const financeMenuItems = [
+  { icon: Zap, label: 'Quick Transactions', path: '/quick-transactions', highlight: true },
+  { icon: UserPlus, label: 'Investors', path: '/investors' },
   { icon: BookOpen, label: 'Chart of Accounts', path: '/chart-of-accounts' },
   { icon: Calculator, label: 'General Ledger', path: '/general-ledger' },
   { icon: BarChart3, label: 'Financial Reports', path: '/financial-reports' },
