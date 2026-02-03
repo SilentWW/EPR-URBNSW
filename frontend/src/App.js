@@ -30,6 +30,10 @@ import FinancialReports from './pages/FinancialReports';
 // Admin Pages
 import SystemAdmin from './pages/SystemAdmin';
 
+// Simple Finance Pages
+import Investors from './pages/Investors';
+import QuickTransactions from './pages/QuickTransactions';
+
 // Layout
 import Layout from './components/Layout';
 
