@@ -365,12 +365,20 @@ async def login(credentials: UserLogin):
         )
     )
 
-@api_router.get("/auth/me", response_model=UserResponse)
+@api_router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
     user = await db.users.find_one({"id": current_user["user_id"]}, {"_id": 0, "password": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return UserResponse(**user)
+    
+    # Get company name for display
+    company = await db.companies.find_one({"id": current_user["company_id"]}, {"_id": 0, "name": 1})
+    company_name = company.get("name", "My Business") if company else "My Business"
+    
+    return {
+        **user,
+        "company_name": company_name
+    }
 
 # ============== COMPANY ROUTES ==============
 

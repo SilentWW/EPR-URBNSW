@@ -148,13 +148,70 @@ async def get_account(account_id: str, current_user: dict = Depends(get_current_
     
     return {**account, "recent_transactions": journal_entries}
 
+async def _generate_account_code(company_id: str, account_type: str) -> str:
+    """Auto-generate the next account code based on account type"""
+    # Account type prefixes:
+    # Assets: 1xxx, Liabilities: 2xxx, Equity: 3xxx, Income: 4xxx, Expense: 5xxx-6xxx
+    type_prefixes = {
+        "asset": "1",
+        "liability": "2",
+        "equity": "3",
+        "income": "4",
+        "expense": "6"  # Operating expenses use 6xxx
+    }
+    
+    prefix = type_prefixes.get(account_type, "9")  # Default to 9 for unknown types
+    
+    # Find all accounts with this prefix
+    regex_pattern = f"^{prefix}"
+    existing_accounts = await db.accounts.find(
+        {"company_id": company_id, "code": {"$regex": regex_pattern}},
+        {"code": 1}
+    ).to_list(1000)
+    
+    # Find the highest code number
+    max_code = 0
+    for acc in existing_accounts:
+        code = acc.get("code", "")
+        try:
+            code_num = int(code)
+            if code_num > max_code:
+                max_code = code_num
+        except ValueError:
+            continue
+    
+    # Generate next code
+    if max_code == 0:
+        # Start with x100 for new account types
+        next_code = int(prefix) * 1000 + 100
+    else:
+        next_code = max_code + 1
+    
+    return str(next_code)
+
+
+@router.get("/chart-of-accounts/next-code/{account_type}")
+async def get_next_account_code(account_type: str, current_user: dict = Depends(get_current_user)):
+    """Get the next auto-generated account code for a given account type"""
+    if account_type not in ["asset", "liability", "equity", "income", "expense"]:
+        raise HTTPException(status_code=400, detail="Invalid account type")
+    
+    next_code = await _generate_account_code(current_user["company_id"], account_type)
+    return {"next_code": next_code}
+
+
 @router.post("/chart-of-accounts")
 async def create_account(data: AccountCreate, current_user: dict = Depends(get_current_user)):
-    """Create a new account"""
+    """Create a new account with auto-generated code"""
     company_id = current_user["company_id"]
     
+    # Auto-generate account code if not provided or empty
+    account_code = data.code
+    if not account_code or account_code.strip() == "":
+        account_code = await _generate_account_code(company_id, data.account_type.value)
+    
     # Check for duplicate code
-    existing = await db.accounts.find_one({"company_id": company_id, "code": data.code})
+    existing = await db.accounts.find_one({"company_id": company_id, "code": account_code})
     if existing:
         raise HTTPException(status_code=400, detail="Account code already exists")
     
@@ -162,7 +219,7 @@ async def create_account(data: AccountCreate, current_user: dict = Depends(get_c
     account = {
         "id": account_id,
         "company_id": company_id,
-        "code": data.code,
+        "code": account_code,
         "name": data.name,
         "account_type": data.account_type.value,
         "category": data.category.value,
