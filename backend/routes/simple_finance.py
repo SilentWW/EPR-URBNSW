@@ -1001,3 +1001,68 @@ async def get_recent_transactions(
     ).sort("created_at", -1).to_list(limit)
     
     return transactions
+
+
+@router.delete("/transaction/{transaction_id}")
+async def delete_transaction(
+    transaction_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Delete a quick transaction and reverse its journal entry (Admin only).
+    This will reverse all account balance changes made by the transaction.
+    """
+    # Check if user is admin
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=403, 
+            detail="Only administrators can delete transactions"
+        )
+    
+    company_id = current_user["company_id"]
+    
+    # Find the journal entry
+    entry = await db.journal_entries.find_one({
+        "id": transaction_id,
+        "company_id": company_id,
+        "is_auto_generated": True
+    })
+    
+    if not entry:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    if entry.get("is_reversed"):
+        raise HTTPException(status_code=400, detail="Transaction has already been reversed")
+    
+    # Reverse the account balances
+    for line in entry.get("lines", []):
+        account_id = line.get("account_id")
+        if account_id:
+            # Reverse: if original was debit, we credit; if original was credit, we debit
+            await update_account_balance(
+                account_id, 
+                line.get("credit", 0),  # Reverse: original debit becomes credit
+                line.get("debit", 0)    # Reverse: original credit becomes debit
+            )
+    
+    # If this was a capital investment/withdrawal, recalculate share percentages
+    if entry.get("transaction_type") in ["capital_investment", "capital_withdrawal"]:
+        await recalculate_share_percentages(company_id)
+    
+    # Mark the entry as reversed instead of deleting (for audit trail)
+    await db.journal_entries.update_one(
+        {"id": transaction_id},
+        {
+            "$set": {
+                "is_reversed": True,
+                "reversed_at": get_current_timestamp(),
+                "reversed_by": current_user["user_id"]
+            }
+        }
+    )
+    
+    return {
+        "message": "Transaction reversed successfully",
+        "entry_number": entry.get("entry_number"),
+        "amount_reversed": entry.get("total_debit", 0)
+    }
