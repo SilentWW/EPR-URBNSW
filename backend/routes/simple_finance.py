@@ -905,10 +905,8 @@ async def record_loan_transaction(
         company_id, loan_info["code"], loan_info["name"], "liability", "long_term_liability", "2000"
     )
     
-    # Get or create cash account
-    cash_account = await get_or_create_account(
-        company_id, "1100", "Cash", "asset", "cash", "1000"
-    )
+    # Get cash/bank account (use selected account or default)
+    cash_account = await get_bank_cash_account(company_id, data.bank_account_id)
     
     lines = []
     
@@ -936,6 +934,13 @@ async def record_loan_transaction(
         ]
         ref_type = "loan_received"
         description = f"Loan Received from {data.lender_name}"
+        
+        # Update bank account balance
+        if data.bank_account_id:
+            await db.bank_accounts.update_one(
+                {"id": data.bank_account_id},
+                {"$inc": {"current_balance": data.amount}}
+            )
         
     else:
         # Loan Repayment
@@ -977,6 +982,13 @@ async def record_loan_transaction(
         
         ref_type = "loan_repayment"
         description = f"Loan Repayment to {data.lender_name}"
+        
+        # Update bank account balance
+        if data.bank_account_id:
+            await db.bank_accounts.update_one(
+                {"id": data.bank_account_id},
+                {"$inc": {"current_balance": -total_payment}}
+            )
     
     entry = await create_journal_entry(
         company_id=company_id,
@@ -991,7 +1003,8 @@ async def record_loan_transaction(
             "lender_name": data.lender_name,
             "loan_type": data.loan_type,
             "principal": data.amount,
-            "interest": data.interest_amount or 0
+            "interest": data.interest_amount or 0,
+            "bank_account_id": data.bank_account_id
         }
     )
     
