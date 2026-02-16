@@ -374,11 +374,15 @@ export default function ChartOfAccounts() {
                 <Input
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="e.g., 1101"
+                  placeholder={editingAccount ? "Account code" : "Auto-generated"}
                   required
-                  disabled={!!editingAccount}
+                  readOnly={!editingAccount}
+                  className={!editingAccount ? "bg-slate-50 text-slate-600" : ""}
                   data-testid="account-code-input"
                 />
+                {!editingAccount && (
+                  <p className="text-xs text-slate-500 mt-1">Code is auto-generated based on account type</p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700">Account Type</label>
