@@ -254,7 +254,7 @@ export default function ChartOfAccounts() {
               Initialize Default Accounts
             </Button>
           )}
-          <Button onClick={() => { resetForm(); setIsModalOpen(true); }} data-testid="add-account-btn">
+          <Button onClick={openAddModal} data-testid="add-account-btn">
             <Plus className="w-4 h-4 mr-2" />
             Add Account
           </Button>
