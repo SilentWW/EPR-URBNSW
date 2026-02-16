@@ -314,7 +314,7 @@ export const PurchaseOrders = () => {
                           {order.payment_status !== 'paid' && (
                             <DropdownMenuItem onClick={() => {
                               setSelectedOrder(order);
-                              setPaymentData({ ...paymentData, amount: (order.total - order.paid_amount).toString() });
+                              setPaymentData({ amount: (order.total - order.paid_amount).toString(), payment_method: 'bank', bank_account_id: '', notes: '' });
                               setPaymentDialogOpen(true);
                             }}>
                               <CreditCard className="w-4 h-4 mr-2" />
