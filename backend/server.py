@@ -3714,8 +3714,10 @@ async def seed_demo_data(current_user: dict = Depends(get_current_user)):
             "id": str(uuid.uuid4()),
             "company_id": company_id,
             **acc,
+            "account_type": acc.get("account_type", "asset"),
             "current_balance": acc["balance"],
             "is_system": True,
+            "is_active": True,
             "created_at": timestamp
         })
     
