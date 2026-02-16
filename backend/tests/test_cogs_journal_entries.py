@@ -116,8 +116,8 @@ class TestChartOfAccountsAutoCode:
         next_code = data["next_code"]
         print(f"Next expense account code: {next_code}")
         
-        # Expense codes should start with 5
-        assert next_code.startswith("5"), f"Expense code should start with 5, got {next_code}"
+        # Expense codes should start with 5 or 6 (5xxx for COGS, 6xxx for operating expenses)
+        assert next_code.startswith("5") or next_code.startswith("6"), f"Expense code should start with 5 or 6, got {next_code}"
     
     def test_auto_generate_code_for_income(self, auth_session):
         """Test auto-generating account code for income type (for revenue)"""
@@ -337,8 +337,8 @@ class TestCOGSJournalEntries:
         
         entries = entries_resp.json()
         
-        # Find COGS journal entry for this order
-        cogs_entries = [e for e in entries if e.get("reference_id") == order_id and "COGS" in e.get("description", "")]
+        # Find COGS journal entry for this order (description uses "Cost of Goods Sold")
+        cogs_entries = [e for e in entries if e.get("reference_id") == order_id and "Cost of Goods Sold" in e.get("description", "")]
         
         assert len(cogs_entries) >= 1, f"COGS journal entry not found for order {order_id}. Entries with this order_id: {[e.get('description') for e in entries if e.get('reference_id') == order_id]}"
         
