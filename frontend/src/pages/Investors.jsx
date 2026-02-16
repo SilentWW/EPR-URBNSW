@@ -706,6 +706,24 @@ export default function Investors() {
                 />
               </div>
               <div className="space-y-2">
+                <Label>Pay From Account *</Label>
+                <Select
+                  value={withdrawalData.bank_account_id}
+                  onValueChange={(value) => setWithdrawalData({ ...withdrawalData, bank_account_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select bank/cash account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.account_name} ({acc.account_type === 'bank' ? acc.bank_name : 'Cash'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Reason *</Label>
                 <Input
                   value={withdrawalData.reason}
@@ -733,7 +751,7 @@ export default function Investors() {
               <div className="bg-amber-50 p-3 rounded-lg text-sm text-amber-800">
                 <strong>Auto Journal Entry:</strong><br />
                 • Debit: Investor&apos;s Capital Account<br />
-                • Credit: Cash/Bank
+                • Credit: Selected Bank/Cash Account
               </div>
             </div>
             <DialogFooter>
