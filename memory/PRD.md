@@ -258,13 +258,14 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Proper double-entry accounting maintained
 
 ## Testing Status
-- **Backend Tests**: 65/66 passed (98%)
-- **Frontend Tests**: 42/42 passed (100%)
-- **Last Test Run**: iteration_7.json (Feb 16, 2026)
+- **Backend Tests**: 77/78 passed (99%)
+- **Frontend Tests**: 50/50 passed (100%)
+- **Last Test Run**: iteration_8.json (Feb 16, 2026)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
 - **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
 - **Dynamic Business Name**: Fully tested - Company name displays in sidebar
+- **COGS Recognition**: Fully tested - Sales orders create SALE- and COGS- journal entries, returns create RET- and RCOGS- reversal entries
 
 ## Test Credentials
 - **Email**: test@demo.com
