@@ -197,7 +197,6 @@ export default function Investors() {
       phone: investor.phone || '',
       id_number: investor.id_number || '',
       address: investor.address || '',
-      share_percentage: investor.share_percentage?.toString() || '',
       notes: investor.notes || ''
     });
     setIsModalOpen(true);
@@ -212,7 +211,6 @@ export default function Investors() {
       phone: '',
       id_number: '',
       address: '',
-      share_percentage: '',
       notes: ''
     });
   };
