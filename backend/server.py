@@ -1618,6 +1618,469 @@ async def get_payables(current_user: dict = Depends(get_current_user)):
         "items": payables
     }
 
+# ============== BANK & CASH ACCOUNTS ==============
+
+async def _generate_bank_account_code(company_id: str, account_type: str) -> str:
+    """Generate next account code for bank/cash accounts (11xx series)"""
+    # Cash accounts: 1100-1109, Bank accounts: 1110-1199
+    if account_type == "cash":
+        prefix = "110"
+        start = 1100
+    else:
+        prefix = "111"
+        start = 1110
+    
+    # Find highest existing code in this range
+    existing = await db.accounts.find(
+        {"company_id": company_id, "code": {"$regex": f"^{prefix}"}},
+        {"code": 1}
+    ).to_list(100)
+    
+    if not existing:
+        return str(start)
+    
+    max_code = max(int(acc["code"]) for acc in existing if acc["code"].isdigit())
+    return str(max_code + 1)
+
+@api_router.get("/bank-accounts")
+async def get_bank_accounts(current_user: dict = Depends(get_current_user)):
+    """Get all bank and cash accounts for the company"""
+    company_id = current_user["company_id"]
+    
+    accounts = await db.bank_accounts.find(
+        {"company_id": company_id},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(100)
+    
+    return [serialize_doc(acc) for acc in accounts]
+
+@api_router.post("/bank-accounts")
+async def create_bank_account(data: BankAccountCreate, current_user: dict = Depends(get_current_user)):
+    """Create a new bank or cash account"""
+    company_id = current_user["company_id"]
+    
+    # Generate account code for Chart of Accounts
+    account_code = await _generate_bank_account_code(company_id, data.account_type)
+    
+    # Create the bank account record
+    account_id = str(uuid.uuid4())
+    bank_account = {
+        "id": account_id,
+        "company_id": company_id,
+        "account_name": data.account_name,
+        "account_type": data.account_type,
+        "bank_name": data.bank_name,
+        "account_number": data.account_number,
+        "branch": data.branch,
+        "description": data.description,
+        "chart_account_code": account_code,
+        "opening_balance": data.opening_balance,
+        "current_balance": data.opening_balance,
+        "is_active": True,
+        "created_by": current_user["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.bank_accounts.insert_one(bank_account)
+    
+    # Create corresponding account in Chart of Accounts
+    chart_account_id = str(uuid.uuid4())
+    chart_account = {
+        "id": chart_account_id,
+        "company_id": company_id,
+        "code": account_code,
+        "name": data.account_name,
+        "account_type": "asset",
+        "category": "cash" if data.account_type == "cash" else "bank",
+        "description": f"{data.bank_name or ''} {data.account_number or ''}".strip() or data.description,
+        "parent_account_id": None,
+        "is_system": False,
+        "is_active": True,
+        "current_balance": data.opening_balance,
+        "bank_account_id": account_id,  # Link to bank account
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.accounts.insert_one(chart_account)
+    
+    # Update bank account with chart account ID
+    await db.bank_accounts.update_one(
+        {"id": account_id},
+        {"$set": {"chart_account_id": chart_account_id}}
+    )
+    
+    # Create opening balance journal entry if opening_balance > 0
+    if data.opening_balance != 0:
+        entry_id = str(uuid.uuid4())
+        entry_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        
+        # Get or create Owner's Equity/Capital account for opening balance
+        equity_account = await db.accounts.find_one({"company_id": company_id, "code": "3000"})
+        if not equity_account:
+            equity_account = await db.accounts.find_one({"company_id": company_id, "account_type": "equity"})
+        
+        if equity_account:
+            journal_entry = {
+                "id": entry_id,
+                "entry_number": f"OB-{entry_date.replace('-','')}-{entry_id[:4].upper()}",
+                "company_id": company_id,
+                "entry_date": entry_date,
+                "description": f"Opening Balance - {data.account_name}",
+                "reference_type": "opening_balance",
+                "reference_id": account_id,
+                "lines": [
+                    {
+                        "account_id": chart_account_id,
+                        "account_code": account_code,
+                        "account_name": data.account_name,
+                        "debit": data.opening_balance if data.opening_balance > 0 else 0,
+                        "credit": abs(data.opening_balance) if data.opening_balance < 0 else 0,
+                        "description": "Opening balance"
+                    },
+                    {
+                        "account_id": equity_account["id"],
+                        "account_code": equity_account["code"],
+                        "account_name": equity_account["name"],
+                        "debit": abs(data.opening_balance) if data.opening_balance < 0 else 0,
+                        "credit": data.opening_balance if data.opening_balance > 0 else 0,
+                        "description": "Opening balance offset"
+                    }
+                ],
+                "total_debit": abs(data.opening_balance),
+                "total_credit": abs(data.opening_balance),
+                "is_balanced": True,
+                "is_auto_generated": True,
+                "is_reversed": False,
+                "created_by": current_user["user_id"],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.journal_entries.insert_one(journal_entry)
+            
+            # Update equity account balance
+            if data.opening_balance > 0:
+                await db.accounts.update_one({"id": equity_account["id"]}, {"$inc": {"current_balance": data.opening_balance}})
+    
+    return serialize_doc(bank_account)
+
+@api_router.get("/bank-accounts/{account_id}")
+async def get_bank_account(account_id: str, current_user: dict = Depends(get_current_user)):
+    """Get a specific bank account with recent transactions"""
+    account = await db.bank_accounts.find_one(
+        {"id": account_id, "company_id": current_user["company_id"]},
+        {"_id": 0}
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+    
+    # Get recent transactions
+    transactions = await db.bank_account_transactions.find(
+        {"bank_account_id": account_id},
+        {"_id": 0}
+    ).sort("transaction_date", -1).limit(50).to_list(50)
+    
+    account["recent_transactions"] = [serialize_doc(t) for t in transactions]
+    return serialize_doc(account)
+
+@api_router.put("/bank-accounts/{account_id}")
+async def update_bank_account(account_id: str, data: BankAccountUpdate, current_user: dict = Depends(get_current_user)):
+    """Update bank account details"""
+    account = await db.bank_accounts.find_one(
+        {"id": account_id, "company_id": current_user["company_id"]}
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.bank_accounts.update_one({"id": account_id}, {"$set": update_data})
+    
+    # Also update the Chart of Accounts entry
+    if "account_name" in update_data:
+        await db.accounts.update_one(
+            {"bank_account_id": account_id},
+            {"$set": {"name": update_data["account_name"], "updated_at": update_data["updated_at"]}}
+        )
+    
+    updated = await db.bank_accounts.find_one({"id": account_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/bank-accounts/{account_id}")
+async def delete_bank_account(account_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a bank account (soft delete - marks as inactive)"""
+    account = await db.bank_accounts.find_one(
+        {"id": account_id, "company_id": current_user["company_id"]}
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+    
+    # Check if there are transactions
+    tx_count = await db.bank_account_transactions.count_documents({"bank_account_id": account_id})
+    if tx_count > 0:
+        # Soft delete
+        await db.bank_accounts.update_one({"id": account_id}, {"$set": {"is_active": False}})
+        await db.accounts.update_one({"bank_account_id": account_id}, {"$set": {"is_active": False}})
+        return {"message": "Bank account deactivated (has transaction history)"}
+    else:
+        # Hard delete
+        await db.bank_accounts.delete_one({"id": account_id})
+        await db.accounts.delete_one({"bank_account_id": account_id})
+        return {"message": "Bank account deleted"}
+
+@api_router.get("/bank-accounts/{account_id}/transactions")
+async def get_bank_transactions(
+    account_id: str,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get transactions for a specific bank account"""
+    account = await db.bank_accounts.find_one(
+        {"id": account_id, "company_id": current_user["company_id"]}
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+    
+    transactions = await db.bank_account_transactions.find(
+        {"bank_account_id": account_id},
+        {"_id": 0}
+    ).sort("transaction_date", -1).limit(limit).to_list(limit)
+    
+    return [serialize_doc(t) for t in transactions]
+
+@api_router.post("/bank-accounts/{account_id}/transactions")
+async def create_bank_transaction(
+    account_id: str,
+    data: BankTransactionCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Record a transaction (deposit/withdrawal) for a bank account"""
+    company_id = current_user["company_id"]
+    
+    account = await db.bank_accounts.find_one(
+        {"id": account_id, "company_id": company_id}
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+    
+    # Calculate balance change
+    if data.transaction_type in ["deposit", "transfer_in"]:
+        balance_change = data.amount
+    elif data.transaction_type in ["withdrawal", "transfer_out"]:
+        balance_change = -data.amount
+    else:
+        raise HTTPException(status_code=400, detail="Invalid transaction type")
+    
+    new_balance = account["current_balance"] + balance_change
+    
+    # Create transaction record
+    tx_id = str(uuid.uuid4())
+    tx_date = data.transaction_date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    transaction = {
+        "id": tx_id,
+        "company_id": company_id,
+        "bank_account_id": account_id,
+        "transaction_type": data.transaction_type,
+        "amount": data.amount,
+        "balance_before": account["current_balance"],
+        "balance_after": new_balance,
+        "description": data.description,
+        "reference_type": data.reference_type,
+        "reference_id": data.reference_id,
+        "transaction_date": tx_date,
+        "created_by": current_user["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.bank_account_transactions.insert_one(transaction)
+    
+    # Update bank account balance
+    await db.bank_accounts.update_one(
+        {"id": account_id},
+        {"$set": {"current_balance": new_balance, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Update Chart of Accounts balance
+    await db.accounts.update_one(
+        {"bank_account_id": account_id},
+        {"$inc": {"current_balance": balance_change}}
+    )
+    
+    # Create journal entry
+    chart_account = await db.accounts.find_one({"bank_account_id": account_id})
+    if chart_account:
+        # For deposits: Debit Bank, Credit Income/Other
+        # For withdrawals: Debit Expense/Other, Credit Bank
+        entry_id = str(uuid.uuid4())
+        entry_number = f"BT-{tx_date.replace('-','')}-{entry_id[:4].upper()}"
+        
+        if data.transaction_type in ["deposit", "transfer_in"]:
+            # Get a suspense/other income account
+            other_account = await db.accounts.find_one({"company_id": company_id, "code": "4900"})
+            if not other_account:
+                other_account = await db.accounts.find_one({"company_id": company_id, "account_type": "income"})
+            
+            if other_account:
+                journal_entry = {
+                    "id": entry_id,
+                    "entry_number": entry_number,
+                    "company_id": company_id,
+                    "entry_date": tx_date,
+                    "description": data.description,
+                    "reference_type": "bank_transaction",
+                    "reference_id": tx_id,
+                    "lines": [
+                        {"account_id": chart_account["id"], "account_code": chart_account["code"], "account_name": chart_account["name"], "debit": data.amount, "credit": 0, "description": "Deposit"},
+                        {"account_id": other_account["id"], "account_code": other_account["code"], "account_name": other_account["name"], "debit": 0, "credit": data.amount, "description": data.description}
+                    ],
+                    "total_debit": data.amount,
+                    "total_credit": data.amount,
+                    "is_balanced": True,
+                    "is_auto_generated": True,
+                    "is_reversed": False,
+                    "created_by": current_user["user_id"],
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.journal_entries.insert_one(journal_entry)
+                await db.accounts.update_one({"id": other_account["id"]}, {"$inc": {"current_balance": data.amount}})
+        
+        elif data.transaction_type in ["withdrawal", "transfer_out"]:
+            # Get a suspense/other expense account
+            other_account = await db.accounts.find_one({"company_id": company_id, "code": "6800"})
+            if not other_account:
+                other_account = await db.accounts.find_one({"company_id": company_id, "account_type": "expense"})
+            
+            if other_account:
+                journal_entry = {
+                    "id": entry_id,
+                    "entry_number": entry_number,
+                    "company_id": company_id,
+                    "entry_date": tx_date,
+                    "description": data.description,
+                    "reference_type": "bank_transaction",
+                    "reference_id": tx_id,
+                    "lines": [
+                        {"account_id": other_account["id"], "account_code": other_account["code"], "account_name": other_account["name"], "debit": data.amount, "credit": 0, "description": data.description},
+                        {"account_id": chart_account["id"], "account_code": chart_account["code"], "account_name": chart_account["name"], "debit": 0, "credit": data.amount, "description": "Withdrawal"}
+                    ],
+                    "total_debit": data.amount,
+                    "total_credit": data.amount,
+                    "is_balanced": True,
+                    "is_auto_generated": True,
+                    "is_reversed": False,
+                    "created_by": current_user["user_id"],
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.journal_entries.insert_one(journal_entry)
+                await db.accounts.update_one({"id": other_account["id"]}, {"$inc": {"current_balance": data.amount}})
+    
+    return serialize_doc(transaction)
+
+@api_router.post("/bank-accounts/transfer")
+async def transfer_between_accounts(data: BankTransferCreate, current_user: dict = Depends(get_current_user)):
+    """Transfer money between bank/cash accounts"""
+    company_id = current_user["company_id"]
+    
+    # Get both accounts
+    from_account = await db.bank_accounts.find_one({"id": data.from_account_id, "company_id": company_id})
+    to_account = await db.bank_accounts.find_one({"id": data.to_account_id, "company_id": company_id})
+    
+    if not from_account:
+        raise HTTPException(status_code=404, detail="Source account not found")
+    if not to_account:
+        raise HTTPException(status_code=404, detail="Destination account not found")
+    if from_account["id"] == to_account["id"]:
+        raise HTTPException(status_code=400, detail="Cannot transfer to the same account")
+    
+    tx_date = data.transaction_date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    description = data.description or f"Transfer from {from_account['account_name']} to {to_account['account_name']}"
+    
+    # Create withdrawal from source
+    from_tx_id = str(uuid.uuid4())
+    from_new_balance = from_account["current_balance"] - data.amount
+    
+    await db.bank_account_transactions.insert_one({
+        "id": from_tx_id,
+        "company_id": company_id,
+        "bank_account_id": data.from_account_id,
+        "transaction_type": "transfer_out",
+        "amount": data.amount,
+        "balance_before": from_account["current_balance"],
+        "balance_after": from_new_balance,
+        "description": f"Transfer to {to_account['account_name']}",
+        "reference_type": "transfer",
+        "reference_id": data.to_account_id,
+        "transaction_date": tx_date,
+        "created_by": current_user["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Create deposit to destination
+    to_tx_id = str(uuid.uuid4())
+    to_new_balance = to_account["current_balance"] + data.amount
+    
+    await db.bank_account_transactions.insert_one({
+        "id": to_tx_id,
+        "company_id": company_id,
+        "bank_account_id": data.to_account_id,
+        "transaction_type": "transfer_in",
+        "amount": data.amount,
+        "balance_before": to_account["current_balance"],
+        "balance_after": to_new_balance,
+        "description": f"Transfer from {from_account['account_name']}",
+        "reference_type": "transfer",
+        "reference_id": data.from_account_id,
+        "transaction_date": tx_date,
+        "created_by": current_user["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Update balances
+    await db.bank_accounts.update_one({"id": data.from_account_id}, {"$set": {"current_balance": from_new_balance}})
+    await db.bank_accounts.update_one({"id": data.to_account_id}, {"$set": {"current_balance": to_new_balance}})
+    
+    # Update Chart of Accounts
+    await db.accounts.update_one({"bank_account_id": data.from_account_id}, {"$inc": {"current_balance": -data.amount}})
+    await db.accounts.update_one({"bank_account_id": data.to_account_id}, {"$inc": {"current_balance": data.amount}})
+    
+    # Create journal entry for transfer
+    from_chart = await db.accounts.find_one({"bank_account_id": data.from_account_id})
+    to_chart = await db.accounts.find_one({"bank_account_id": data.to_account_id})
+    
+    if from_chart and to_chart:
+        entry_id = str(uuid.uuid4())
+        entry_number = f"TRF-{tx_date.replace('-','')}-{entry_id[:4].upper()}"
+        
+        journal_entry = {
+            "id": entry_id,
+            "entry_number": entry_number,
+            "company_id": company_id,
+            "entry_date": tx_date,
+            "description": description,
+            "reference_type": "transfer",
+            "reference_id": from_tx_id,
+            "lines": [
+                {"account_id": to_chart["id"], "account_code": to_chart["code"], "account_name": to_chart["name"], "debit": data.amount, "credit": 0, "description": f"Transfer from {from_account['account_name']}"},
+                {"account_id": from_chart["id"], "account_code": from_chart["code"], "account_name": from_chart["name"], "debit": 0, "credit": data.amount, "description": f"Transfer to {to_account['account_name']}"}
+            ],
+            "total_debit": data.amount,
+            "total_credit": data.amount,
+            "is_balanced": True,
+            "is_auto_generated": True,
+            "is_reversed": False,
+            "created_by": current_user["user_id"],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.journal_entries.insert_one(journal_entry)
+    
+    return {
+        "message": "Transfer completed",
+        "from_account": from_account["account_name"],
+        "to_account": to_account["account_name"],
+        "amount": data.amount,
+        "from_new_balance": from_new_balance,
+        "to_new_balance": to_new_balance
+    }
+
 # ============== DASHBOARD & REPORTS ==============
 
 @api_router.get("/dashboard/summary")
