@@ -1361,12 +1361,13 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
         cash_account = await db.accounts.find_one({"company_id": company_id, "category": "cash"})
     
     if data.reference_type == "purchase_order":
-        # Payment to supplier: Debit AP, Credit Cash
-        ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})
-        if not ap_account:
-            ap_account = await db.accounts.find_one({"company_id": company_id, "category": "accounts_payable"})
+        # Payment to supplier: Record as Purchases/COGS expense
+        # Debit: Purchases/COGS (expense increases), Credit: Cash (asset decreases)
+        purchases_account = await db.accounts.find_one({"company_id": company_id, "code": "5100"})  # Purchases
+        if not purchases_account:
+            purchases_account = await db.accounts.find_one({"company_id": company_id, "category": "cost_of_goods_sold"})
         
-        if cash_account and ap_account:
+        if cash_account and purchases_account:
             entry_id = str(uuid.uuid4())
             entry_number = f"PAY-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
             
@@ -1378,7 +1379,7 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
                 "reference_number": order.get("order_number"),
                 "description": f"Payment to supplier for {order.get('order_number')}",
                 "lines": [
-                    {"account_id": ap_account["id"], "account_code": ap_account["code"], "account_name": ap_account["name"], "debit": data.amount, "credit": 0, "description": "Reduce accounts payable"},
+                    {"account_id": purchases_account["id"], "account_code": purchases_account["code"], "account_name": purchases_account["name"], "debit": data.amount, "credit": 0, "description": "Purchases - Cost of Goods Sold"},
                     {"account_id": cash_account["id"], "account_code": cash_account["code"], "account_name": cash_account["name"], "debit": 0, "credit": data.amount, "description": "Cash payment to supplier"}
                 ],
                 "total_debit": data.amount,
@@ -1392,7 +1393,9 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
                 "created_at": datetime.now(timezone.utc).isoformat()
             }
             await db.journal_entries.insert_one(journal_entry)
-            await db.accounts.update_one({"id": ap_account["id"]}, {"$inc": {"current_balance": -data.amount}})
+            # Purchases (expense): debit increases balance
+            await db.accounts.update_one({"id": purchases_account["id"]}, {"$inc": {"current_balance": data.amount}})
+            # Cash (asset): credit decreases balance
             await db.accounts.update_one({"id": cash_account["id"]}, {"$inc": {"current_balance": -data.amount}})
     
     elif data.reference_type == "sales_order":
