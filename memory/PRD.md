@@ -242,11 +242,12 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `POST /trigger-auto-sync` - Manually trigger auto-sync cycle
 
 ## Testing Status
-- **Backend Tests**: 52/52 passed (100%)
-- **Frontend Tests**: 34/34 passed (100%)
-- **Last Test Run**: iteration_6.json (Feb 16, 2026)
+- **Backend Tests**: 65/66 passed (98%)
+- **Frontend Tests**: 42/42 passed (100%)
+- **Last Test Run**: iteration_7.json (Feb 16, 2026)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
+- **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
 - **Dynamic Business Name**: Fully tested - Company name displays in sidebar
 
 ## Test Credentials
