@@ -1391,7 +1391,20 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
     })
     
     # Create double-entry journal entry for proper accounting
-    cash_account = await db.accounts.find_one({"company_id": company_id, "code": "1100"})
+    # Get the appropriate bank/cash account for the journal entry
+    cash_account = None
+    if data.bank_account_id:
+        # Get the chart account linked to this bank account
+        bank_account = await db.bank_accounts.find_one({
+            "id": data.bank_account_id,
+            "company_id": company_id
+        })
+        if bank_account and bank_account.get("chart_account_id"):
+            cash_account = await db.accounts.find_one({"id": bank_account["chart_account_id"]})
+    
+    # Fall back to default Cash account if no specific bank account selected
+    if not cash_account:
+        cash_account = await db.accounts.find_one({"company_id": company_id, "code": "1100"})
     if not cash_account:
         cash_account = await db.accounts.find_one({"company_id": company_id, "category": "cash"})
     
