@@ -356,6 +356,9 @@ async def register(user_data: UserCreate):
     }
     await db.users.insert_one(user)
     
+    # Seed default Chart of Accounts for new company
+    await seed_default_accounts(company_id)
+    
     # Log activity
     await db.audit_logs.insert_one({
         "id": str(uuid.uuid4()),
@@ -379,6 +382,79 @@ async def register(user_data: UserCreate):
             created_at=user["created_at"]
         )
     )
+
+async def seed_default_accounts(company_id: str):
+    """Seed default Chart of Accounts for a new company"""
+    timestamp = datetime.now(timezone.utc).isoformat()
+    
+    default_accounts = [
+        # Assets (1xxx)
+        {"code": "1000", "name": "Assets", "category": "Assets", "account_type": "asset", "type": "debit", "balance": 0, "is_header": True},
+        {"code": "1100", "name": "Cash", "category": "Assets", "account_type": "asset", "type": "debit", "balance": 0},
+        {"code": "1200", "name": "Bank Accounts", "category": "Assets", "account_type": "asset", "type": "debit", "balance": 0},
+        {"code": "1300", "name": "Accounts Receivable", "category": "Assets", "account_type": "asset", "type": "debit", "balance": 0},
+        {"code": "1400", "name": "Inventory", "category": "Assets", "account_type": "asset", "type": "debit", "balance": 0},
+        {"code": "1500", "name": "Prepaid Expenses", "category": "Assets", "account_type": "asset", "type": "debit", "balance": 0},
+        {"code": "1600", "name": "Fixed Assets", "category": "Assets", "account_type": "asset", "type": "debit", "balance": 0},
+        
+        # Liabilities (2xxx)
+        {"code": "2000", "name": "Liabilities", "category": "Liabilities", "account_type": "liability", "type": "credit", "balance": 0, "is_header": True},
+        {"code": "2100", "name": "Accounts Payable", "category": "Liabilities", "account_type": "liability", "type": "credit", "balance": 0},
+        {"code": "2200", "name": "Accrued Expenses", "category": "Liabilities", "account_type": "liability", "type": "credit", "balance": 0},
+        {"code": "2300", "name": "VAT Payable", "category": "Liabilities", "account_type": "liability", "type": "credit", "balance": 0},
+        {"code": "2400", "name": "Short-term Loans", "category": "Liabilities", "account_type": "liability", "type": "credit", "balance": 0},
+        {"code": "2500", "name": "Long-term Loans", "category": "Liabilities", "account_type": "liability", "type": "credit", "balance": 0},
+        
+        # Equity (3xxx)
+        {"code": "3000", "name": "Equity", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0, "is_header": True},
+        {"code": "3100", "name": "Owner's Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3200", "name": "Directors Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3300", "name": "Shareholders Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3400", "name": "Partners Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3500", "name": "Retained Earnings", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3600", "name": "Current Year Earnings", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        
+        # Revenue (4xxx)
+        {"code": "4000", "name": "Revenue", "category": "Revenue", "account_type": "income", "type": "credit", "balance": 0, "is_header": True},
+        {"code": "4100", "name": "Sales Revenue", "category": "Revenue", "account_type": "income", "type": "credit", "balance": 0},
+        {"code": "4200", "name": "Service Revenue", "category": "Revenue", "account_type": "income", "type": "credit", "balance": 0},
+        {"code": "4300", "name": "Other Income", "category": "Revenue", "account_type": "income", "type": "credit", "balance": 0},
+        
+        # Cost of Goods Sold (5xxx)
+        {"code": "5000", "name": "Cost of Goods Sold", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0, "is_header": True},
+        {"code": "5100", "name": "Purchases", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "5200", "name": "Direct Labor", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "5300", "name": "Manufacturing Overhead", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        
+        # Operating Expenses (6xxx)
+        {"code": "6000", "name": "Operating Expenses", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0, "is_header": True},
+        {"code": "6100", "name": "Salaries & Wages", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6200", "name": "Rent Expense", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6300", "name": "Utilities Expense", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6400", "name": "Marketing Expense", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6500", "name": "Office Supplies", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6600", "name": "Depreciation Expense", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6700", "name": "Insurance Expense", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6800", "name": "Professional Fees", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+        {"code": "6900", "name": "Miscellaneous Expense", "category": "Expenses", "account_type": "expense", "type": "debit", "balance": 0},
+    ]
+    
+    for acc in default_accounts:
+        await db.accounts.insert_one({
+            "id": str(uuid.uuid4()),
+            "company_id": company_id,
+            "code": acc["code"],
+            "name": acc["name"],
+            "category": acc["category"],
+            "account_type": acc.get("account_type", "asset"),
+            "type": acc["type"],
+            "balance": acc["balance"],
+            "current_balance": acc["balance"],
+            "is_system": True,
+            "is_active": True,
+            "is_header": acc.get("is_header", False),
+            "created_at": timestamp
+        })
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
