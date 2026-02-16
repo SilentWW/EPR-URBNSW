@@ -39,7 +39,7 @@ class AccountCategory(str, Enum):
 
 # Chart of Accounts Models
 class AccountCreate(BaseModel):
-    code: str = Field(..., description="Account code (e.g., 1001)")
+    code: Optional[str] = Field(None, description="Account code (auto-generated if not provided)")
     name: str = Field(..., description="Account name")
     account_type: AccountType
     category: AccountCategory
