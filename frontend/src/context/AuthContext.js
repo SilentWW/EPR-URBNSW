@@ -41,9 +41,17 @@ export const AuthProvider = ({ children }) => {
     
     localStorage.setItem('erp_token', access_token);
     localStorage.setItem('erp_user', JSON.stringify(userData));
-    setUser(userData);
     
-    return userData;
+    // Fetch full user data including company_name
+    try {
+      const meResponse = await authAPI.getMe();
+      setUser(meResponse.data);
+      localStorage.setItem('erp_user', JSON.stringify(meResponse.data));
+      return meResponse.data;
+    } catch {
+      setUser(userData);
+      return userData;
+    }
   };
 
   const register = async (data) => {
