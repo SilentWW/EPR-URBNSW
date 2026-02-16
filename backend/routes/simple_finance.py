@@ -98,6 +98,35 @@ class CapitalWithdrawal(BaseModel):
 
 # ============== HELPER FUNCTIONS ==============
 
+async def get_bank_cash_account(company_id: str, bank_account_id: str = None):
+    """Get the appropriate bank/cash account for a transaction.
+    If bank_account_id is provided, get that specific account.
+    Otherwise, fall back to default Cash account (1100).
+    """
+    if bank_account_id:
+        # Get the chart account linked to this bank account
+        bank_account = await db.bank_accounts.find_one({
+            "id": bank_account_id,
+            "company_id": company_id
+        })
+        if bank_account and bank_account.get("chart_account_id"):
+            chart_account = await db.accounts.find_one({"id": bank_account["chart_account_id"]})
+            if chart_account:
+                return chart_account
+        # If bank account has a linked chart account code
+        if bank_account:
+            chart_account = await db.accounts.find_one({
+                "company_id": company_id,
+                "code": bank_account.get("chart_account_code")
+            })
+            if chart_account:
+                return chart_account
+    
+    # Fall back to default Cash account
+    return await get_or_create_account(
+        company_id, "1100", "Cash", "asset", "cash", "1000"
+    )
+
 async def recalculate_share_percentages(company_id: str):
     """
     Recalculate share percentages for all investors based on their capital balances.
