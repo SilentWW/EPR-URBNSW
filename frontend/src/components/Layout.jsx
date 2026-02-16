@@ -61,6 +61,7 @@ const menuItems = [
 const financeMenuItems = [
   { icon: Zap, label: 'Quick Transactions', path: '/quick-transactions', highlight: true },
   { icon: UserPlus, label: 'Investors', path: '/investors' },
+  { icon: Wallet, label: 'Bank Accounts', path: '/bank-accounts' },
   { icon: BookOpen, label: 'Chart of Accounts', path: '/chart-of-accounts' },
   { icon: Calculator, label: 'General Ledger', path: '/general-ledger' },
   { icon: BarChart3, label: 'Financial Reports', path: '/financial-reports' },
