@@ -74,8 +74,14 @@ export default function QuickTransactions() {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
   
   const [activeModal, setActiveModal] = useState(null);
+  
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
   
   // Form states
   const [expenseForm, setExpenseForm] = useState({
@@ -85,7 +91,8 @@ export default function QuickTransactions() {
     vendor: '',
     payment_method: 'bank',
     reference: '',
-    notes: ''
+    notes: '',
+    date: getTodayDate()
   });
   
   const [salaryForm, setSalaryForm] = useState({
@@ -95,7 +102,8 @@ export default function QuickTransactions() {
     allowances: '0',
     deductions: '0',
     payment_method: 'bank',
-    notes: ''
+    notes: '',
+    date: getTodayDate()
   });
   
   const [revenueForm, setRevenueForm] = useState({
@@ -105,7 +113,8 @@ export default function QuickTransactions() {
     customer: '',
     payment_method: 'bank',
     reference: '',
-    notes: ''
+    notes: '',
+    date: getTodayDate()
   });
   
   const [loanForm, setLoanForm] = useState({
@@ -115,12 +124,25 @@ export default function QuickTransactions() {
     amount: '',
     interest_amount: '0',
     reference: '',
-    notes: ''
+    notes: '',
+    date: getTodayDate()
   });
 
   useEffect(() => {
     fetchData();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+    }
+  };
+
+  const isAdmin = currentUser?.role === 'admin';
 
   const fetchData = async () => {
     try {
