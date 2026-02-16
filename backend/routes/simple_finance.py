@@ -447,24 +447,60 @@ async def record_salary_payment(
     """Record salary payment - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
+    timestamp = data.date or get_current_timestamp()
     
-    # Get accounts
+    # Get or create salary expense account (try 6100 first, then 5200)
     salary_account = await db.accounts.find_one({
         "company_id": company_id,
-        "code": "5200"
+        "code": {"$in": ["6100", "5200"]}
     })
+    
+    if not salary_account:
+        # Create salary expense account
+        salary_account = {
+            "id": generate_id(),
+            "company_id": company_id,
+            "code": "6100",
+            "name": "Salaries & Wages",
+            "account_type": "expense",
+            "category": "operating_expense",
+            "description": "Employee salaries and wages expense",
+            "parent_account_id": None,
+            "is_system": False,
+            "is_active": True,
+            "current_balance": 0,
+            "created_at": timestamp,
+            "updated_at": timestamp
+        }
+        await db.accounts.insert_one(salary_account)
+    
+    # Get or create cash account
     cash_account = await db.accounts.find_one({
         "company_id": company_id,
         "code": "1100"
     })
     
-    if not salary_account or not cash_account:
-        raise HTTPException(status_code=404, detail="Required accounts not found")
+    if not cash_account:
+        cash_account = {
+            "id": generate_id(),
+            "company_id": company_id,
+            "code": "1100",
+            "name": "Cash/Bank",
+            "account_type": "asset",
+            "category": "cash",
+            "description": "Cash and bank accounts",
+            "parent_account_id": None,
+            "is_system": True,
+            "is_active": True,
+            "current_balance": 0,
+            "created_at": timestamp,
+            "updated_at": timestamp
+        }
+        await db.accounts.insert_one(cash_account)
     
     gross_salary = data.amount + data.allowances
     net_salary = gross_salary - data.deductions
     
-    timestamp = data.date or get_current_timestamp()
     entry_id = generate_id()
     
     # Debit: Salaries & Wages Expense
@@ -477,8 +513,8 @@ async def record_salary_payment(
         "reference_type": "salary_payment",
         "entries": [
             {
-                "account_code": "5200",
-                "account_name": "Salaries & Wages",
+                "account_code": salary_account["code"],
+                "account_name": salary_account["name"],
                 "debit": gross_salary,
                 "credit": 0
             },
@@ -523,11 +559,11 @@ async def record_salary_payment(
     # Update account balances
     await db.accounts.update_one(
         {"id": salary_account["id"]},
-        {"$inc": {"current_balance": gross_salary, "balance": gross_salary}}
+        {"$inc": {"current_balance": gross_salary}}
     )
     await db.accounts.update_one(
         {"id": cash_account["id"]},
-        {"$inc": {"current_balance": -net_salary, "balance": -net_salary}}
+        {"$inc": {"current_balance": -net_salary}}
     )
     
     return {
