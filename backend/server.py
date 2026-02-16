@@ -1990,7 +1990,7 @@ async def get_bank_accounts(current_user: dict = Depends(get_current_user)):
     company_id = current_user["company_id"]
     
     accounts = await db.bank_accounts.find(
-        {"company_id": company_id},
+        {"company_id": company_id, "is_active": {"$ne": False}},
         {"_id": 0}
     ).sort("created_at", 1).to_list(100)
     
