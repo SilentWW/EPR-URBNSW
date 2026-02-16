@@ -581,9 +581,8 @@ async def record_capital_withdrawal(
             detail=f"Insufficient capital balance. Available: LKR {capital_account.get('current_balance', 0):,.2f}"
         )
     
-    cash_account = await get_or_create_account(
-        company_id, "1100", "Cash", "asset", "cash", "1000"
-    )
+    # Get cash/bank account (use selected account or default)
+    cash_account = await get_bank_cash_account(company_id, data.bank_account_id)
     
     entry_date = (data.date or get_current_timestamp())[:10]
     
