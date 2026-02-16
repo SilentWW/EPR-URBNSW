@@ -187,6 +187,16 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `GET /reports/balance-sheet` - Balance sheet report
 - `GET /reports/cash-flow` - Cash flow report
 
+### Bank Accounts Module (/api/bank-accounts)
+- `GET /` - List all bank/cash accounts
+- `GET /{id}` - Get bank account details
+- `POST /` - Create bank/cash account (auto-creates Chart of Accounts entry)
+- `PUT /{id}` - Update bank account
+- `DELETE /{id}` - Delete bank account
+- `POST /deposit` - Record deposit into account
+- `POST /withdraw` - Record withdrawal from account
+- `POST /transfer` - Record transfer between accounts
+
 ### Simple Finance Module (/api/simple-finance)
 - `GET /investors` - List all investors with capital balances
 - `POST /investors` - Create investor with auto-generated capital account
