@@ -3688,9 +3688,12 @@ async def seed_demo_data(current_user: dict = Depends(get_current_user)):
         {"code": "2400", "name": "Short-term Loans", "category": "Liabilities", "type": "credit", "balance": 200000},
         
         # Equity (3xxx)
-        {"code": "3100", "name": "Owner's Capital", "category": "Equity", "type": "credit", "balance": 2000000},
-        {"code": "3200", "name": "Retained Earnings", "category": "Equity", "type": "credit", "balance": 350000},
-        {"code": "3300", "name": "Current Year Earnings", "category": "Equity", "type": "credit", "balance": 95000},
+        {"code": "3100", "name": "Owner's Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 2000000},
+        {"code": "3200", "name": "Directors Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3300", "name": "Shareholders Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3400", "name": "Partners Capital", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 0},
+        {"code": "3500", "name": "Retained Earnings", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 350000},
+        {"code": "3600", "name": "Current Year Earnings", "category": "Equity", "account_type": "equity", "type": "credit", "balance": 95000},
         
         # Revenue (4xxx)
         {"code": "4100", "name": "Sales Revenue", "category": "Revenue", "type": "credit", "balance": 1250000},
