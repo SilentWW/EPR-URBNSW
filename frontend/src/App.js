@@ -33,6 +33,7 @@ import SystemAdmin from './pages/SystemAdmin';
 // Simple Finance Pages
 import Investors from './pages/Investors';
 import QuickTransactions from './pages/QuickTransactions';
+import BankAccounts from './pages/BankAccounts';
 
 // Layout
 import Layout from './components/Layout';
