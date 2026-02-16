@@ -239,6 +239,23 @@ export default function QuickTransactions() {
     }
   };
 
+  const handleDeleteTransaction = async () => {
+    if (!transactionToDelete) return;
+    
+    setSubmitting(true);
+    try {
+      await api.delete(`/simple-finance/transaction/${transactionToDelete.id}`);
+      toast.success('Transaction deleted and reversed successfully');
+      setDeleteDialogOpen(false);
+      setTransactionToDelete(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete transaction');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const expenseTypes = [
     { value: 'utilities', label: 'Utilities (Electricity, Water)', icon: '💡' },
     { value: 'rent', label: 'Rent Payment', icon: '🏢' },
