@@ -170,7 +170,7 @@ export default function QuickTransactions() {
       });
       toast.success(response.data.message);
       setActiveModal(null);
-      setExpenseForm({ expense_type: '', description: '', amount: '', vendor: '', payment_method: 'bank', reference: '', notes: '' });
+      setExpenseForm({ expense_type: '', description: '', amount: '', vendor: '', payment_method: 'bank', reference: '', notes: '', date: getTodayDate() });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record expense');
@@ -191,7 +191,7 @@ export default function QuickTransactions() {
       });
       toast.success(response.data.message);
       setActiveModal(null);
-      setSalaryForm({ employee_name: '', amount: '', month: '', allowances: '0', deductions: '0', payment_method: 'bank', notes: '' });
+      setSalaryForm({ employee_name: '', amount: '', month: '', allowances: '0', deductions: '0', payment_method: 'bank', notes: '', date: getTodayDate() });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record salary');
@@ -210,7 +210,7 @@ export default function QuickTransactions() {
       });
       toast.success(response.data.message);
       setActiveModal(null);
-      setRevenueForm({ revenue_type: 'sales', description: '', amount: '', customer: '', payment_method: 'bank', reference: '', notes: '' });
+      setRevenueForm({ revenue_type: 'sales', description: '', amount: '', customer: '', payment_method: 'bank', reference: '', notes: '', date: getTodayDate() });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record revenue');
@@ -230,7 +230,7 @@ export default function QuickTransactions() {
       });
       toast.success(response.data.message);
       setActiveModal(null);
-      setLoanForm({ transaction_type: 'receive', loan_type: 'bank_loan', lender_name: '', amount: '', interest_amount: '0', reference: '', notes: '' });
+      setLoanForm({ transaction_type: 'receive', loan_type: 'bank_loan', lender_name: '', amount: '', interest_amount: '0', reference: '', notes: '', date: getTodayDate() });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record loan transaction');
