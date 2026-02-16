@@ -68,7 +68,6 @@ export default function Investors() {
     phone: '',
     id_number: '',
     address: '',
-    share_percentage: '',
     notes: ''
   });
 
