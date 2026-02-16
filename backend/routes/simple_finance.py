@@ -302,7 +302,7 @@ async def create_investor(
     investor_id = generate_id()
     timestamp = get_current_timestamp()
     
-    # Create investor record
+    # Create investor record (share_percentage will be auto-calculated after first investment)
     investor = {
         "id": investor_id,
         "company_id": company_id,
@@ -312,7 +312,7 @@ async def create_investor(
         "phone": data.phone,
         "id_number": data.id_number,
         "address": data.address,
-        "share_percentage": data.share_percentage,
+        "share_percentage": 0,  # Will be auto-calculated based on capital
         "notes": data.notes,
         "account_code": str(next_code),
         "is_active": True,
@@ -339,6 +339,9 @@ async def create_investor(
         "updated_at": timestamp
     }
     await db.accounts.insert_one(account)
+    
+    # Recalculate share percentages for all investors
+    await recalculate_share_percentages(company_id)
     
     return {
         "message": f"Investor created with capital account {next_code}",
