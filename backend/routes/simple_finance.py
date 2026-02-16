@@ -582,51 +582,72 @@ async def record_expense_payment(
     """Record expense payment - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
+    timestamp = data.date or get_current_timestamp()
     
-    # Map expense types to account codes
+    # Map expense types to account codes (using 6xxx series for operating expenses)
     expense_accounts = {
-        "utilities": {"code": "5400", "name": "Utilities Expense"},
-        "rent": {"code": "5300", "name": "Rent Expense"},
-        "office_supplies": {"code": "5600", "name": "Office Supplies"},
-        "marketing": {"code": "5500", "name": "Marketing Expense"},
-        "insurance": {"code": "5800", "name": "Insurance Expense"},
-        "maintenance": {"code": "5900", "name": "Maintenance Expense"},
-        "transport": {"code": "5950", "name": "Transport Expense"},
-        "communication": {"code": "5960", "name": "Communication Expense"},
-        "professional_fees": {"code": "5970", "name": "Professional Fees"},
-        "other": {"code": "5999", "name": "Other Expenses"}
+        "utilities": {"code": "6300", "name": "Utilities Expense"},
+        "rent": {"code": "6200", "name": "Rent Expense"},
+        "office_supplies": {"code": "6500", "name": "Office Supplies"},
+        "marketing": {"code": "6400", "name": "Marketing & Advertising"},
+        "insurance": {"code": "6600", "name": "Insurance Expense"},
+        "maintenance": {"code": "6700", "name": "Maintenance & Repairs"},
+        "transport": {"code": "6800", "name": "Transport & Travel"},
+        "communication": {"code": "6350", "name": "Communication Expense"},
+        "professional_fees": {"code": "6450", "name": "Professional Fees"},
+        "other": {"code": "6900", "name": "Other Expenses"}
     }
     
     expense_info = expense_accounts.get(data.expense_type, expense_accounts["other"])
     
-    # Ensure expense account exists
+    # Get or create expense account
     expense_account = await db.accounts.find_one({
         "company_id": company_id,
         "code": expense_info["code"]
     })
     
     if not expense_account:
-        # Create the expense account if it doesn't exist
         expense_account = {
             "id": generate_id(),
             "company_id": company_id,
             "code": expense_info["code"],
             "name": expense_info["name"],
-            "category": "Expenses",
-            "type": "debit",
-            "balance": 0,
+            "account_type": "expense",
+            "category": "operating_expense",
+            "description": f"Operating expense - {expense_info['name']}",
+            "parent_account_id": None,
+            "is_system": False,
+            "is_active": True,
             "current_balance": 0,
-            "is_system": True,
-            "created_at": get_current_timestamp()
+            "created_at": timestamp,
+            "updated_at": timestamp
         }
         await db.accounts.insert_one(expense_account)
     
+    # Get or create cash account
     cash_account = await db.accounts.find_one({
         "company_id": company_id,
         "code": "1100"
     })
     
-    timestamp = data.date or get_current_timestamp()
+    if not cash_account:
+        cash_account = {
+            "id": generate_id(),
+            "company_id": company_id,
+            "code": "1100",
+            "name": "Cash/Bank",
+            "account_type": "asset",
+            "category": "cash",
+            "description": "Cash and bank accounts",
+            "parent_account_id": None,
+            "is_system": True,
+            "is_active": True,
+            "current_balance": 0,
+            "created_at": timestamp,
+            "updated_at": timestamp
+        }
+        await db.accounts.insert_one(cash_account)
+    
     entry_id = generate_id()
     
     # Debit: Expense Account
