@@ -495,15 +495,22 @@ async def record_capital_investment(
         metadata={"payment_method": data.payment_method, "investor_name": investor["name"]}
     )
     
+    # Recalculate share percentages for all investors
+    await recalculate_share_percentages(company_id)
+    
     # Get updated capital balance
     updated_account = await db.accounts.find_one({"id": capital_account["id"]})
+    
+    # Get updated share percentage
+    updated_investor = await db.investors.find_one({"id": data.investor_id})
     
     return {
         "message": f"Capital investment of LKR {data.amount:,.2f} recorded successfully",
         "journal_entry_id": entry["id"],
         "entry_number": entry["entry_number"],
         "investor": investor["name"],
-        "new_capital_balance": updated_account.get("current_balance", 0)
+        "new_capital_balance": updated_account.get("current_balance", 0),
+        "new_share_percentage": updated_investor.get("share_percentage", 0)
     }
 
 @router.post("/capital-withdrawal")
