@@ -239,6 +239,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │       │   ├── ChartOfAccounts.jsx
 │       │   ├── GeneralLedger.jsx
 │       │   ├── FinancialReports.jsx
+│       │   ├── Investors.jsx      # Investor management
+│       │   ├── QuickTransactions.jsx # Simplified accounting
 │       │   └── SystemAdmin.jsx
 │       └── components/
 │           └── Layout.jsx # Main navigation
