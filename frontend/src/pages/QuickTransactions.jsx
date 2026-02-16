@@ -545,13 +545,24 @@ export default function QuickTransactions() {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Vendor/Payee</Label>
-                <Input
-                  value={expenseForm.vendor}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })}
-                  placeholder="Who did you pay?"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Transaction Date *</Label>
+                  <Input
+                    type="date"
+                    value={expenseForm.date}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vendor/Payee</Label>
+                  <Input
+                    value={expenseForm.vendor}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })}
+                    placeholder="Who did you pay?"
+                  />
+                </div>
               </div>
               <div className="bg-red-50 p-3 rounded-lg text-sm text-red-800">
                 <strong>This will:</strong><br />
