@@ -71,6 +71,7 @@ const formatDate = (dateStr) => {
 
 export default function QuickTransactions() {
   const [investors, setInvestors] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -89,6 +90,7 @@ export default function QuickTransactions() {
     description: '',
     amount: '',
     vendor: '',
+    bank_account_id: '',
     payment_method: 'bank',
     reference: '',
     notes: '',
@@ -101,6 +103,7 @@ export default function QuickTransactions() {
     month: '',
     allowances: '0',
     deductions: '0',
+    bank_account_id: '',
     payment_method: 'bank',
     notes: '',
     date: getTodayDate()
@@ -111,6 +114,7 @@ export default function QuickTransactions() {
     description: '',
     amount: '',
     customer: '',
+    bank_account_id: '',
     payment_method: 'bank',
     reference: '',
     notes: '',
@@ -123,6 +127,7 @@ export default function QuickTransactions() {
     lender_name: '',
     amount: '',
     interest_amount: '0',
+    bank_account_id: '',
     reference: '',
     notes: '',
     date: getTodayDate()
@@ -131,6 +136,7 @@ export default function QuickTransactions() {
   useEffect(() => {
     fetchData();
     fetchCurrentUser();
+    fetchBankAccounts();
   }, []);
 
   const fetchCurrentUser = async () => {
@@ -139,6 +145,15 @@ export default function QuickTransactions() {
       setCurrentUser(response.data);
     } catch (error) {
       console.error('Failed to fetch current user:', error);
+    }
+  };
+
+  const fetchBankAccounts = async () => {
+    try {
+      const response = await api.get('/bank-accounts');
+      setBankAccounts(response.data);
+    } catch (error) {
+      console.error('Failed to fetch bank accounts:', error);
     }
   };
 
