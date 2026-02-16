@@ -956,13 +956,22 @@ export default function QuickTransactions() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Transaction Date *</Label>
-                  <Input
-                    type="date"
-                    value={loanForm.date}
-                    onChange={(e) => setLoanForm({ ...loanForm, date: e.target.value })}
-                    required
-                  />
+                  <Label>{loanForm.transaction_type === 'receive' ? 'Deposit To' : 'Pay From'} Account *</Label>
+                  <Select
+                    value={loanForm.bank_account_id}
+                    onValueChange={(value) => setLoanForm({ ...loanForm, bank_account_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.account_name} ({formatCurrency(acc.current_balance)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -977,26 +986,35 @@ export default function QuickTransactions() {
                     required
                   />
                 </div>
-                {loanForm.transaction_type === 'repay' && (
-                  <div className="space-y-2">
-                    <Label>Interest Amount</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={loanForm.interest_amount}
-                      onChange={(e) => setLoanForm({ ...loanForm, interest_amount: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>Transaction Date *</Label>
+                  <Input
+                    type="date"
+                    value={loanForm.date}
+                    onChange={(e) => setLoanForm({ ...loanForm, date: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
+              {loanForm.transaction_type === 'repay' && (
+                <div className="space-y-2">
+                  <Label>Interest Amount</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={loanForm.interest_amount}
+                    onChange={(e) => setLoanForm({ ...loanForm, interest_amount: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              )}
               <div className={`p-3 rounded-lg text-sm ${
                 loanForm.transaction_type === 'receive' ? 'bg-purple-50 text-purple-800' : 'bg-orange-50 text-orange-800'
               }`}>
                 {loanForm.transaction_type === 'receive' ? (
                   <>
                     <strong>Loan Received will:</strong><br />
-                    • Increase Cash/Bank balance<br />
+                    • Increase selected account balance<br />
                     • Create loan liability
                   </>
                 ) : (
