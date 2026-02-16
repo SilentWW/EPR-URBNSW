@@ -866,14 +866,25 @@ export default function QuickTransactions() {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Lender Name *</Label>
-                <Input
-                  value={loanForm.lender_name}
-                  onChange={(e) => setLoanForm({ ...loanForm, lender_name: e.target.value })}
-                  placeholder="Bank name or person"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Lender Name *</Label>
+                  <Input
+                    value={loanForm.lender_name}
+                    onChange={(e) => setLoanForm({ ...loanForm, lender_name: e.target.value })}
+                    placeholder="Bank name or person"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Transaction Date *</Label>
+                  <Input
+                    type="date"
+                    value={loanForm.date}
+                    onChange={(e) => setLoanForm({ ...loanForm, date: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
