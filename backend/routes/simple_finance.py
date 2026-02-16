@@ -159,19 +159,22 @@ async def create_investor(
     }
     await db.investors.insert_one(investor)
     
-    # Create capital account for this investor
+    # Create capital account for this investor (matching finance.py format)
     account = {
         "id": generate_id(),
         "company_id": company_id,
         "code": str(next_code),
         "name": f"{type_label} Capital - {data.name}",
-        "category": "Equity",
-        "type": "credit",
-        "balance": 0,
+        "account_type": "equity",
+        "category": "capital",
+        "description": f"Capital account for {type_label.lower()} {data.name}",
+        "parent_account_id": None,
+        "is_system": False,
+        "is_active": True,
         "current_balance": 0,
         "investor_id": investor_id,
-        "is_system": False,
-        "created_at": timestamp
+        "created_at": timestamp,
+        "updated_at": timestamp
     }
     await db.accounts.insert_one(account)
     
