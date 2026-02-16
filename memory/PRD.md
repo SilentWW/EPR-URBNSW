@@ -241,6 +241,22 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `GET /sync-status` - Get auto-sync status and next run time
 - `POST /trigger-auto-sync` - Manually trigger auto-sync cycle
 
+### Phase 8 - COGS Recognition on Sales (COMPLETED ✅) - Feb 2026
+- [x] **Automatic COGS Journal Entries on Sale**
+  - [x] When Sales Order created, system now creates TWO journal entries:
+    - Revenue Entry: Debit Accounts Receivable (1300), Credit Sales Revenue (4100)
+    - COGS Entry: Debit Cost of Goods Sold (5100), Credit Inventory (1400)
+  - [x] COGS calculated from product `cost_price * quantity`
+  - [x] Entry numbers use SALE- and COGS- prefixes
+- [x] **COGS Reversal on Sales Return**
+  - [x] When Sales Order returned, system reverses both entries:
+    - Revenue Reversal (RET-): Debit Revenue, Credit AR
+    - COGS Reversal (RCOGS-): Debit Inventory, Credit COGS
+  - [x] Inventory balance restored on return
+- [x] **Account Balance Updates**
+  - [x] All account balances automatically updated with journal entries
+  - [x] Proper double-entry accounting maintained
+
 ## Testing Status
 - **Backend Tests**: 65/66 passed (98%)
 - **Frontend Tests**: 42/42 passed (100%)
