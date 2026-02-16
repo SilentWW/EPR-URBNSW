@@ -749,10 +749,8 @@ async def record_expense_payment(
         company_id, expense_info["code"], expense_info["name"], "expense", "operating_expense", "6000"
     )
     
-    # Get or create cash account
-    cash_account = await get_or_create_account(
-        company_id, "1100", "Cash", "asset", "cash", "1000"
-    )
+    # Get cash/bank account (use selected account or default)
+    cash_account = await get_bank_cash_account(company_id, data.bank_account_id)
     
     lines = [
         {
@@ -773,6 +771,13 @@ async def record_expense_payment(
         }
     ]
     
+    # Update bank account balance if specific account was selected
+    if data.bank_account_id:
+        await db.bank_accounts.update_one(
+            {"id": data.bank_account_id},
+            {"$inc": {"current_balance": -data.amount}}
+        )
+    
     entry = await create_journal_entry(
         company_id=company_id,
         user_id=user_id,
@@ -785,7 +790,8 @@ async def record_expense_payment(
         metadata={
             "expense_type": data.expense_type,
             "vendor": data.vendor,
-            "payment_method": data.payment_method
+            "payment_method": data.payment_method,
+            "bank_account_id": data.bank_account_id
         }
     )
     
