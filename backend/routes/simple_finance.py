@@ -1,7 +1,7 @@
 """
 Simple Finance Router
 User-friendly financial transactions without accounting knowledge
-Auto-creates double-entry journal entries
+Auto-creates double-entry journal entries using the same schema as finance.py
 """
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -90,6 +90,119 @@ class CapitalWithdrawal(BaseModel):
     date: Optional[str] = None
 
 
+# ============== HELPER FUNCTIONS ==============
+
+async def get_or_create_account(company_id: str, code: str, name: str, account_type: str, category: str, parent_code: str = None):
+    """Get an existing account by code or create it if it doesn't exist"""
+    account = await db.accounts.find_one({
+        "company_id": company_id,
+        "code": code
+    })
+    
+    if account:
+        return account
+    
+    # Get parent account ID if parent_code provided
+    parent_account_id = None
+    if parent_code:
+        parent = await db.accounts.find_one({"company_id": company_id, "code": parent_code})
+        if parent:
+            parent_account_id = parent["id"]
+    
+    timestamp = get_current_timestamp()
+    new_account = {
+        "id": generate_id(),
+        "company_id": company_id,
+        "code": code,
+        "name": name,
+        "account_type": account_type,
+        "category": category,
+        "description": f"Auto-created for {name}",
+        "parent_account_id": parent_account_id,
+        "is_system": False,
+        "is_active": True,
+        "current_balance": 0.0,
+        "created_at": timestamp,
+        "updated_at": timestamp
+    }
+    await db.accounts.insert_one(new_account)
+    return new_account
+
+
+async def update_account_balance(account_id: str, debit: float, credit: float):
+    """Update account balance based on account type and debit/credit - matches finance.py logic"""
+    account = await db.accounts.find_one({"id": account_id})
+    if not account:
+        return
+    
+    # For asset/expense accounts: debit increases, credit decreases
+    # For liability/equity/income accounts: credit increases, debit decreases
+    if account["account_type"] in ["asset", "expense"]:
+        balance_change = debit - credit
+    else:
+        balance_change = credit - debit
+    
+    new_balance = account.get("current_balance", 0) + balance_change
+    await db.accounts.update_one(
+        {"id": account_id},
+        {"$set": {"current_balance": new_balance, "updated_at": get_current_timestamp()}}
+    )
+
+
+async def create_journal_entry(
+    company_id: str, 
+    user_id: str,
+    entry_date: str,
+    description: str,
+    lines: list,
+    reference_type: str,
+    reference_number: str = None,
+    reference_id: str = None,
+    notes: str = None,
+    metadata: dict = None
+):
+    """
+    Create a journal entry with the exact same schema as finance.py
+    
+    Args:
+        lines: List of dicts with keys: account_id, account_code, account_name, debit, credit, description
+    """
+    entry_id = generate_id()
+    entry_number = f"JE-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+    
+    total_debit = sum(line["debit"] for line in lines)
+    total_credit = sum(line["credit"] for line in lines)
+    
+    entry = {
+        "id": entry_id,
+        "entry_number": entry_number,
+        "company_id": company_id,
+        "entry_date": entry_date,
+        "reference_number": reference_number,
+        "description": description,
+        "lines": lines,
+        "total_debit": total_debit,
+        "total_credit": total_credit,
+        "is_balanced": round(total_debit, 2) == round(total_credit, 2),
+        "is_auto_generated": True,
+        "is_reversed": False,
+        "reference_type": reference_type,
+        "reference_id": reference_id,
+        "notes": notes,
+        "metadata": metadata,
+        "transaction_type": reference_type,  # For quick transaction filtering
+        "created_by": user_id,
+        "created_at": get_current_timestamp()
+    }
+    await db.journal_entries.insert_one(entry)
+    
+    # Update account balances
+    for line in lines:
+        await update_account_balance(line["account_id"], line["debit"], line["credit"])
+    
+    return entry
+
+
 # ============== INVESTORS MANAGEMENT ==============
 
 @router.get("/investors")
@@ -119,14 +232,25 @@ async def create_investor(
     """Create a new investor with auto-generated capital account"""
     company_id = current_user["company_id"]
     
-    # Generate unique account code for this investor
-    # Get next available code in 31xx range for equity
+    # Get parent equity account (3100 Owner's Capital or 3000 Equity)
+    parent_account = await db.accounts.find_one({
+        "company_id": company_id,
+        "code": "3100"
+    })
+    if not parent_account:
+        parent_account = await db.accounts.find_one({
+            "company_id": company_id,
+            "code": "3000"
+        })
+    parent_account_id = parent_account["id"] if parent_account else None
+    
+    # Generate unique account code for this investor in 31xx range
     existing_accounts = await db.accounts.find(
         {"company_id": company_id, "code": {"$regex": "^31"}},
         {"code": 1}
     ).to_list(100)
     
-    existing_codes = [int(a["code"]) for a in existing_accounts if a["code"].isdigit()]
+    existing_codes = [int(a["code"]) for a in existing_accounts if a["code"].isdigit() and int(a["code"]) > 3100]
     next_code = max(existing_codes) + 1 if existing_codes else 3101
     
     # Determine account name based on investor type
@@ -159,7 +283,7 @@ async def create_investor(
     }
     await db.investors.insert_one(investor)
     
-    # Create capital account for this investor (matching finance.py format)
+    # Create capital account for this investor (matching finance.py format exactly)
     account = {
         "id": generate_id(),
         "company_id": company_id,
@@ -168,10 +292,10 @@ async def create_investor(
         "account_type": "equity",
         "category": "capital",
         "description": f"Capital account for {type_label.lower()} {data.name}",
-        "parent_account_id": None,
+        "parent_account_id": parent_account_id,
         "is_system": False,
         "is_active": True,
-        "current_balance": 0,
+        "current_balance": 0.0,
         "investor_id": investor_id,
         "created_at": timestamp,
         "updated_at": timestamp
@@ -289,68 +413,56 @@ async def record_capital_investment(
         raise HTTPException(status_code=404, detail="Capital account not found")
     
     # Get cash/bank account
-    cash_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": "1100"
-    })
-    if not cash_account:
-        raise HTTPException(status_code=404, detail="Cash/Bank account not found")
+    cash_account = await get_or_create_account(
+        company_id, "1100", "Cash", "asset", "cash", "1000"
+    )
     
-    timestamp = data.date or get_current_timestamp()
-    entry_id = generate_id()
+    entry_date = (data.date or get_current_timestamp())[:10]
     
     # Create double-entry journal entry
     # Debit: Cash/Bank (Asset increases)
     # Credit: Capital Account (Equity increases)
-    journal_entry = {
-        "id": entry_id,
-        "company_id": company_id,
-        "date": timestamp,
-        "description": f"Capital Investment from {investor['name']} ({investor['investor_type'].title()})",
-        "reference": data.reference,
-        "reference_type": "capital_investment",
-        "reference_id": data.investor_id,
-        "entries": [
-            {
-                "account_code": "1100",
-                "account_name": "Cash/Bank",
-                "debit": data.amount,
-                "credit": 0
-            },
-            {
-                "account_code": capital_account["code"],
-                "account_name": capital_account["name"],
-                "debit": 0,
-                "credit": data.amount
-            }
-        ],
-        "total_debit": data.amount,
-        "total_credit": data.amount,
-        "status": "posted",
-        "payment_method": data.payment_method,
-        "notes": data.notes,
-        "is_auto_generated": True,
-        "transaction_type": "capital_investment",
-        "created_by": user_id,
-        "created_at": timestamp
-    }
-    await db.journal_entries.insert_one(journal_entry)
+    lines = [
+        {
+            "account_id": cash_account["id"],
+            "account_code": cash_account["code"],
+            "account_name": cash_account["name"],
+            "debit": data.amount,
+            "credit": 0,
+            "description": f"Capital received from {investor['name']}"
+        },
+        {
+            "account_id": capital_account["id"],
+            "account_code": capital_account["code"],
+            "account_name": capital_account["name"],
+            "debit": 0,
+            "credit": data.amount,
+            "description": f"Capital investment by {investor['name']}"
+        }
+    ]
     
-    # Update account balances
-    await db.accounts.update_one(
-        {"id": cash_account["id"]},
-        {"$inc": {"current_balance": data.amount, "balance": data.amount}}
+    entry = await create_journal_entry(
+        company_id=company_id,
+        user_id=user_id,
+        entry_date=entry_date,
+        description=f"Capital Investment from {investor['name']} ({investor['investor_type'].title()})",
+        lines=lines,
+        reference_type="capital_investment",
+        reference_number=data.reference,
+        reference_id=data.investor_id,
+        notes=data.notes,
+        metadata={"payment_method": data.payment_method, "investor_name": investor["name"]}
     )
-    await db.accounts.update_one(
-        {"id": capital_account["id"]},
-        {"$inc": {"current_balance": data.amount, "balance": data.amount}}
-    )
+    
+    # Get updated capital balance
+    updated_account = await db.accounts.find_one({"id": capital_account["id"]})
     
     return {
         "message": f"Capital investment of LKR {data.amount:,.2f} recorded successfully",
-        "journal_entry_id": entry_id,
+        "journal_entry_id": entry["id"],
+        "entry_number": entry["entry_number"],
         "investor": investor["name"],
-        "new_capital_balance": capital_account.get("current_balance", 0) + data.amount
+        "new_capital_balance": updated_account.get("current_balance", 0)
     }
 
 @router.post("/capital-withdrawal")
@@ -381,62 +493,50 @@ async def record_capital_withdrawal(
             detail=f"Insufficient capital balance. Available: LKR {capital_account.get('current_balance', 0):,.2f}"
         )
     
-    cash_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": "1100"
-    })
+    cash_account = await get_or_create_account(
+        company_id, "1100", "Cash", "asset", "cash", "1000"
+    )
     
-    timestamp = data.date or get_current_timestamp()
-    entry_id = generate_id()
+    entry_date = (data.date or get_current_timestamp())[:10]
     
     # Debit: Capital Account (Equity decreases)
     # Credit: Cash/Bank (Asset decreases)
-    journal_entry = {
-        "id": entry_id,
-        "company_id": company_id,
-        "date": timestamp,
-        "description": f"Capital Withdrawal by {investor['name']} - {data.reason}",
-        "reference": data.reference,
-        "reference_type": "capital_withdrawal",
-        "reference_id": data.investor_id,
-        "entries": [
-            {
-                "account_code": capital_account["code"],
-                "account_name": capital_account["name"],
-                "debit": data.amount,
-                "credit": 0
-            },
-            {
-                "account_code": "1100",
-                "account_name": "Cash/Bank",
-                "debit": 0,
-                "credit": data.amount
-            }
-        ],
-        "total_debit": data.amount,
-        "total_credit": data.amount,
-        "status": "posted",
-        "payment_method": data.payment_method,
-        "notes": data.notes,
-        "is_auto_generated": True,
-        "transaction_type": "capital_withdrawal",
-        "created_by": user_id,
-        "created_at": timestamp
-    }
-    await db.journal_entries.insert_one(journal_entry)
+    lines = [
+        {
+            "account_id": capital_account["id"],
+            "account_code": capital_account["code"],
+            "account_name": capital_account["name"],
+            "debit": data.amount,
+            "credit": 0,
+            "description": f"Capital withdrawal by {investor['name']}"
+        },
+        {
+            "account_id": cash_account["id"],
+            "account_code": cash_account["code"],
+            "account_name": cash_account["name"],
+            "debit": 0,
+            "credit": data.amount,
+            "description": f"Capital withdrawal to {investor['name']}"
+        }
+    ]
     
-    await db.accounts.update_one(
-        {"id": cash_account["id"]},
-        {"$inc": {"current_balance": -data.amount, "balance": -data.amount}}
-    )
-    await db.accounts.update_one(
-        {"id": capital_account["id"]},
-        {"$inc": {"current_balance": -data.amount, "balance": -data.amount}}
+    entry = await create_journal_entry(
+        company_id=company_id,
+        user_id=user_id,
+        entry_date=entry_date,
+        description=f"Capital Withdrawal by {investor['name']} - {data.reason}",
+        lines=lines,
+        reference_type="capital_withdrawal",
+        reference_number=data.reference,
+        reference_id=data.investor_id,
+        notes=data.notes,
+        metadata={"payment_method": data.payment_method, "reason": data.reason}
     )
     
     return {
         "message": f"Capital withdrawal of LKR {data.amount:,.2f} recorded successfully",
-        "journal_entry_id": entry_id
+        "journal_entry_id": entry["id"],
+        "entry_number": entry["entry_number"]
     }
 
 @router.post("/salary-payment")
@@ -447,130 +547,79 @@ async def record_salary_payment(
     """Record salary payment - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
-    timestamp = data.date or get_current_timestamp()
+    entry_date = (data.date or get_current_timestamp())[:10]
     
-    # Get or create salary expense account (try 6100 first, then 5200)
-    salary_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": {"$in": ["6100", "5200"]}
-    })
-    
-    if not salary_account:
-        # Create salary expense account
-        salary_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": "6100",
-            "name": "Salaries & Wages",
-            "account_type": "expense",
-            "category": "operating_expense",
-            "description": "Employee salaries and wages expense",
-            "parent_account_id": None,
-            "is_system": False,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
-        }
-        await db.accounts.insert_one(salary_account)
+    # Get or create salary expense account
+    salary_account = await get_or_create_account(
+        company_id, "6100", "Salaries & Wages", "expense", "operating_expense", "6000"
+    )
     
     # Get or create cash account
-    cash_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": "1100"
-    })
+    cash_account = await get_or_create_account(
+        company_id, "1100", "Cash", "asset", "cash", "1000"
+    )
     
-    if not cash_account:
-        cash_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": "1100",
-            "name": "Cash/Bank",
-            "account_type": "asset",
-            "category": "cash",
-            "description": "Cash and bank accounts",
-            "parent_account_id": None,
-            "is_system": True,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
+    gross_salary = data.amount + (data.allowances or 0)
+    net_salary = gross_salary - (data.deductions or 0)
+    
+    lines = [
+        {
+            "account_id": salary_account["id"],
+            "account_code": salary_account["code"],
+            "account_name": salary_account["name"],
+            "debit": gross_salary,
+            "credit": 0,
+            "description": f"Salary expense for {data.employee_name}"
+        },
+        {
+            "account_id": cash_account["id"],
+            "account_code": cash_account["code"],
+            "account_name": cash_account["name"],
+            "debit": 0,
+            "credit": net_salary,
+            "description": f"Salary payment to {data.employee_name}"
         }
-        await db.accounts.insert_one(cash_account)
+    ]
     
-    gross_salary = data.amount + data.allowances
-    net_salary = gross_salary - data.deductions
+    # Handle deductions (if any) - credit to payable account
+    if data.deductions and data.deductions > 0:
+        deductions_account = await get_or_create_account(
+            company_id, "2200", "Tax Payable", "liability", "current_liability", "2000"
+        )
+        lines.append({
+            "account_id": deductions_account["id"],
+            "account_code": deductions_account["code"],
+            "account_name": deductions_account["name"],
+            "debit": 0,
+            "credit": data.deductions,
+            "description": f"Deductions from {data.employee_name}'s salary"
+        })
     
-    entry_id = generate_id()
-    
-    # Debit: Salaries & Wages Expense
-    # Credit: Cash/Bank
-    journal_entry = {
-        "id": entry_id,
-        "company_id": company_id,
-        "date": timestamp,
-        "description": f"Salary Payment - {data.employee_name} ({data.month})",
-        "reference_type": "salary_payment",
-        "entries": [
-            {
-                "account_code": salary_account["code"],
-                "account_name": salary_account["name"],
-                "debit": gross_salary,
-                "credit": 0
-            },
-            {
-                "account_code": "1100",
-                "account_name": "Cash/Bank",
-                "debit": 0,
-                "credit": net_salary
-            }
-        ],
-        "total_debit": gross_salary,
-        "total_credit": net_salary,
-        "status": "posted",
-        "payment_method": data.payment_method,
-        "notes": data.notes,
-        "metadata": {
+    entry = await create_journal_entry(
+        company_id=company_id,
+        user_id=user_id,
+        entry_date=entry_date,
+        description=f"Salary Payment - {data.employee_name} ({data.month})",
+        lines=lines,
+        reference_type="salary_payment",
+        notes=data.notes,
+        metadata={
             "employee_name": data.employee_name,
             "month": data.month,
             "gross_salary": gross_salary,
-            "deductions": data.deductions,
-            "allowances": data.allowances,
-            "net_salary": net_salary
-        },
-        "is_auto_generated": True,
-        "transaction_type": "salary_payment",
-        "created_by": user_id,
-        "created_at": timestamp
-    }
-    
-    # Handle deductions (if any) - credit to liability account
-    if data.deductions > 0:
-        journal_entry["entries"].append({
-            "account_code": "2200",
-            "account_name": "Accrued Expenses",
-            "debit": 0,
-            "credit": data.deductions
-        })
-        journal_entry["total_credit"] = gross_salary
-    
-    await db.journal_entries.insert_one(journal_entry)
-    
-    # Update account balances
-    await db.accounts.update_one(
-        {"id": salary_account["id"]},
-        {"$inc": {"current_balance": gross_salary}}
-    )
-    await db.accounts.update_one(
-        {"id": cash_account["id"]},
-        {"$inc": {"current_balance": -net_salary}}
+            "deductions": data.deductions or 0,
+            "allowances": data.allowances or 0,
+            "net_salary": net_salary,
+            "payment_method": data.payment_method
+        }
     )
     
     return {
         "message": f"Salary payment of LKR {net_salary:,.2f} recorded for {data.employee_name}",
-        "journal_entry_id": entry_id,
+        "journal_entry_id": entry["id"],
+        "entry_number": entry["entry_number"],
         "gross_salary": gross_salary,
-        "deductions": data.deductions,
+        "deductions": data.deductions or 0,
         "net_salary": net_salary
     }
 
@@ -582,11 +631,11 @@ async def record_expense_payment(
     """Record expense payment - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
-    timestamp = data.date or get_current_timestamp()
+    entry_date = (data.date or get_current_timestamp())[:10]
     
-    # Map expense types to account codes (using 6xxx series for operating expenses)
+    # Map expense types to account codes
     expense_accounts = {
-        "utilities": {"code": "6300", "name": "Utilities Expense"},
+        "utilities": {"code": "6300", "name": "Utilities"},
         "rent": {"code": "6200", "name": "Rent Expense"},
         "office_supplies": {"code": "6500", "name": "Office Supplies"},
         "marketing": {"code": "6400", "name": "Marketing & Advertising"},
@@ -595,112 +644,60 @@ async def record_expense_payment(
         "transport": {"code": "6800", "name": "Transport & Travel"},
         "communication": {"code": "6350", "name": "Communication Expense"},
         "professional_fees": {"code": "6450", "name": "Professional Fees"},
-        "other": {"code": "6900", "name": "Other Expenses"}
+        "other": {"code": "6900", "name": "Tax Expense"}  # Using existing Tax Expense for misc
     }
     
     expense_info = expense_accounts.get(data.expense_type, expense_accounts["other"])
     
     # Get or create expense account
-    expense_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": expense_info["code"]
-    })
-    
-    if not expense_account:
-        expense_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": expense_info["code"],
-            "name": expense_info["name"],
-            "account_type": "expense",
-            "category": "operating_expense",
-            "description": f"Operating expense - {expense_info['name']}",
-            "parent_account_id": None,
-            "is_system": False,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
-        }
-        await db.accounts.insert_one(expense_account)
+    expense_account = await get_or_create_account(
+        company_id, expense_info["code"], expense_info["name"], "expense", "operating_expense", "6000"
+    )
     
     # Get or create cash account
-    cash_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": "1100"
-    })
-    
-    if not cash_account:
-        cash_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": "1100",
-            "name": "Cash/Bank",
-            "account_type": "asset",
-            "category": "cash",
-            "description": "Cash and bank accounts",
-            "parent_account_id": None,
-            "is_system": True,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
-        }
-        await db.accounts.insert_one(cash_account)
-    
-    entry_id = generate_id()
-    
-    # Debit: Expense Account
-    # Credit: Cash/Bank
-    journal_entry = {
-        "id": entry_id,
-        "company_id": company_id,
-        "date": timestamp,
-        "description": f"{expense_info['name']} - {data.description}",
-        "reference": data.reference,
-        "reference_type": "expense_payment",
-        "entries": [
-            {
-                "account_code": expense_info["code"],
-                "account_name": expense_info["name"],
-                "debit": data.amount,
-                "credit": 0
-            },
-            {
-                "account_code": "1100",
-                "account_name": "Cash/Bank",
-                "debit": 0,
-                "credit": data.amount
-            }
-        ],
-        "total_debit": data.amount,
-        "total_credit": data.amount,
-        "status": "posted",
-        "payment_method": data.payment_method,
-        "notes": data.notes,
-        "metadata": {
-            "expense_type": data.expense_type,
-            "vendor": data.vendor
-        },
-        "is_auto_generated": True,
-        "transaction_type": "expense_payment",
-        "created_by": user_id,
-        "created_at": timestamp
-    }
-    await db.journal_entries.insert_one(journal_entry)
-    
-    await db.accounts.update_one(
-        {"id": expense_account["id"]},
-        {"$inc": {"current_balance": data.amount, "balance": data.amount}}
+    cash_account = await get_or_create_account(
+        company_id, "1100", "Cash", "asset", "cash", "1000"
     )
-    await db.accounts.update_one(
-        {"id": cash_account["id"]},
-        {"$inc": {"current_balance": -data.amount, "balance": -data.amount}}
+    
+    lines = [
+        {
+            "account_id": expense_account["id"],
+            "account_code": expense_account["code"],
+            "account_name": expense_account["name"],
+            "debit": data.amount,
+            "credit": 0,
+            "description": data.description
+        },
+        {
+            "account_id": cash_account["id"],
+            "account_code": cash_account["code"],
+            "account_name": cash_account["name"],
+            "debit": 0,
+            "credit": data.amount,
+            "description": f"Payment for {data.description}"
+        }
+    ]
+    
+    entry = await create_journal_entry(
+        company_id=company_id,
+        user_id=user_id,
+        entry_date=entry_date,
+        description=f"{expense_info['name']} - {data.description}",
+        lines=lines,
+        reference_type="expense_payment",
+        reference_number=data.reference,
+        notes=data.notes,
+        metadata={
+            "expense_type": data.expense_type,
+            "vendor": data.vendor,
+            "payment_method": data.payment_method
+        }
     )
     
     return {
         "message": f"Expense of LKR {data.amount:,.2f} recorded for {data.description}",
-        "journal_entry_id": entry_id,
+        "journal_entry_id": entry["id"],
+        "entry_number": entry["entry_number"],
         "expense_type": data.expense_type
     }
 
@@ -712,7 +709,7 @@ async def record_revenue_receipt(
     """Record revenue receipt - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
-    timestamp = data.date or get_current_timestamp()
+    entry_date = (data.date or get_current_timestamp())[:10]
     
     # Map revenue types to account codes
     revenue_accounts = {
@@ -726,106 +723,54 @@ async def record_revenue_receipt(
     revenue_info = revenue_accounts.get(data.revenue_type, revenue_accounts["other"])
     
     # Get or create revenue account
-    revenue_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": revenue_info["code"]
-    })
-    
-    if not revenue_account:
-        revenue_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": revenue_info["code"],
-            "name": revenue_info["name"],
-            "account_type": "income",
-            "category": "revenue",
-            "description": f"Income account - {revenue_info['name']}",
-            "parent_account_id": None,
-            "is_system": False,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
-        }
-        await db.accounts.insert_one(revenue_account)
+    revenue_account = await get_or_create_account(
+        company_id, revenue_info["code"], revenue_info["name"], "income", "revenue", "4000"
+    )
     
     # Get or create cash account
-    cash_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": "1100"
-    })
-    
-    if not cash_account:
-        cash_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": "1100",
-            "name": "Cash/Bank",
-            "account_type": "asset",
-            "category": "cash",
-            "description": "Cash and bank accounts",
-            "parent_account_id": None,
-            "is_system": True,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
-        }
-        await db.accounts.insert_one(cash_account)
-    
-    entry_id = generate_id()
-    
-    # Debit: Cash/Bank
-    # Credit: Revenue Account
-    journal_entry = {
-        "id": entry_id,
-        "company_id": company_id,
-        "date": timestamp,
-        "description": f"{revenue_info['name']} - {data.description}",
-        "reference": data.reference,
-        "reference_type": "revenue_receipt",
-        "entries": [
-            {
-                "account_code": "1100",
-                "account_name": "Cash/Bank",
-                "debit": data.amount,
-                "credit": 0
-            },
-            {
-                "account_code": revenue_info["code"],
-                "account_name": revenue_info["name"],
-                "debit": 0,
-                "credit": data.amount
-            }
-        ],
-        "total_debit": data.amount,
-        "total_credit": data.amount,
-        "status": "posted",
-        "payment_method": data.payment_method,
-        "notes": data.notes,
-        "metadata": {
-            "revenue_type": data.revenue_type,
-            "customer": data.customer
-        },
-        "is_auto_generated": True,
-        "transaction_type": "revenue_receipt",
-        "created_by": user_id,
-        "created_at": timestamp
-    }
-    await db.journal_entries.insert_one(journal_entry)
-    
-    await db.accounts.update_one(
-        {"id": cash_account["id"]},
-        {"$inc": {"current_balance": data.amount, "balance": data.amount}}
+    cash_account = await get_or_create_account(
+        company_id, "1100", "Cash", "asset", "cash", "1000"
     )
-    await db.accounts.update_one(
-        {"id": revenue_account["id"]},
-        {"$inc": {"current_balance": data.amount, "balance": data.amount}}
+    
+    lines = [
+        {
+            "account_id": cash_account["id"],
+            "account_code": cash_account["code"],
+            "account_name": cash_account["name"],
+            "debit": data.amount,
+            "credit": 0,
+            "description": f"Revenue received for {data.description}"
+        },
+        {
+            "account_id": revenue_account["id"],
+            "account_code": revenue_account["code"],
+            "account_name": revenue_account["name"],
+            "debit": 0,
+            "credit": data.amount,
+            "description": data.description
+        }
+    ]
+    
+    entry = await create_journal_entry(
+        company_id=company_id,
+        user_id=user_id,
+        entry_date=entry_date,
+        description=f"{revenue_info['name']} - {data.description}",
+        lines=lines,
+        reference_type="revenue_receipt",
+        reference_number=data.reference,
+        notes=data.notes,
+        metadata={
+            "revenue_type": data.revenue_type,
+            "customer": data.customer,
+            "payment_method": data.payment_method
+        }
     )
     
     return {
         "message": f"Revenue of LKR {data.amount:,.2f} recorded for {data.description}",
-        "journal_entry_id": entry_id
+        "journal_entry_id": entry["id"],
+        "entry_number": entry["entry_number"]
     }
 
 @router.post("/loan-transaction")
@@ -836,11 +781,11 @@ async def record_loan_transaction(
     """Record loan received or repayment - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
-    timestamp = data.date or get_current_timestamp()
+    entry_date = (data.date or get_current_timestamp())[:10]
     
     # Map loan types to account codes
     loan_accounts = {
-        "bank_loan": {"code": "2300", "name": "Bank Loans Payable"},
+        "bank_loan": {"code": "2300", "name": "Loans Payable"},
         "director_loan": {"code": "2350", "name": "Director Loans Payable"},
         "finance_company": {"code": "2360", "name": "Finance Company Loans"},
         "other": {"code": "2390", "name": "Other Loans Payable"}
@@ -849,200 +794,105 @@ async def record_loan_transaction(
     loan_info = loan_accounts.get(data.loan_type, loan_accounts["other"])
     
     # Get or create loan account
-    loan_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": loan_info["code"]
-    })
-    
-    if not loan_account:
-        loan_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": loan_info["code"],
-            "name": loan_info["name"],
-            "account_type": "liability",
-            "category": "long_term_liability",
-            "description": f"Loan liability - {loan_info['name']}",
-            "parent_account_id": None,
-            "is_system": False,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
-        }
-        await db.accounts.insert_one(loan_account)
+    loan_account = await get_or_create_account(
+        company_id, loan_info["code"], loan_info["name"], "liability", "long_term_liability", "2000"
+    )
     
     # Get or create cash account
-    cash_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": "1100"
-    })
+    cash_account = await get_or_create_account(
+        company_id, "1100", "Cash", "asset", "cash", "1000"
+    )
     
-    if not cash_account:
-        cash_account = {
-            "id": generate_id(),
-            "company_id": company_id,
-            "code": "1100",
-            "name": "Cash/Bank",
-            "account_type": "asset",
-            "category": "cash",
-            "description": "Cash and bank accounts",
-            "parent_account_id": None,
-            "is_system": True,
-            "is_active": True,
-            "current_balance": 0,
-            "created_at": timestamp,
-            "updated_at": timestamp
-        }
-        await db.accounts.insert_one(cash_account)
-    
-    # Get or create interest expense account if needed
-    interest_account = None
-    if data.interest_amount and data.interest_amount > 0:
-        interest_account = await db.accounts.find_one({
-            "company_id": company_id,
-            "code": "6250"
-        })
-        
-        if not interest_account:
-            interest_account = {
-                "id": generate_id(),
-                "company_id": company_id,
-                "code": "6250",
-                "name": "Interest Expense",
-                "account_type": "expense",
-                "category": "financial_expense",
-                "description": "Interest expense on loans",
-                "parent_account_id": None,
-                "is_system": False,
-                "is_active": True,
-                "current_balance": 0,
-                "created_at": timestamp,
-                "updated_at": timestamp
-            }
-            await db.accounts.insert_one(interest_account)
-    
-    entry_id = generate_id()
+    lines = []
     
     if data.transaction_type == "receive":
         # Loan Received
         # Debit: Cash/Bank
         # Credit: Loan Account
-        journal_entry = {
-            "id": entry_id,
-            "company_id": company_id,
-            "date": timestamp,
-            "description": f"Loan Received from {data.lender_name}",
-            "reference": data.reference,
-            "reference_type": "loan_received",
-            "entries": [
-                {
-                    "account_code": "1100",
-                    "account_name": "Cash/Bank",
-                    "debit": data.amount,
-                    "credit": 0
-                },
-                {
-                    "account_code": loan_info["code"],
-                    "account_name": loan_info["name"],
-                    "debit": 0,
-                    "credit": data.amount
-                }
-            ],
-            "total_debit": data.amount,
-            "total_credit": data.amount,
-            "status": "posted",
-            "notes": data.notes,
-            "metadata": {"lender": data.lender_name, "loan_type": data.loan_type},
-            "is_auto_generated": True,
-            "transaction_type": "loan_received",
-            "created_by": user_id,
-            "created_at": timestamp
-        }
-        
-        await db.accounts.update_one(
-            {"id": cash_account["id"]},
-            {"$inc": {"current_balance": data.amount, "balance": data.amount}}
-        )
-        await db.accounts.update_one(
-            {"id": loan_account["id"]},
-            {"$inc": {"current_balance": data.amount, "balance": data.amount}}
-        )
+        lines = [
+            {
+                "account_id": cash_account["id"],
+                "account_code": cash_account["code"],
+                "account_name": cash_account["name"],
+                "debit": data.amount,
+                "credit": 0,
+                "description": f"Loan received from {data.lender_name}"
+            },
+            {
+                "account_id": loan_account["id"],
+                "account_code": loan_account["code"],
+                "account_name": loan_account["name"],
+                "debit": 0,
+                "credit": data.amount,
+                "description": f"Loan from {data.lender_name}"
+            }
+        ]
+        ref_type = "loan_received"
+        description = f"Loan Received from {data.lender_name}"
         
     else:
         # Loan Repayment
-        # Debit: Loan Account (principal)
-        # Debit: Interest Expense (if any)
-        # Credit: Cash/Bank
         total_payment = data.amount + (data.interest_amount or 0)
         
-        entries = [
+        lines = [
             {
-                "account_code": loan_info["code"],
-                "account_name": loan_info["name"],
+                "account_id": loan_account["id"],
+                "account_code": loan_account["code"],
+                "account_name": loan_account["name"],
                 "debit": data.amount,
-                "credit": 0
+                "credit": 0,
+                "description": f"Principal repayment to {data.lender_name}"
             }
         ]
         
-        if data.interest_amount > 0:
-            entries.append({
-                "account_code": "5850",
-                "account_name": "Interest Expense",
+        # Add interest expense if applicable
+        if data.interest_amount and data.interest_amount > 0:
+            interest_account = await get_or_create_account(
+                company_id, "6250", "Interest Expense", "expense", "operating_expense", "6000"
+            )
+            lines.append({
+                "account_id": interest_account["id"],
+                "account_code": interest_account["code"],
+                "account_name": interest_account["name"],
                 "debit": data.interest_amount,
-                "credit": 0
+                "credit": 0,
+                "description": f"Interest expense to {data.lender_name}"
             })
         
-        entries.append({
-            "account_code": "1100",
-            "account_name": "Cash/Bank",
+        lines.append({
+            "account_id": cash_account["id"],
+            "account_code": cash_account["code"],
+            "account_name": cash_account["name"],
             "debit": 0,
-            "credit": total_payment
+            "credit": total_payment,
+            "description": f"Loan repayment to {data.lender_name}"
         })
         
-        journal_entry = {
-            "id": entry_id,
-            "company_id": company_id,
-            "date": timestamp,
-            "description": f"Loan Repayment to {data.lender_name}",
-            "reference": data.reference,
-            "reference_type": "loan_repayment",
-            "entries": entries,
-            "total_debit": total_payment,
-            "total_credit": total_payment,
-            "status": "posted",
-            "notes": data.notes,
-            "metadata": {
-                "lender": data.lender_name,
-                "principal": data.amount,
-                "interest": data.interest_amount
-            },
-            "is_auto_generated": True,
-            "transaction_type": "loan_repayment",
-            "created_by": user_id,
-            "created_at": timestamp
-        }
-        
-        await db.accounts.update_one(
-            {"id": loan_account["id"]},
-            {"$inc": {"current_balance": -data.amount, "balance": -data.amount}}
-        )
-        await db.accounts.update_one(
-            {"id": cash_account["id"]},
-            {"$inc": {"current_balance": -total_payment, "balance": -total_payment}}
-        )
-        if data.interest_amount > 0 and interest_account:
-            await db.accounts.update_one(
-                {"id": interest_account["id"]},
-                {"$inc": {"current_balance": data.interest_amount, "balance": data.interest_amount}}
-            )
+        ref_type = "loan_repayment"
+        description = f"Loan Repayment to {data.lender_name}"
     
-    await db.journal_entries.insert_one(journal_entry)
+    entry = await create_journal_entry(
+        company_id=company_id,
+        user_id=user_id,
+        entry_date=entry_date,
+        description=description,
+        lines=lines,
+        reference_type=ref_type,
+        reference_number=data.reference,
+        notes=data.notes,
+        metadata={
+            "lender_name": data.lender_name,
+            "loan_type": data.loan_type,
+            "principal": data.amount,
+            "interest": data.interest_amount or 0
+        }
+    )
     
     action = "received" if data.transaction_type == "receive" else "repaid"
     return {
         "message": f"Loan of LKR {data.amount:,.2f} {action} successfully",
-        "journal_entry_id": entry_id
+        "journal_entry_id": entry["id"],
+        "entry_number": entry["entry_number"]
     }
 
 
@@ -1057,22 +907,22 @@ async def get_transaction_types():
             {"type": "capital_withdrawal", "label": "Capital Withdrawal", "description": "Record investor taking money out"}
         ],
         "expenses": [
-            {"type": "utilities", "label": "Utilities (Electricity, Water)", "account": "5400"},
-            {"type": "rent", "label": "Rent Payment", "account": "5300"},
-            {"type": "office_supplies", "label": "Office Supplies", "account": "5600"},
-            {"type": "marketing", "label": "Marketing & Advertising", "account": "5500"},
-            {"type": "insurance", "label": "Insurance", "account": "5800"},
-            {"type": "maintenance", "label": "Repairs & Maintenance", "account": "5900"},
-            {"type": "transport", "label": "Transport & Travel", "account": "5950"},
-            {"type": "communication", "label": "Phone & Internet", "account": "5960"},
-            {"type": "professional_fees", "label": "Professional Fees", "account": "5970"},
-            {"type": "other", "label": "Other Expenses", "account": "5999"}
+            {"type": "utilities", "label": "Utilities (Electricity, Water)", "account": "6300"},
+            {"type": "rent", "label": "Rent Payment", "account": "6200"},
+            {"type": "office_supplies", "label": "Office Supplies", "account": "6500"},
+            {"type": "marketing", "label": "Marketing & Advertising", "account": "6400"},
+            {"type": "insurance", "label": "Insurance", "account": "6600"},
+            {"type": "maintenance", "label": "Repairs & Maintenance", "account": "6700"},
+            {"type": "transport", "label": "Transport & Travel", "account": "6800"},
+            {"type": "communication", "label": "Phone & Internet", "account": "6350"},
+            {"type": "professional_fees", "label": "Professional Fees", "account": "6450"},
+            {"type": "other", "label": "Other Expenses", "account": "6900"}
         ],
         "revenue": [
             {"type": "sales", "label": "Sales Revenue", "account": "4100"},
-            {"type": "service", "label": "Service Income", "account": "4300"},
-            {"type": "interest", "label": "Interest Income", "account": "4400"},
-            {"type": "commission", "label": "Commission Income", "account": "4500"},
+            {"type": "service", "label": "Service Income", "account": "4200"},
+            {"type": "interest", "label": "Interest Income", "account": "4300"},
+            {"type": "commission", "label": "Commission Income", "account": "4400"},
             {"type": "other", "label": "Other Income", "account": "4900"}
         ],
         "payroll": [
