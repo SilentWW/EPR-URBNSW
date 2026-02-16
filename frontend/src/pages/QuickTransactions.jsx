@@ -15,7 +15,11 @@ import {
   Clock,
   DollarSign,
   Banknote,
-  FileText
+  FileText,
+  Pencil,
+  Trash2,
+  Calendar,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -38,6 +42,16 @@ import {
   SelectValue
 } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '../components/ui/alert-dialog';
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-LK', {
