@@ -702,76 +702,117 @@ async def _create_sales_journal_entry(company_id: str, order_id: str, woo_order_
                                        total: float, cost: float, payment_status: str, user_id: str):
     """Create double-entry journal entries for a sale"""
     timestamp = get_current_timestamp()
+    entry_date = timestamp[:10] if isinstance(timestamp, str) else timestamp.strftime("%Y-%m-%d")
     
-    # Journal Entry 1: Record Revenue
-    # Debit: Accounts Receivable (or Cash if paid)
-    # Credit: Sales Revenue
-    revenue_entry = {
-        "id": generate_id(),
-        "company_id": company_id,
-        "date": timestamp,
-        "description": f"Sales Revenue - WooCommerce Order #{woo_order_id}",
-        "reference_type": "sales_order",
-        "reference_id": order_id,
-        "entries": [
-            {
-                "account_code": "1200" if payment_status != "paid" else "1100",  # AR or Cash
-                "account_name": "Accounts Receivable" if payment_status != "paid" else "Cash/Bank",
-                "debit": total,
-                "credit": 0
-            },
-            {
-                "account_code": "4100",
-                "account_name": "Sales Revenue",
-                "debit": 0,
-                "credit": total
-            }
-        ],
-        "total_debit": total,
-        "total_credit": total,
-        "status": "posted",
-        "created_by": user_id,
-        "created_at": timestamp
-    }
-    await db.journal_entries.insert_one(revenue_entry)
+    # Get account IDs for proper journal entries
+    cash_account = await db.accounts.find_one({"company_id": company_id, "code": "1100"})
+    ar_account = await db.accounts.find_one({"company_id": company_id, "code": "1300"})
+    if not ar_account:
+        ar_account = await db.accounts.find_one({"company_id": company_id, "category": "accounts_receivable"})
+    revenue_account = await db.accounts.find_one({"company_id": company_id, "code": "4100"})
+    cogs_account = await db.accounts.find_one({"company_id": company_id, "code": "5100"})
+    inventory_account = await db.accounts.find_one({"company_id": company_id, "code": "1400"})
+    if not inventory_account:
+        inventory_account = await db.accounts.find_one({"company_id": company_id, "category": "inventory"})
+    
+    # Determine debit account based on payment status
+    debit_account = cash_account if payment_status == "paid" else ar_account
+    
+    if debit_account and revenue_account:
+        # Journal Entry 1: Record Revenue
+        # Debit: Cash (if paid) or Accounts Receivable
+        # Credit: Sales Revenue
+        entry_id = generate_id()
+        entry_number = f"SALE-{entry_date.replace('-','')}-{entry_id[:4].upper()}"
+        
+        revenue_entry = {
+            "id": entry_id,
+            "entry_number": entry_number,
+            "company_id": company_id,
+            "entry_date": entry_date,
+            "description": f"Sales Revenue - WooCommerce Order #{woo_order_id}",
+            "reference_type": "sales_order",
+            "reference_id": order_id,
+            "lines": [
+                {
+                    "account_id": debit_account["id"],
+                    "account_code": debit_account["code"],
+                    "account_name": debit_account["name"],
+                    "debit": total,
+                    "credit": 0,
+                    "description": "Cash/AR from sale"
+                },
+                {
+                    "account_id": revenue_account["id"],
+                    "account_code": revenue_account["code"],
+                    "account_name": revenue_account["name"],
+                    "debit": 0,
+                    "credit": total,
+                    "description": "Sales revenue"
+                }
+            ],
+            "total_debit": total,
+            "total_credit": total,
+            "is_balanced": True,
+            "is_auto_generated": True,
+            "is_reversed": False,
+            "created_by": user_id,
+            "created_at": timestamp
+        }
+        await db.journal_entries.insert_one(revenue_entry)
+        
+        # Update account balances
+        # Debit account (asset): debit increases
+        await db.accounts.update_one({"id": debit_account["id"]}, {"$inc": {"current_balance": total}})
+        # Revenue (income): credit increases (stored as positive)
+        await db.accounts.update_one({"id": revenue_account["id"]}, {"$inc": {"current_balance": total}})
     
     # Journal Entry 2: Record Cost of Goods Sold (if cost > 0)
-    if cost > 0:
+    if cost > 0 and cogs_account and inventory_account:
+        entry_id = generate_id()
+        entry_number = f"COGS-{entry_date.replace('-','')}-{entry_id[:4].upper()}"
+        
         cogs_entry = {
-            "id": generate_id(),
+            "id": entry_id,
+            "entry_number": entry_number,
             "company_id": company_id,
-            "date": timestamp,
+            "entry_date": entry_date,
             "description": f"Cost of Goods Sold - WooCommerce Order #{woo_order_id}",
             "reference_type": "sales_order",
             "reference_id": order_id,
-            "entries": [
+            "lines": [
                 {
-                    "account_code": "5100",
-                    "account_name": "Cost of Goods Sold",
+                    "account_id": cogs_account["id"],
+                    "account_code": cogs_account["code"],
+                    "account_name": cogs_account["name"],
                     "debit": cost,
-                    "credit": 0
+                    "credit": 0,
+                    "description": "Cost of goods sold"
                 },
                 {
-                    "account_code": "1300",
-                    "account_name": "Inventory",
+                    "account_id": inventory_account["id"],
+                    "account_code": inventory_account["code"],
+                    "account_name": inventory_account["name"],
                     "debit": 0,
-                    "credit": cost
+                    "credit": cost,
+                    "description": "Inventory reduction"
                 }
             ],
             "total_debit": cost,
             "total_credit": cost,
-            "status": "posted",
+            "is_balanced": True,
+            "is_auto_generated": True,
+            "is_reversed": False,
             "created_by": user_id,
             "created_at": timestamp
         }
         await db.journal_entries.insert_one(cogs_entry)
-    
-    # Update account balances
-    await _update_account_balance(company_id, "1200" if payment_status != "paid" else "1100", total, "debit")
-    await _update_account_balance(company_id, "4100", total, "credit")
-    if cost > 0:
-        await _update_account_balance(company_id, "5100", cost, "debit")
-        await _update_account_balance(company_id, "1300", cost, "credit")
+        
+        # Update account balances
+        # COGS (expense): debit increases
+        await db.accounts.update_one({"id": cogs_account["id"]}, {"$inc": {"current_balance": cost}})
+        # Inventory (asset): credit decreases
+        await db.accounts.update_one({"id": inventory_account["id"]}, {"$inc": {"current_balance": -cost}})
 
 async def _create_return_journal_entry(company_id: str, order_id: str, woo_order_id: str,
                                         total: float, status: str, user_id: str):
