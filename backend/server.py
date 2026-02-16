@@ -221,6 +221,7 @@ class PaymentCreate(BaseModel):
     reference_id: str
     amount: float
     payment_method: str  # cash, bank, card, online
+    bank_account_id: Optional[str] = None  # Bank/Cash account to pay from/receive to
     notes: Optional[str] = None
 
 # Accounting Entry Models
