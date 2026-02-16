@@ -372,7 +372,7 @@ async def update_investor(
         "phone": data.phone,
         "id_number": data.id_number,
         "address": data.address,
-        "share_percentage": data.share_percentage,
+        # Note: share_percentage is NOT updated here - it's auto-calculated based on capital
         "notes": data.notes,
         "updated_at": get_current_timestamp()
     }
