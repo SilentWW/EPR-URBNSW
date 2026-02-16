@@ -153,7 +153,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 ### Finance Module (/api/finance)
 - `POST /chart-of-accounts/initialize` - Initialize default accounts
 - `GET /chart-of-accounts` - List all accounts
-- `POST /chart-of-accounts` - Create account
+- `GET /chart-of-accounts/next-code/{account_type}` - **NEW** Get next auto-generated account code
+- `POST /chart-of-accounts` - Create account (code auto-generated if not provided)
 - `PUT /chart-of-accounts/{id}` - Update account
 - `DELETE /chart-of-accounts/{id}` - Delete account
 - `GET /journal-entries` - List journal entries
