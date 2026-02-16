@@ -35,6 +35,7 @@ class InvestorCreate(BaseModel):
 class CapitalInvestment(BaseModel):
     investor_id: str
     amount: float
+    bank_account_id: Optional[str] = None  # Bank/Cash account to receive funds
     payment_method: str = "bank"  # cash, bank, cheque
     reference: Optional[str] = None
     notes: Optional[str] = None
@@ -44,6 +45,7 @@ class SalaryPayment(BaseModel):
     employee_name: str
     amount: float
     month: str  # e.g., "January 2026"
+    bank_account_id: Optional[str] = None  # Bank/Cash account to pay from
     payment_method: str = "bank"
     deductions: Optional[float] = 0
     allowances: Optional[float] = 0
@@ -54,6 +56,7 @@ class ExpensePayment(BaseModel):
     expense_type: str  # utilities, rent, office_supplies, marketing, insurance, maintenance, other
     description: str
     amount: float
+    bank_account_id: Optional[str] = None  # Bank/Cash account to pay from
     payment_method: str = "bank"
     vendor: Optional[str] = None
     reference: Optional[str] = None
@@ -64,6 +67,7 @@ class RevenueReceipt(BaseModel):
     revenue_type: str  # sales, service, interest, other
     description: str
     amount: float
+    bank_account_id: Optional[str] = None  # Bank/Cash account to receive funds
     payment_method: str = "bank"
     customer: Optional[str] = None
     reference: Optional[str] = None
@@ -75,6 +79,7 @@ class LoanTransaction(BaseModel):
     loan_type: str  # bank_loan, director_loan, other
     lender_name: str
     amount: float
+    bank_account_id: Optional[str] = None  # Bank/Cash account
     interest_amount: Optional[float] = 0
     reference: Optional[str] = None
     notes: Optional[str] = None
@@ -84,6 +89,7 @@ class CapitalWithdrawal(BaseModel):
     investor_id: str
     amount: float
     reason: str
+    bank_account_id: Optional[str] = None  # Bank/Cash account to pay from
     payment_method: str = "bank"
     reference: Optional[str] = None
     notes: Optional[str] = None
