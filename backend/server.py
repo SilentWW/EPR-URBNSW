@@ -1285,11 +1285,13 @@ async def get_payments(
 
 @api_router.post("/payments")
 async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_current_user)):
+    company_id = current_user["company_id"]
+    
     # Get reference order
     if data.reference_type == "sales_order":
         order = await db.sales_orders.find_one({
             "id": data.reference_id,
-            "company_id": current_user["company_id"]
+            "company_id": company_id
         })
         if not order:
             raise HTTPException(status_code=404, detail="Sales order not found")
@@ -1300,7 +1302,7 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
     elif data.reference_type == "purchase_order":
         order = await db.purchase_orders.find_one({
             "id": data.reference_id,
-            "company_id": current_user["company_id"]
+            "company_id": company_id
         })
         if not order:
             raise HTTPException(status_code=404, detail="Purchase order not found")
@@ -1315,7 +1317,7 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
     payment_id = str(uuid.uuid4())
     payment = {
         "id": payment_id,
-        "company_id": current_user["company_id"],
+        "company_id": company_id,
         "reference_type": data.reference_type,
         "reference_id": data.reference_id,
         "reference_number": order.get("order_number"),
@@ -1343,7 +1345,7 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
     # Record in bank/cash ledger
     await db.bank_transactions.insert_one({
         "id": str(uuid.uuid4()),
-        "company_id": current_user["company_id"],
+        "company_id": company_id,
         "type": "credit" if entry_type == "income" else "debit",
         "amount": data.amount,
         "payment_method": data.payment_method,
@@ -1352,6 +1354,81 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
         "reference_id": data.reference_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
+    
+    # Create double-entry journal entry for proper accounting
+    cash_account = await db.accounts.find_one({"company_id": company_id, "code": "1100"})
+    if not cash_account:
+        cash_account = await db.accounts.find_one({"company_id": company_id, "category": "cash"})
+    
+    if data.reference_type == "purchase_order":
+        # Payment to supplier: Debit AP, Credit Cash
+        ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})
+        if not ap_account:
+            ap_account = await db.accounts.find_one({"company_id": company_id, "category": "accounts_payable"})
+        
+        if cash_account and ap_account:
+            entry_id = str(uuid.uuid4())
+            entry_number = f"PAY-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+            
+            journal_entry = {
+                "id": entry_id,
+                "entry_number": entry_number,
+                "company_id": company_id,
+                "entry_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "reference_number": order.get("order_number"),
+                "description": f"Payment to supplier for {order.get('order_number')}",
+                "lines": [
+                    {"account_id": ap_account["id"], "account_code": ap_account["code"], "account_name": ap_account["name"], "debit": data.amount, "credit": 0, "description": "Reduce accounts payable"},
+                    {"account_id": cash_account["id"], "account_code": cash_account["code"], "account_name": cash_account["name"], "debit": 0, "credit": data.amount, "description": "Cash payment to supplier"}
+                ],
+                "total_debit": data.amount,
+                "total_credit": data.amount,
+                "is_balanced": True,
+                "is_auto_generated": True,
+                "is_reversed": False,
+                "reference_type": "payment",
+                "reference_id": payment_id,
+                "created_by": current_user["user_id"],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.journal_entries.insert_one(journal_entry)
+            await db.accounts.update_one({"id": ap_account["id"]}, {"$inc": {"current_balance": -data.amount}})
+            await db.accounts.update_one({"id": cash_account["id"]}, {"$inc": {"current_balance": -data.amount}})
+    
+    elif data.reference_type == "sales_order":
+        # Payment from customer: Debit Cash, Credit AR
+        ar_account = await db.accounts.find_one({"company_id": company_id, "code": "1300"})
+        if not ar_account:
+            ar_account = await db.accounts.find_one({"company_id": company_id, "category": "accounts_receivable"})
+        
+        if cash_account and ar_account:
+            entry_id = str(uuid.uuid4())
+            entry_number = f"REC-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+            
+            journal_entry = {
+                "id": entry_id,
+                "entry_number": entry_number,
+                "company_id": company_id,
+                "entry_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "reference_number": order.get("order_number"),
+                "description": f"Payment received for {order.get('order_number')}",
+                "lines": [
+                    {"account_id": cash_account["id"], "account_code": cash_account["code"], "account_name": cash_account["name"], "debit": data.amount, "credit": 0, "description": "Cash received from customer"},
+                    {"account_id": ar_account["id"], "account_code": ar_account["code"], "account_name": ar_account["name"], "debit": 0, "credit": data.amount, "description": "Reduce accounts receivable"}
+                ],
+                "total_debit": data.amount,
+                "total_credit": data.amount,
+                "is_balanced": True,
+                "is_auto_generated": True,
+                "is_reversed": False,
+                "reference_type": "payment",
+                "reference_id": payment_id,
+                "created_by": current_user["user_id"],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.journal_entries.insert_one(journal_entry)
+            await db.accounts.update_one({"id": cash_account["id"]}, {"$inc": {"current_balance": data.amount}})
+            await db.accounts.update_one({"id": ar_account["id"]}, {"$inc": {"current_balance": -data.amount}})
     
     return serialize_doc(payment)
 
