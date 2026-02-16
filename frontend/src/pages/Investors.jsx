@@ -110,8 +110,8 @@ export default function Investors() {
 
     try {
       const data = {
-        ...formData,
-        share_percentage: formData.share_percentage ? parseFloat(formData.share_percentage) : null
+        ...formData
+        // share_percentage is now auto-calculated by backend
       };
 
       if (selectedInvestor) {
