@@ -223,6 +223,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │   ├── server.py          # Main FastAPI application
 │   ├── routes/
 │   │   ├── finance.py     # Finance module routes
+│   │   ├── simple_finance.py # Simplified accounting for non-accountants
 │   │   ├── admin.py       # Admin module routes
 │   │   └── woocommerce.py # WooCommerce integration
 │   ├── models/
