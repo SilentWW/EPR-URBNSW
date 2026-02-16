@@ -488,15 +488,15 @@ export default function Investors() {
                 </div>
                 <div className="space-y-2">
                   <Label>Share %</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={formData.share_percentage}
-                    onChange={(e) => setFormData({ ...formData, share_percentage: e.target.value })}
-                    placeholder="e.g., 25"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      value={selectedInvestor ? `${selectedInvestor.share_percentage || 0}%` : 'Auto-calculated'}
+                      disabled
+                      className="bg-slate-50 text-slate-500"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400">Automatically calculated based on capital investment</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -517,6 +517,12 @@ export default function Investors() {
                   rows={2}
                 />
               </div>
+              {!selectedInvestor && (
+                <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
+                  <strong>Note:</strong> Share percentage will be automatically calculated based on capital investments.
+                  After creating the investor, add capital investment to set their share.
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
