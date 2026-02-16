@@ -241,6 +241,40 @@ class InventoryMovementCreate(BaseModel):
     reference_type: Optional[str] = None
     reference_id: Optional[str] = None
 
+# Bank & Cash Account Models
+class BankAccountCreate(BaseModel):
+    account_name: str  # e.g., "Main Business Account", "Petty Cash"
+    account_type: str  # "bank" or "cash"
+    bank_name: Optional[str] = None  # e.g., "Bank of Ceylon"
+    account_number: Optional[str] = None
+    branch: Optional[str] = None
+    opening_balance: float = 0.0
+    description: Optional[str] = None
+
+class BankAccountUpdate(BaseModel):
+    account_name: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    branch: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class BankTransactionCreate(BaseModel):
+    bank_account_id: str
+    transaction_type: str  # "deposit", "withdrawal", "transfer_in", "transfer_out"
+    amount: float
+    description: str
+    reference_type: Optional[str] = None  # "invoice", "payment", "expense", etc.
+    reference_id: Optional[str] = None
+    transaction_date: Optional[str] = None  # ISO date string
+
+class BankTransferCreate(BaseModel):
+    from_account_id: str
+    to_account_id: str
+    amount: float
+    description: Optional[str] = None
+    transaction_date: Optional[str] = None
+
 # ============== HELPER FUNCTIONS ==============
 
 def hash_password(password: str) -> str:
