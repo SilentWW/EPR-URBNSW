@@ -114,8 +114,8 @@ export const Layout = ({ children }) => {
               <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-semibold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                E1 ERP
+              <span className="text-xl font-semibold text-slate-900 truncate max-w-[160px]" style={{ fontFamily: 'Outfit, sans-serif' }} title={user?.company_name || 'My Business'}>
+                {user?.company_name || 'My Business'}
               </span>
             </Link>
             <button

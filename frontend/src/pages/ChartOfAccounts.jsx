@@ -67,6 +67,7 @@ export default function ChartOfAccounts() {
     description: '',
     opening_balance: 0
   });
+  const [nextCode, setNextCode] = useState('');
 
   const categories = {
     asset: [
