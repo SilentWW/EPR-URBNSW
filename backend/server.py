@@ -1014,18 +1014,139 @@ async def create_sales_order(data: SalesOrderCreate, current_user: dict = Depend
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
     
-    # Create income entry
+    # Calculate total COGS from product cost prices
+    total_cogs = 0
+    for item in data.items:
+        product = await db.products.find_one({"id": item.product_id})
+        if product and product.get("cost_price", 0) > 0:
+            total_cogs += product["cost_price"] * item.quantity
+    
+    # Create proper double-entry journal entries
+    company_id = current_user["company_id"]
+    user_id = current_user["user_id"]
+    entry_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    timestamp = datetime.now(timezone.utc).isoformat()
+    
+    # Get accounts for journal entries
+    ar_account = await db.accounts.find_one({"company_id": company_id, "code": "1300"})
+    if not ar_account:
+        ar_account = await db.accounts.find_one({"company_id": company_id, "category": "accounts_receivable"})
+    revenue_account = await db.accounts.find_one({"company_id": company_id, "code": "4100"})
+    cogs_account = await db.accounts.find_one({"company_id": company_id, "code": "5100"})
+    if not cogs_account:
+        cogs_account = await db.accounts.find_one({"company_id": company_id, "code": "5000"})
+    inventory_account = await db.accounts.find_one({"company_id": company_id, "code": "1400"})
+    if not inventory_account:
+        inventory_account = await db.accounts.find_one({"company_id": company_id, "category": "inventory"})
+    
+    # Journal Entry 1: Record Sales Revenue
+    # Debit: Accounts Receivable (asset increases)
+    # Credit: Sales Revenue (income increases)
+    if ar_account and revenue_account:
+        entry_id = str(uuid.uuid4())
+        entry_number = f"SALE-{entry_date.replace('-','')}-{entry_id[:4].upper()}"
+        
+        revenue_entry = {
+            "id": entry_id,
+            "entry_number": entry_number,
+            "company_id": company_id,
+            "entry_date": entry_date,
+            "description": f"Sales Revenue - {order_number}",
+            "reference_type": "sales_order",
+            "reference_id": order_id,
+            "lines": [
+                {
+                    "account_id": ar_account["id"],
+                    "account_code": ar_account["code"],
+                    "account_name": ar_account["name"],
+                    "debit": total,
+                    "credit": 0,
+                    "description": "Accounts Receivable from sale"
+                },
+                {
+                    "account_id": revenue_account["id"],
+                    "account_code": revenue_account["code"],
+                    "account_name": revenue_account["name"],
+                    "debit": 0,
+                    "credit": total,
+                    "description": "Sales revenue"
+                }
+            ],
+            "total_debit": total,
+            "total_credit": total,
+            "is_balanced": True,
+            "is_auto_generated": True,
+            "is_reversed": False,
+            "created_by": user_id,
+            "created_at": timestamp
+        }
+        await db.journal_entries.insert_one(revenue_entry)
+        
+        # Update account balances
+        await db.accounts.update_one({"id": ar_account["id"]}, {"$inc": {"current_balance": total}})
+        await db.accounts.update_one({"id": revenue_account["id"]}, {"$inc": {"current_balance": total}})
+    
+    # Journal Entry 2: Record Cost of Goods Sold (if COGS > 0)
+    # Debit: Cost of Goods Sold (expense increases)
+    # Credit: Inventory (asset decreases)
+    if total_cogs > 0 and cogs_account and inventory_account:
+        entry_id = str(uuid.uuid4())
+        entry_number = f"COGS-{entry_date.replace('-','')}-{entry_id[:4].upper()}"
+        
+        cogs_entry = {
+            "id": entry_id,
+            "entry_number": entry_number,
+            "company_id": company_id,
+            "entry_date": entry_date,
+            "description": f"Cost of Goods Sold - {order_number}",
+            "reference_type": "sales_order",
+            "reference_id": order_id,
+            "lines": [
+                {
+                    "account_id": cogs_account["id"],
+                    "account_code": cogs_account["code"],
+                    "account_name": cogs_account["name"],
+                    "debit": total_cogs,
+                    "credit": 0,
+                    "description": "Cost of goods sold"
+                },
+                {
+                    "account_id": inventory_account["id"],
+                    "account_code": inventory_account["code"],
+                    "account_name": inventory_account["name"],
+                    "debit": 0,
+                    "credit": total_cogs,
+                    "description": "Inventory reduction"
+                }
+            ],
+            "total_debit": total_cogs,
+            "total_credit": total_cogs,
+            "is_balanced": True,
+            "is_auto_generated": True,
+            "is_reversed": False,
+            "created_by": user_id,
+            "created_at": timestamp
+        }
+        await db.journal_entries.insert_one(cogs_entry)
+        
+        # Update account balances
+        # COGS (expense): debit increases
+        await db.accounts.update_one({"id": cogs_account["id"]}, {"$inc": {"current_balance": total_cogs}})
+        # Inventory (asset): credit decreases
+        await db.accounts.update_one({"id": inventory_account["id"]}, {"$inc": {"current_balance": -total_cogs}})
+    
+    # Also create legacy accounting entry for backward compatibility
     await db.accounting_entries.insert_one({
         "id": str(uuid.uuid4()),
-        "company_id": current_user["company_id"],
+        "company_id": company_id,
         "entry_type": "income",
         "category": "Sales",
         "amount": total,
         "description": f"Sales Order {order_number}",
         "reference_type": "sales_order",
         "reference_id": order_id,
-        "created_by": current_user["user_id"],
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_by": user_id,
+        "created_at": timestamp
     })
     
     return serialize_doc(order)
