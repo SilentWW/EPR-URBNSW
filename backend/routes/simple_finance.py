@@ -92,6 +92,44 @@ class CapitalWithdrawal(BaseModel):
 
 # ============== HELPER FUNCTIONS ==============
 
+async def recalculate_share_percentages(company_id: str):
+    """
+    Recalculate share percentages for all investors based on their capital balances.
+    Share % = (investor's capital balance / total capital of all investors) * 100
+    """
+    # Get all investors for this company
+    investors = await db.investors.find({"company_id": company_id}).to_list(100)
+    
+    if not investors:
+        return
+    
+    # Calculate total capital from all investor capital accounts
+    total_capital = 0
+    investor_balances = {}
+    
+    for investor in investors:
+        account = await db.accounts.find_one({
+            "company_id": company_id,
+            "investor_id": investor["id"]
+        })
+        balance = account.get("current_balance", 0) if account else 0
+        investor_balances[investor["id"]] = balance
+        total_capital += balance
+    
+    # Update share percentages for each investor
+    for investor in investors:
+        balance = investor_balances.get(investor["id"], 0)
+        if total_capital > 0:
+            share_percentage = round((balance / total_capital) * 100, 2)
+        else:
+            share_percentage = 0
+        
+        await db.investors.update_one(
+            {"id": investor["id"]},
+            {"$set": {"share_percentage": share_percentage, "updated_at": get_current_timestamp()}}
+        )
+
+
 async def get_or_create_account(company_id: str, code: str, name: str, account_type: str, category: str, parent_code: str = None):
     """Get an existing account by code or create it if it doesn't exist"""
     account = await db.accounts.find_one({
