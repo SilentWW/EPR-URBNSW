@@ -826,6 +826,35 @@ export default function QuickTransactions() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Deposit To Account *</Label>
+                  <Select
+                    value={revenueForm.bank_account_id}
+                    onValueChange={(value) => setRevenueForm({ ...revenueForm, bank_account_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.account_name} ({formatCurrency(acc.current_balance)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Receipt Date *</Label>
+                  <Input
+                    type="date"
+                    value={revenueForm.date}
+                    onChange={(e) => setRevenueForm({ ...revenueForm, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Payment Method</Label>
                   <Select
                     value={revenueForm.payment_method}
@@ -843,28 +872,17 @@ export default function QuickTransactions() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Receipt Date *</Label>
-                  <Input
-                    type="date"
-                    value={revenueForm.date}
-                    onChange={(e) => setRevenueForm({ ...revenueForm, date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Customer/Payer</Label>
-                  <Input
-                    value={revenueForm.customer}
-                    onChange={(e) => setRevenueForm({ ...revenueForm, customer: e.target.value })}
-                    placeholder="Who paid?"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Customer/Payer</Label>
+                <Input
+                  value={revenueForm.customer}
+                  onChange={(e) => setRevenueForm({ ...revenueForm, customer: e.target.value })}
+                  placeholder="Who paid?"
+                />
               </div>
               <div className="bg-green-50 p-3 rounded-lg text-sm text-green-800">
                 <strong>This will:</strong><br />
-                • Increase Cash/Bank balance<br />
+                • Increase selected account balance<br />
                 • Record as business income
               </div>
             </div>
