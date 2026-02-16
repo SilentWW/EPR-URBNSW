@@ -828,10 +828,8 @@ async def record_revenue_receipt(
         company_id, revenue_info["code"], revenue_info["name"], "income", "revenue", "4000"
     )
     
-    # Get or create cash account
-    cash_account = await get_or_create_account(
-        company_id, "1100", "Cash", "asset", "cash", "1000"
-    )
+    # Get cash/bank account (use selected account or default)
+    cash_account = await get_bank_cash_account(company_id, data.bank_account_id)
     
     lines = [
         {
@@ -852,6 +850,13 @@ async def record_revenue_receipt(
         }
     ]
     
+    # Update bank account balance if specific account was selected
+    if data.bank_account_id:
+        await db.bank_accounts.update_one(
+            {"id": data.bank_account_id},
+            {"$inc": {"current_balance": data.amount}}
+        )
+    
     entry = await create_journal_entry(
         company_id=company_id,
         user_id=user_id,
@@ -864,7 +869,8 @@ async def record_revenue_receipt(
         metadata={
             "revenue_type": data.revenue_type,
             "customer": data.customer,
-            "payment_method": data.payment_method
+            "payment_method": data.payment_method,
+            "bank_account_id": data.bank_account_id
         }
     )
     
