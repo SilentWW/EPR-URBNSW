@@ -87,6 +87,7 @@ export const PurchaseOrders = () => {
   const [paymentData, setPaymentData] = useState({
     amount: '',
     payment_method: 'bank',
+    bank_account_id: '',
     notes: '',
   });
 
