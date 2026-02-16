@@ -84,6 +84,25 @@ Build a cloud-based ERP system for business operations with the intention of sel
 ### Bug Fixes (Session - Jan 2026)
 - [x] **Supplier Creation Bug** - Fixed React crash "Objects are not valid as a React child" when Pydantic validation errors occurred. Error handling now properly extracts error messages from array/object format.
 
+### Phase 5 - Simple Finance & Investor Management (COMPLETED ✅) - Feb 2026
+- [x] **Investor Management Module** (`/investors`)
+  - [x] Add directors, shareholders, partners
+  - [x] Auto-create capital accounts under Equity (31xx series)
+  - [x] Track share percentages
+  - [x] Record capital investments with automatic journal entries
+  - [x] Record capital withdrawals
+- [x] **Quick Transactions Module** (`/quick-transactions`)
+  - [x] Pay Expense - auto-creates journal entry (Debit Expense, Credit Cash)
+  - [x] Pay Salary - handles allowances/deductions (Debit Salaries, Credit Cash/Tax)
+  - [x] Receive Revenue - auto-creates journal entry (Debit Cash, Credit Revenue)
+  - [x] Loan Transactions - receive and repay loans from banks/financial companies
+- [x] **Financial Data Integrity Fix** (Feb 16, 2026)
+  - [x] Refactored `simple_finance.py` to use same schema as `finance.py`
+  - [x] Journal entries now use `lines` array with `account_id` (not `entries`)
+  - [x] Proper balance updates based on account type
+  - [x] All transactions correctly appear in Chart of Accounts
+  - [x] Financial Reports (Trial Balance, P&L, Balance Sheet) now accurate
+
 ## Technical Architecture
 
 ### Backend
