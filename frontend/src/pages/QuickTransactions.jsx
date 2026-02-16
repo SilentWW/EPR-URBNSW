@@ -748,6 +748,7 @@ export default function QuickTransactions() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bank_loan">Bank Loan</SelectItem>
+                      <SelectItem value="finance_company">Finance Company Loan</SelectItem>
                       <SelectItem value="director_loan">Director Loan</SelectItem>
                       <SelectItem value="other">Other Loan</SelectItem>
                     </SelectContent>
