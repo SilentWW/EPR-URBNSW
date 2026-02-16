@@ -54,6 +54,7 @@ const formatCurrency = (amount) => {
 
 export default function Investors() {
   const [investors, setInvestors] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInvestmentModalOpen, setIsInvestmentModalOpen] = useState(false);
@@ -74,6 +75,7 @@ export default function Investors() {
   const [investmentData, setInvestmentData] = useState({
     investor_id: '',
     amount: '',
+    bank_account_id: '',
     payment_method: 'bank',
     reference: '',
     notes: ''
@@ -83,6 +85,7 @@ export default function Investors() {
     investor_id: '',
     amount: '',
     reason: '',
+    bank_account_id: '',
     payment_method: 'bank',
     reference: '',
     notes: ''
@@ -90,6 +93,7 @@ export default function Investors() {
 
   useEffect(() => {
     fetchInvestors();
+    fetchBankAccounts();
   }, []);
 
   const fetchInvestors = async () => {
@@ -101,6 +105,15 @@ export default function Investors() {
       toast.error('Failed to fetch investors');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBankAccounts = async () => {
+    try {
+      const response = await api.get('/bank-accounts');
+      setBankAccounts(response.data);
+    } catch (error) {
+      console.error('Failed to fetch bank accounts');
     }
   };
 
