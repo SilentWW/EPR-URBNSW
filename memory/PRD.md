@@ -123,6 +123,27 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Sidebar displays user's company name instead of static "E1 ERP"
   - [x] Company name truncated with ellipsis if too long
 
+### Phase 7 - Bank & Cash Account Integration (COMPLETED ✅) - Feb 2026
+- [x] **Bank & Cash Account Management Module** (`/bank-accounts`)
+  - [x] Create multiple bank accounts and cash accounts
+  - [x] Each account auto-creates a linked Chart of Accounts entry (Asset)
+  - [x] Track opening balance and current balance
+  - [x] Support deposits, withdrawals, and inter-account transfers
+  - [x] All transactions create proper double-entry journal entries
+- [x] **Bank Account Selection in All Transaction Forms**
+  - [x] Investors - Add Investment modal: "Deposit To Account" selector
+  - [x] Investors - Withdrawal modal: "Pay From Account" selector
+  - [x] Quick Transactions - Pay Expense: "Pay From Account" selector
+  - [x] Quick Transactions - Pay Salary: "Pay From Account" selector
+  - [x] Quick Transactions - Receive Payment: "Deposit To Account" selector
+  - [x] Quick Transactions - Loan Transaction: bank account selector
+  - [x] Purchase Orders - Record Payment: "Pay From Account" selector
+- [x] **Backend Support**
+  - [x] `PaymentCreate` model updated with `bank_account_id` field
+  - [x] `create_payment` function uses selected bank account for journal entries
+  - [x] All `simple_finance.py` endpoints accept `bank_account_id`
+  - [x] Bank account balance automatically updated on transactions
+
 ## Technical Architecture
 
 ### Backend
