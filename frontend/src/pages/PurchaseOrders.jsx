@@ -200,11 +200,12 @@ export const PurchaseOrders = () => {
         reference_id: selectedOrder.id,
         amount: parseFloat(paymentData.amount),
         payment_method: paymentData.payment_method,
+        bank_account_id: paymentData.bank_account_id || null,
         notes: paymentData.notes,
       });
       toast.success('Payment recorded successfully');
       setPaymentDialogOpen(false);
-      setPaymentData({ amount: '', payment_method: 'bank', notes: '' });
+      setPaymentData({ amount: '', payment_method: 'bank', bank_account_id: '', notes: '' });
       fetchData();
     } catch (error) {
       toast.error('Failed to record payment');
