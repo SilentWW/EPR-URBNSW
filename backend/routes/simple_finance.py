@@ -644,10 +644,8 @@ async def record_salary_payment(
         company_id, "6100", "Salaries & Wages", "expense", "operating_expense", "6000"
     )
     
-    # Get or create cash account
-    cash_account = await get_or_create_account(
-        company_id, "1100", "Cash", "asset", "cash", "1000"
-    )
+    # Get cash/bank account (use selected account or default)
+    cash_account = await get_bank_cash_account(company_id, data.bank_account_id)
     
     gross_salary = data.amount + (data.allowances or 0)
     net_salary = gross_salary - (data.deductions or 0)
@@ -684,6 +682,13 @@ async def record_salary_payment(
             "credit": data.deductions,
             "description": f"Deductions from {data.employee_name}'s salary"
         })
+    
+    # Update bank account balance if specific account was selected
+    if data.bank_account_id:
+        await db.bank_accounts.update_one(
+            {"id": data.bank_account_id},
+            {"$inc": {"current_balance": -net_salary}}
+        )
     
     entry = await create_journal_entry(
         company_id=company_id,
