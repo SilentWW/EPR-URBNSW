@@ -1487,6 +1487,12 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
             await db.journal_entries.insert_one(journal_entry)
             await db.accounts.update_one({"id": cash_account["id"]}, {"$inc": {"current_balance": data.amount}})
             await db.accounts.update_one({"id": ar_account["id"]}, {"$inc": {"current_balance": -data.amount}})
+            # Update bank account balance if specific account was selected
+            if data.bank_account_id:
+                await db.bank_accounts.update_one(
+                    {"id": data.bank_account_id},
+                    {"$inc": {"current_balance": data.amount}}
+                )
     
     return serialize_doc(payment)
 
