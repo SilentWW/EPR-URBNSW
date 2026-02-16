@@ -581,6 +581,9 @@ async def record_capital_withdrawal(
         metadata={"payment_method": data.payment_method, "reason": data.reason}
     )
     
+    # Recalculate share percentages for all investors
+    await recalculate_share_percentages(company_id)
+    
     return {
         "message": f"Capital withdrawal of LKR {data.amount:,.2f} recorded successfully",
         "journal_entry_id": entry["id"],
