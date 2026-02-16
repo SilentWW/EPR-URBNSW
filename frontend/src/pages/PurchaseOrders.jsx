@@ -518,7 +518,26 @@ export const PurchaseOrders = () => {
                 type="number"
                 value={paymentData.amount}
                 onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })}
+                data-testid="payment-amount-input"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Pay From Account *</Label>
+              <Select 
+                value={paymentData.bank_account_id} 
+                onValueChange={(v) => setPaymentData({ ...paymentData, bank_account_id: v })}
+              >
+                <SelectTrigger data-testid="payment-bank-account-select">
+                  <SelectValue placeholder="Select bank/cash account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.account_name} ({acc.account_type === 'bank' ? acc.bank_name : 'Cash'}) - {formatCurrency(acc.current_balance)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Payment Method</Label>
@@ -533,10 +552,16 @@ export const PurchaseOrders = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="bg-amber-50 p-3 rounded-lg text-sm text-amber-800">
+              <strong>This will:</strong><br />
+              • Reduce selected account balance<br />
+              • Increase inventory value<br />
+              • Create journal entry
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleRecordPayment} disabled={submitting || !paymentData.amount} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button onClick={handleRecordPayment} disabled={submitting || !paymentData.amount} className="bg-indigo-600 hover:bg-indigo-700" data-testid="submit-payment-btn">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Record Payment
             </Button>
