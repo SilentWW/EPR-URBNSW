@@ -91,17 +91,37 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Track share percentages
   - [x] Record capital investments with automatic journal entries
   - [x] Record capital withdrawals
+  - [x] **Auto-calculate share percentages** - Automatically recalculates all investor shares when investment is made
 - [x] **Quick Transactions Module** (`/quick-transactions`)
   - [x] Pay Expense - auto-creates journal entry (Debit Expense, Credit Cash)
   - [x] Pay Salary - handles allowances/deductions (Debit Salaries, Credit Cash/Tax)
   - [x] Receive Revenue - auto-creates journal entry (Debit Cash, Credit Revenue)
   - [x] Loan Transactions - receive and repay loans from banks/financial companies
+  - [x] **Date Picker** - All quick transactions now support date selection
+  - [x] **Admin-only Delete** - Admin users can delete/reverse transactions
 - [x] **Financial Data Integrity Fix** (Feb 16, 2026)
   - [x] Refactored `simple_finance.py` to use same schema as `finance.py`
   - [x] Journal entries now use `lines` array with `account_id` (not `entries`)
   - [x] Proper balance updates based on account type
   - [x] All transactions correctly appear in Chart of Accounts
   - [x] Financial Reports (Trial Balance, P&L, Balance Sheet) now accurate
+
+### Phase 6 - Auto-generate Account Codes & Dynamic Business Name (COMPLETED ✅) - Feb 2026
+- [x] **Auto-generate Account Codes**
+  - [x] New endpoint: `GET /api/finance/chart-of-accounts/next-code/{account_type}`
+  - [x] Account codes auto-generated based on type prefix:
+    - Asset: 1xxx (e.g., 1501, 1502...)
+    - Liability: 2xxx
+    - Equity: 3xxx
+    - Income: 4xxx
+    - Expense: 6xxx (e.g., 6901, 6902...)
+  - [x] Sequential code generation within each type
+  - [x] Account code input is read-only in Add Account modal
+  - [x] Code dynamically updates when account type changes
+- [x] **Dynamic Business Name**
+  - [x] `/api/auth/me` now returns `company_name` field
+  - [x] Sidebar displays user's company name instead of static "E1 ERP"
+  - [x] Company name truncated with ellipsis if too long
 
 ## Technical Architecture
 
