@@ -990,12 +990,13 @@ async def get_recent_transactions(
     limit: int = 20,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get recent quick transactions"""
+    """Get recent quick transactions (excluding reversed)"""
     transactions = await db.journal_entries.find(
         {
             "company_id": current_user["company_id"],
             "is_auto_generated": True,
-            "transaction_type": {"$exists": True}
+            "transaction_type": {"$exists": True},
+            "is_reversed": {"$ne": True}  # Exclude reversed transactions
         },
         {"_id": 0}
     ).sort("created_at", -1).to_list(limit)
