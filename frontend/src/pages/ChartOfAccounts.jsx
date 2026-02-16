@@ -388,11 +388,13 @@ export default function ChartOfAccounts() {
                 <label className="text-sm font-medium text-slate-700">Account Type</label>
                 <Select
                   value={formData.account_type}
-                  onValueChange={(value) => setFormData({ 
-                    ...formData, 
-                    account_type: value,
-                    category: categories[value][0].value
-                  })}
+                  onValueChange={(value) => {
+                    setFormData({ 
+                      ...formData, 
+                      account_type: value,
+                      category: categories[value][0].value
+                    });
+                  }}
                   disabled={!!editingAccount}
                 >
                   <SelectTrigger data-testid="account-type-select">
