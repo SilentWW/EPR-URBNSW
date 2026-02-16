@@ -712,19 +712,20 @@ async def record_revenue_receipt(
     """Record revenue receipt - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
+    timestamp = data.date or get_current_timestamp()
     
     # Map revenue types to account codes
     revenue_accounts = {
         "sales": {"code": "4100", "name": "Sales Revenue"},
-        "service": {"code": "4300", "name": "Service Revenue"},
-        "interest": {"code": "4400", "name": "Interest Income"},
-        "commission": {"code": "4500", "name": "Commission Income"},
+        "service": {"code": "4200", "name": "Service Revenue"},
+        "interest": {"code": "4300", "name": "Interest Income"},
+        "commission": {"code": "4400", "name": "Commission Income"},
         "other": {"code": "4900", "name": "Other Income"}
     }
     
     revenue_info = revenue_accounts.get(data.revenue_type, revenue_accounts["other"])
     
-    # Ensure revenue account exists
+    # Get or create revenue account
     revenue_account = await db.accounts.find_one({
         "company_id": company_id,
         "code": revenue_info["code"]
@@ -736,21 +737,42 @@ async def record_revenue_receipt(
             "company_id": company_id,
             "code": revenue_info["code"],
             "name": revenue_info["name"],
-            "category": "Revenue",
-            "type": "credit",
-            "balance": 0,
+            "account_type": "income",
+            "category": "revenue",
+            "description": f"Income account - {revenue_info['name']}",
+            "parent_account_id": None,
+            "is_system": False,
+            "is_active": True,
             "current_balance": 0,
-            "is_system": True,
-            "created_at": get_current_timestamp()
+            "created_at": timestamp,
+            "updated_at": timestamp
         }
         await db.accounts.insert_one(revenue_account)
     
+    # Get or create cash account
     cash_account = await db.accounts.find_one({
         "company_id": company_id,
         "code": "1100"
     })
     
-    timestamp = data.date or get_current_timestamp()
+    if not cash_account:
+        cash_account = {
+            "id": generate_id(),
+            "company_id": company_id,
+            "code": "1100",
+            "name": "Cash/Bank",
+            "account_type": "asset",
+            "category": "cash",
+            "description": "Cash and bank accounts",
+            "parent_account_id": None,
+            "is_system": True,
+            "is_active": True,
+            "current_balance": 0,
+            "created_at": timestamp,
+            "updated_at": timestamp
+        }
+        await db.accounts.insert_one(cash_account)
+    
     entry_id = generate_id()
     
     # Debit: Cash/Bank
