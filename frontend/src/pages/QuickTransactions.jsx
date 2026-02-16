@@ -543,6 +543,26 @@ export default function QuickTransactions() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Pay From Account *</Label>
+                  <Select
+                    value={expenseForm.bank_account_id}
+                    onValueChange={(value) => setExpenseForm({ ...expenseForm, bank_account_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.account_name} ({formatCurrency(acc.current_balance)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label>Payment Method</Label>
                   <Select
                     value={expenseForm.payment_method}
@@ -559,8 +579,6 @@ export default function QuickTransactions() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Transaction Date *</Label>
                   <Input
@@ -570,6 +588,8 @@ export default function QuickTransactions() {
                     required
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Vendor/Payee</Label>
                   <Input
@@ -578,10 +598,18 @@ export default function QuickTransactions() {
                     placeholder="Who did you pay?"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Reference</Label>
+                  <Input
+                    value={expenseForm.reference}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, reference: e.target.value })}
+                    placeholder="Invoice/Receipt #"
+                  />
+                </div>
               </div>
               <div className="bg-red-50 p-3 rounded-lg text-sm text-red-800">
                 <strong>This will:</strong><br />
-                • Reduce Cash/Bank balance<br />
+                • Reduce selected account balance<br />
                 • Record as business expense
               </div>
             </div>
