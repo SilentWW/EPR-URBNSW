@@ -902,6 +902,44 @@ export default function QuickTransactions() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Delete Transaction
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this transaction?
+              <div className="mt-3 p-3 bg-slate-50 rounded-lg">
+                <p className="font-medium text-slate-900">{transactionToDelete?.description}</p>
+                <p className="text-sm text-slate-600">
+                  Amount: {transactionToDelete && formatCurrency(transactionToDelete.total_debit)}
+                </p>
+                <p className="text-sm text-slate-500">
+                  Entry: {transactionToDelete?.entry_number}
+                </p>
+              </div>
+              <p className="mt-3 text-sm text-red-600">
+                <strong>Warning:</strong> This will reverse all associated journal entries and update account balances. This action cannot be undone.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTransaction}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={submitting}
+            >
+              {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Delete Transaction
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
