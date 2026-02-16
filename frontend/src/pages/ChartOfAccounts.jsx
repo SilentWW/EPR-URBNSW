@@ -191,6 +191,13 @@ export default function ChartOfAccounts() {
       opening_balance: 0
     });
     setEditingAccount(null);
+    setNextCode('');
+  };
+
+  const openAddModal = async () => {
+    resetForm();
+    setIsModalOpen(true);
+    // Fetch next code after modal opens (useEffect will handle it)
   };
 
   const openEditModal = (account) => {
