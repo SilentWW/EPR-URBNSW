@@ -102,6 +102,23 @@ export default function ChartOfAccounts() {
     fetchAccounts();
   }, []);
 
+  // Fetch next account code when account type changes (for new accounts only)
+  useEffect(() => {
+    if (!editingAccount && isModalOpen) {
+      fetchNextCode(formData.account_type);
+    }
+  }, [formData.account_type, editingAccount, isModalOpen]);
+
+  const fetchNextCode = async (accountType) => {
+    try {
+      const response = await api.get(`/finance/chart-of-accounts/next-code/${accountType}`);
+      setNextCode(response.data.next_code);
+      setFormData(prev => ({ ...prev, code: response.data.next_code }));
+    } catch (error) {
+      console.error('Failed to fetch next code', error);
+    }
+  };
+
   const fetchAccounts = async () => {
     try {
       setLoading(true);
