@@ -145,6 +145,20 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `GET /reports/balance-sheet` - Balance sheet report
 - `GET /reports/cash-flow` - Cash flow report
 
+### Simple Finance Module (/api/simple-finance)
+- `GET /investors` - List all investors with capital balances
+- `POST /investors` - Create investor with auto-generated capital account
+- `PUT /investors/{id}` - Update investor details
+- `DELETE /investors/{id}` - Delete investor (if balance is zero)
+- `POST /capital-investment` - Record capital investment
+- `POST /capital-withdrawal` - Record capital withdrawal
+- `POST /salary-payment` - Record salary payment
+- `POST /expense-payment` - Record expense payment
+- `POST /revenue-receipt` - Record revenue receipt
+- `POST /loan-transaction` - Record loan received or repayment
+- `GET /transaction-types` - Get available transaction types
+- `GET /recent-transactions` - Get recent quick transactions
+
 ### Admin Module (/api/admin)
 - `GET /system-info` - System statistics
 - `GET /backups` - List backups
