@@ -617,13 +617,40 @@ export default function QuickTransactions() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Month *</Label>
+                  <Label>For Month *</Label>
                   <Input
                     value={salaryForm.month}
                     onChange={(e) => setSalaryForm({ ...salaryForm, month: e.target.value })}
                     placeholder="e.g., January 2026"
                     required
                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Payment Date *</Label>
+                  <Input
+                    type="date"
+                    value={salaryForm.date}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Payment Method</Label>
+                  <Select
+                    value={salaryForm.payment_method}
+                    onValueChange={(value) => setSalaryForm({ ...salaryForm, payment_method: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bank">Bank Transfer</SelectItem>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -647,22 +674,6 @@ export default function QuickTransactions() {
                     placeholder="0"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Payment Method</Label>
-                <Select
-                  value={salaryForm.payment_method}
-                  onValueChange={(value) => setSalaryForm({ ...salaryForm, payment_method: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bank">Bank Transfer</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               {salaryForm.amount && (
                 <div className="bg-blue-50 p-3 rounded-lg">
