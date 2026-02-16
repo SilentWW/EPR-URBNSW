@@ -261,6 +261,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 3. Reports based on current account balances (period filtering needs enhancement)
 
 ## Future/Backlog (P2)
+- [ ] COGS Recognition on Sales (debit COGS, credit Inventory when sale made)
 - [ ] Payroll Module
 - [ ] Manufacturing Module
 - [ ] SaaS Subscription Billing
@@ -270,6 +271,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [ ] Scheduled Backup Automation
 - [ ] Multi-Currency Support
 - [ ] Bank Reconciliation
+- [ ] WooCommerce End-to-End Testing
 
 ## Test Credentials
 - **Email**: admin@example.com
