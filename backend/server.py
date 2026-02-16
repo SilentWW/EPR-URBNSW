@@ -1216,6 +1216,125 @@ async def return_sales_order(order_id: str, current_user: dict = Depends(get_cur
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
+    # Reverse journal entries for sales and COGS
+    company_id = current_user["company_id"]
+    user_id = current_user["user_id"]
+    entry_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    timestamp = datetime.now(timezone.utc).isoformat()
+    
+    # Get accounts
+    ar_account = await db.accounts.find_one({"company_id": company_id, "code": "1300"})
+    if not ar_account:
+        ar_account = await db.accounts.find_one({"company_id": company_id, "category": "accounts_receivable"})
+    revenue_account = await db.accounts.find_one({"company_id": company_id, "code": "4100"})
+    cogs_account = await db.accounts.find_one({"company_id": company_id, "code": "5100"})
+    if not cogs_account:
+        cogs_account = await db.accounts.find_one({"company_id": company_id, "code": "5000"})
+    inventory_account = await db.accounts.find_one({"company_id": company_id, "code": "1400"})
+    if not inventory_account:
+        inventory_account = await db.accounts.find_one({"company_id": company_id, "category": "inventory"})
+    
+    # Calculate total COGS from products
+    total_cogs = 0
+    for item in order["items"]:
+        product = await db.products.find_one({"id": item["product_id"]})
+        if product and product.get("cost_price", 0) > 0:
+            total_cogs += product["cost_price"] * item["quantity"]
+    
+    # Reversal Entry 1: Reverse Sales Revenue
+    # Debit: Sales Revenue (revenue decreases)
+    # Credit: Accounts Receivable (asset decreases)
+    if ar_account and revenue_account:
+        entry_id = str(uuid.uuid4())
+        entry_number = f"RET-{entry_date.replace('-','')}-{entry_id[:4].upper()}"
+        
+        reversal_entry = {
+            "id": entry_id,
+            "entry_number": entry_number,
+            "company_id": company_id,
+            "entry_date": entry_date,
+            "description": f"Sales Return - {order['order_number']}",
+            "reference_type": "sales_return",
+            "reference_id": order_id,
+            "lines": [
+                {
+                    "account_id": revenue_account["id"],
+                    "account_code": revenue_account["code"],
+                    "account_name": revenue_account["name"],
+                    "debit": order["total"],
+                    "credit": 0,
+                    "description": "Reverse sales revenue"
+                },
+                {
+                    "account_id": ar_account["id"],
+                    "account_code": ar_account["code"],
+                    "account_name": ar_account["name"],
+                    "debit": 0,
+                    "credit": order["total"],
+                    "description": "Reverse accounts receivable"
+                }
+            ],
+            "total_debit": order["total"],
+            "total_credit": order["total"],
+            "is_balanced": True,
+            "is_auto_generated": True,
+            "is_reversed": False,
+            "created_by": user_id,
+            "created_at": timestamp
+        }
+        await db.journal_entries.insert_one(reversal_entry)
+        
+        # Reverse account balances
+        await db.accounts.update_one({"id": ar_account["id"]}, {"$inc": {"current_balance": -order["total"]}})
+        await db.accounts.update_one({"id": revenue_account["id"]}, {"$inc": {"current_balance": -order["total"]}})
+    
+    # Reversal Entry 2: Reverse COGS (if COGS was recorded)
+    # Debit: Inventory (asset increases)
+    # Credit: COGS (expense decreases)
+    if total_cogs > 0 and cogs_account and inventory_account:
+        entry_id = str(uuid.uuid4())
+        entry_number = f"RCOGS-{entry_date.replace('-','')}-{entry_id[:4].upper()}"
+        
+        cogs_reversal = {
+            "id": entry_id,
+            "entry_number": entry_number,
+            "company_id": company_id,
+            "entry_date": entry_date,
+            "description": f"COGS Reversal - {order['order_number']}",
+            "reference_type": "sales_return",
+            "reference_id": order_id,
+            "lines": [
+                {
+                    "account_id": inventory_account["id"],
+                    "account_code": inventory_account["code"],
+                    "account_name": inventory_account["name"],
+                    "debit": total_cogs,
+                    "credit": 0,
+                    "description": "Inventory restored"
+                },
+                {
+                    "account_id": cogs_account["id"],
+                    "account_code": cogs_account["code"],
+                    "account_name": cogs_account["name"],
+                    "debit": 0,
+                    "credit": total_cogs,
+                    "description": "Reverse cost of goods sold"
+                }
+            ],
+            "total_debit": total_cogs,
+            "total_credit": total_cogs,
+            "is_balanced": True,
+            "is_auto_generated": True,
+            "is_reversed": False,
+            "created_by": user_id,
+            "created_at": timestamp
+        }
+        await db.journal_entries.insert_one(cogs_reversal)
+        
+        # Reverse account balances
+        await db.accounts.update_one({"id": inventory_account["id"]}, {"$inc": {"current_balance": total_cogs}})
+        await db.accounts.update_one({"id": cogs_account["id"]}, {"$inc": {"current_balance": -total_cogs}})
+    
     # Update order status
     await db.sales_orders.update_one(
         {"id": order_id},
