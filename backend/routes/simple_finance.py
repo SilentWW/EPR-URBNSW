@@ -617,8 +617,15 @@ async def record_capital_withdrawal(
         reference_number=data.reference,
         reference_id=data.investor_id,
         notes=data.notes,
-        metadata={"payment_method": data.payment_method, "reason": data.reason}
+        metadata={"payment_method": data.payment_method, "reason": data.reason, "bank_account_id": data.bank_account_id}
     )
+    
+    # Update bank account balance if specific account was selected
+    if data.bank_account_id:
+        await db.bank_accounts.update_one(
+            {"id": data.bank_account_id},
+            {"$inc": {"current_balance": -data.amount}}
+        )
     
     # Recalculate share percentages for all investors
     await recalculate_share_percentages(company_id)
