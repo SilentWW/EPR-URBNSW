@@ -488,10 +488,8 @@ async def record_capital_investment(
     if not capital_account:
         raise HTTPException(status_code=404, detail="Capital account not found")
     
-    # Get cash/bank account
-    cash_account = await get_or_create_account(
-        company_id, "1100", "Cash", "asset", "cash", "1000"
-    )
+    # Get cash/bank account (use selected account or default)
+    cash_account = await get_bank_cash_account(company_id, data.bank_account_id)
     
     entry_date = (data.date or get_current_timestamp())[:10]
     
@@ -527,8 +525,15 @@ async def record_capital_investment(
         reference_number=data.reference,
         reference_id=data.investor_id,
         notes=data.notes,
-        metadata={"payment_method": data.payment_method, "investor_name": investor["name"]}
+        metadata={"payment_method": data.payment_method, "investor_name": investor["name"], "bank_account_id": data.bank_account_id}
     )
+    
+    # Update bank account balance if a specific account was selected
+    if data.bank_account_id:
+        await db.bank_accounts.update_one(
+            {"id": data.bank_account_id},
+            {"$inc": {"current_balance": data.amount}}
+        )
     
     # Recalculate share percentages for all investors
     await recalculate_share_percentages(company_id)
