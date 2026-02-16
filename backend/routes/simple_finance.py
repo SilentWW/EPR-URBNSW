@@ -836,17 +836,19 @@ async def record_loan_transaction(
     """Record loan received or repayment - auto-creates journal entry"""
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
+    timestamp = data.date or get_current_timestamp()
     
     # Map loan types to account codes
     loan_accounts = {
-        "bank_loan": {"code": "2400", "name": "Bank Loans"},
-        "director_loan": {"code": "2450", "name": "Director Loans"},
-        "other": {"code": "2490", "name": "Other Loans"}
+        "bank_loan": {"code": "2300", "name": "Bank Loans Payable"},
+        "director_loan": {"code": "2350", "name": "Director Loans Payable"},
+        "finance_company": {"code": "2360", "name": "Finance Company Loans"},
+        "other": {"code": "2390", "name": "Other Loans Payable"}
     }
     
     loan_info = loan_accounts.get(data.loan_type, loan_accounts["other"])
     
-    # Ensure loan account exists
+    # Get or create loan account
     loan_account = await db.accounts.find_one({
         "company_id": company_id,
         "code": loan_info["code"]
@@ -858,41 +860,68 @@ async def record_loan_transaction(
             "company_id": company_id,
             "code": loan_info["code"],
             "name": loan_info["name"],
-            "category": "Liabilities",
-            "type": "credit",
-            "balance": 0,
+            "account_type": "liability",
+            "category": "long_term_liability",
+            "description": f"Loan liability - {loan_info['name']}",
+            "parent_account_id": None,
+            "is_system": False,
+            "is_active": True,
             "current_balance": 0,
-            "is_system": True,
-            "created_at": get_current_timestamp()
+            "created_at": timestamp,
+            "updated_at": timestamp
         }
         await db.accounts.insert_one(loan_account)
     
+    # Get or create cash account
     cash_account = await db.accounts.find_one({
         "company_id": company_id,
         "code": "1100"
     })
     
-    interest_account = await db.accounts.find_one({
-        "company_id": company_id,
-        "code": "5850"
-    })
-    
-    if not interest_account and data.interest_amount > 0:
-        interest_account = {
+    if not cash_account:
+        cash_account = {
             "id": generate_id(),
             "company_id": company_id,
-            "code": "5850",
-            "name": "Interest Expense",
-            "category": "Expenses",
-            "type": "debit",
-            "balance": 0,
-            "current_balance": 0,
+            "code": "1100",
+            "name": "Cash/Bank",
+            "account_type": "asset",
+            "category": "cash",
+            "description": "Cash and bank accounts",
+            "parent_account_id": None,
             "is_system": True,
-            "created_at": get_current_timestamp()
+            "is_active": True,
+            "current_balance": 0,
+            "created_at": timestamp,
+            "updated_at": timestamp
         }
-        await db.accounts.insert_one(interest_account)
+        await db.accounts.insert_one(cash_account)
     
-    timestamp = data.date or get_current_timestamp()
+    # Get or create interest expense account if needed
+    interest_account = None
+    if data.interest_amount and data.interest_amount > 0:
+        interest_account = await db.accounts.find_one({
+            "company_id": company_id,
+            "code": "6250"
+        })
+        
+        if not interest_account:
+            interest_account = {
+                "id": generate_id(),
+                "company_id": company_id,
+                "code": "6250",
+                "name": "Interest Expense",
+                "account_type": "expense",
+                "category": "financial_expense",
+                "description": "Interest expense on loans",
+                "parent_account_id": None,
+                "is_system": False,
+                "is_active": True,
+                "current_balance": 0,
+                "created_at": timestamp,
+                "updated_at": timestamp
+            }
+            await db.accounts.insert_one(interest_account)
+    
     entry_id = generate_id()
     
     if data.transaction_type == "receive":
