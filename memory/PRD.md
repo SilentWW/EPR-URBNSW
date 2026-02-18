@@ -257,15 +257,44 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] All account balances automatically updated with journal entries
   - [x] Proper double-entry accounting maintained
 
+### Phase 9 - Sales Order Payment Integration (COMPLETED ✅) - Feb 2026
+- [x] **Record Payment Modal Enhancement**
+  - [x] Changed "Payment Method" dropdown to "Payment Received To"
+  - [x] Dropdown lists all available bank and cash accounts
+  - [x] Shows account name, type (Cash/Bank name), and current balance
+- [x] **Payment Recording with Bank Account Integration**
+  - [x] When payment recorded, selected bank account balance increases
+  - [x] Proper journal entries created (Debit Cash/Bank, Credit AR)
+  - [x] Sales order status updates to "paid" when fully paid
+- [x] **Auto-create Missing Accounts**
+  - [x] If required Chart of Accounts entries missing (AR 1300, Cash 1100), system auto-creates them
+  - [x] Prevents silent failures in payment processing
+
+### Packaging Items Management (COMPLETED ✅) - Feb 2026
+- [x] **Packaging Items Module** (`/packaging-items`)
+  - [x] Designate products as packaging items (bags, tags, cards)
+  - [x] On sale: Automatically reduce packaging inventory (1 set per product sold)
+  - [x] On sale: Add packaging cost to COGS journal entry
+  - [x] Backend API: `/api/packaging-items` (GET, POST, DELETE)
+
+### Bug Fixes (Session - Feb 18, 2026)
+- [x] **Sales Order Payment Not Updating Bank Balance** - FIXED
+  - Root cause: Missing Chart of Accounts entries (specifically Accounts Receivable code 1300)
+  - Fix: 1) Seeded missing accounts for existing company, 2) Added auto-creation logic in `create_payment` function
+  - Result: Bank balance now correctly increases when sales payment recorded
+- [x] **Expanded Expense Categories in Quick Transactions** - COMPLETED
+  - Added comprehensive list: Hosting, Domain, Materials, Raw Materials, Equipment, Office Supplies, Utilities, Transportation, etc.
+
 ## Testing Status
-- **Backend Tests**: 77/78 passed (99%)
-- **Frontend Tests**: 50/50 passed (100%)
-- **Last Test Run**: iteration_8.json (Feb 16, 2026)
+- **Backend Tests**: 100% passed (iteration_9)
+- **Frontend Tests**: 100% passed (all UI flows verified)
+- **Last Test Run**: iteration_9.json (Feb 18, 2026)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
 - **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
 - **Dynamic Business Name**: Fully tested - Company name displays in sidebar
 - **COGS Recognition**: Fully tested - Sales orders create SALE- and COGS- journal entries, returns create RET- and RCOGS- reversal entries
+- **Sales Order Payment**: Fully tested - Payment recording updates bank balance, creates journal entries (REC- prefix)
 
 ## Test Credentials
 - **Email**: test@demo.com
