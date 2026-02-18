@@ -29,7 +29,8 @@ import {
   PackageCheck,
   Wallet,
   Zap,
-  UserPlus
+  UserPlus,
+  PackageOpen
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
