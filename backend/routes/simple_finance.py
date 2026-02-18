@@ -736,21 +736,48 @@ async def record_expense_payment(
     user_id = current_user["user_id"]
     entry_date = (data.date or get_current_timestamp())[:10]
     
-    # Map expense types to account codes
+    # Map expense types to default account codes
     expense_accounts = {
-        "utilities": {"code": "6300", "name": "Utilities"},
+        "utilities": {"code": "6300", "name": "Utilities Expense"},
         "rent": {"code": "6200", "name": "Rent Expense"},
         "office_supplies": {"code": "6500", "name": "Office Supplies"},
         "marketing": {"code": "6400", "name": "Marketing & Advertising"},
-        "insurance": {"code": "6600", "name": "Insurance Expense"},
-        "maintenance": {"code": "6700", "name": "Maintenance & Repairs"},
+        "insurance": {"code": "6700", "name": "Insurance Expense"},
+        "maintenance": {"code": "6750", "name": "Maintenance & Repairs"},
         "transport": {"code": "6800", "name": "Transport & Travel"},
         "communication": {"code": "6350", "name": "Communication Expense"},
         "professional_fees": {"code": "6450", "name": "Professional Fees"},
-        "other": {"code": "6900", "name": "Tax Expense"}  # Using existing Tax Expense for misc
+        "hosting": {"code": "6360", "name": "Hosting & Server Expense"},
+        "domains": {"code": "6361", "name": "Domain Expense"},
+        "software": {"code": "6362", "name": "Software & Subscriptions"},
+        "it_services": {"code": "6363", "name": "IT Services"},
+        "materials": {"code": "5150", "name": "Raw Materials"},
+        "inventory": {"code": "5100", "name": "Inventory Purchases"},
+        "equipment": {"code": "6850", "name": "Equipment & Tools"},
+        "licenses": {"code": "6455", "name": "Licenses & Permits"},
+        "bank_charges": {"code": "6380", "name": "Bank Charges"},
+        "travel": {"code": "6810", "name": "Business Travel"},
+        "fuel": {"code": "6820", "name": "Fuel & Vehicle"},
+        "training": {"code": "6460", "name": "Training & Education"},
+        "meals": {"code": "6470", "name": "Meals & Entertainment"},
+        "other": {"code": "6900", "name": "Miscellaneous Expense"}
     }
     
-    expense_info = expense_accounts.get(data.expense_type, expense_accounts["other"])
+    # If user selected a specific expense account, use that
+    if data.expense_account_code:
+        # Try to find existing account with this code
+        existing_account = await db.accounts.find_one({
+            "company_id": company_id,
+            "code": data.expense_account_code
+        })
+        if existing_account:
+            expense_info = {"code": existing_account["code"], "name": existing_account["name"]}
+        else:
+            # Use default mapping if account doesn't exist yet
+            expense_info = expense_accounts.get(data.expense_type, expense_accounts["other"])
+            expense_info["code"] = data.expense_account_code  # Override with selected code
+    else:
+        expense_info = expense_accounts.get(data.expense_type, expense_accounts["other"])
     
     # Get or create expense account
     expense_account = await get_or_create_account(
