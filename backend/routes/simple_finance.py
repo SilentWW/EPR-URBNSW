@@ -57,6 +57,7 @@ class ExpensePayment(BaseModel):
     description: str
     amount: float
     bank_account_id: Optional[str] = None  # Bank/Cash account to pay from
+    expense_account_code: Optional[str] = None  # Override expense account (e.g., "6100", "6200", "6900")
     payment_method: str = "bank"
     vendor: Optional[str] = None
     reference: Optional[str] = None
