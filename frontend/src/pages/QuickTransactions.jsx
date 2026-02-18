@@ -272,15 +272,41 @@ export default function QuickTransactions() {
   };
 
   const expenseTypes = [
-    { value: 'utilities', label: 'Utilities (Electricity, Water)', icon: '💡' },
+    // Operations & Facilities
+    { value: 'utilities', label: 'Utilities (Electricity, Water, Gas)', icon: '💡' },
     { value: 'rent', label: 'Rent Payment', icon: '🏢' },
-    { value: 'office_supplies', label: 'Office Supplies', icon: '📎' },
-    { value: 'marketing', label: 'Marketing & Advertising', icon: '📢' },
-    { value: 'insurance', label: 'Insurance', icon: '🛡️' },
     { value: 'maintenance', label: 'Repairs & Maintenance', icon: '🔧' },
-    { value: 'transport', label: 'Transport & Travel', icon: '🚗' },
+    
+    // Digital & Technology
+    { value: 'hosting', label: 'Web Hosting & Servers', icon: '🌐' },
+    { value: 'domains', label: 'Domain Names', icon: '🔗' },
+    { value: 'software', label: 'Software & Subscriptions', icon: '💻' },
+    { value: 'it_services', label: 'IT Services & Support', icon: '🖥️' },
+    
+    // Purchases & Inventory
+    { value: 'materials', label: 'Raw Materials & Supplies', icon: '📦' },
+    { value: 'inventory', label: 'Inventory Purchase', icon: '🛒' },
+    { value: 'equipment', label: 'Equipment & Tools', icon: '🔨' },
+    { value: 'office_supplies', label: 'Office Supplies', icon: '📎' },
+    
+    // Marketing & Communication
+    { value: 'marketing', label: 'Marketing & Advertising', icon: '📢' },
     { value: 'communication', label: 'Phone & Internet', icon: '📱' },
-    { value: 'professional_fees', label: 'Professional Fees', icon: '👔' },
+    
+    // Professional & Business
+    { value: 'professional_fees', label: 'Professional Fees (Legal, Accounting)', icon: '👔' },
+    { value: 'insurance', label: 'Insurance', icon: '🛡️' },
+    { value: 'licenses', label: 'Licenses & Permits', icon: '📜' },
+    { value: 'bank_charges', label: 'Bank Charges & Fees', icon: '🏦' },
+    
+    // Travel & Transport
+    { value: 'transport', label: 'Transport & Delivery', icon: '🚗' },
+    { value: 'travel', label: 'Business Travel', icon: '✈️' },
+    { value: 'fuel', label: 'Fuel & Vehicle Expenses', icon: '⛽' },
+    
+    // Other
+    { value: 'training', label: 'Training & Education', icon: '📚' },
+    { value: 'meals', label: 'Meals & Entertainment', icon: '🍽️' },
     { value: 'other', label: 'Other Expenses', icon: '📋' }
   ];
 
