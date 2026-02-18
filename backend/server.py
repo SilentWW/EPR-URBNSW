@@ -1151,6 +1151,9 @@ async def create_sales_order(data: SalesOrderCreate, current_user: dict = Depend
         if product and product.get("cost_price", 0) > 0:
             total_cogs += product["cost_price"] * item.quantity
     
+    # Add packaging cost to total COGS
+    total_cogs += packaging_cost
+    
     # Create proper double-entry journal entries
     company_id = current_user["company_id"]
     user_id = current_user["user_id"]
