@@ -888,7 +888,17 @@ async def get_balance_sheet(
     as_of_date: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Generate Balance Sheet report"""
+    """Generate Balance Sheet report
+    
+    Accounting Equation: Assets = Liabilities + Equity + Net Profit
+    Where Net Profit = Income - Expenses
+    
+    Asset accounts: Normal balance is Debit (positive)
+    Liability accounts: Normal balance is Credit (positive)
+    Equity accounts: Normal balance is Credit (positive)
+    Income accounts: Normal balance is Credit (positive)
+    Expense accounts: Normal balance is Debit (positive)
+    """
     company_id = current_user["company_id"]
     
     if not as_of_date:
@@ -912,24 +922,26 @@ async def get_balance_sheet(
         item = {
             "code": acc["code"],
             "name": acc["name"],
-            "category": acc["category"],
-            "amount": abs(balance)
+            "category": acc.get("category", ""),
+            "amount": balance  # Keep actual balance (can be negative for contra accounts)
         }
         
         if acc["account_type"] == "asset":
             assets["items"].append(item)
-            assets["total"] += abs(balance)
+            assets["total"] += balance  # Assets: positive = debit balance
         elif acc["account_type"] == "liability":
             liabilities["items"].append(item)
-            liabilities["total"] += abs(balance)
+            liabilities["total"] += balance  # Liabilities: positive = credit balance
         elif acc["account_type"] == "equity":
             equity["items"].append(item)
-            equity["total"] += abs(balance)
+            equity["total"] += balance  # Equity: positive = credit balance
     
-    # Add net profit to retained earnings (simplified)
+    # Calculate Net Profit = Income - Expenses
+    # Income accounts have positive (credit) balance
+    # Expense accounts have positive (debit) balance
     income_total = sum(acc.get("current_balance", 0) for acc in accounts if acc["account_type"] == "income")
     expense_total = sum(acc.get("current_balance", 0) for acc in accounts if acc["account_type"] == "expense")
-    net_profit = abs(income_total) - abs(expense_total)
+    net_profit = income_total - expense_total  # Positive = profit, Negative = loss
     
     equity["items"].append({
         "code": "NET",
@@ -939,14 +951,17 @@ async def get_balance_sheet(
     })
     equity["total"] += net_profit
     
+    total_assets = round(assets["total"], 2)
+    total_liabilities_equity = round(liabilities["total"] + equity["total"], 2)
+    
     return {
         "as_of_date": as_of_date,
         "assets": assets,
         "liabilities": liabilities,
         "equity": equity,
-        "total_assets": round(assets["total"], 2),
-        "total_liabilities_equity": round(liabilities["total"] + equity["total"], 2),
-        "is_balanced": round(assets["total"], 2) == round(liabilities["total"] + equity["total"], 2)
+        "total_assets": total_assets,
+        "total_liabilities_equity": total_liabilities_equity,
+        "is_balanced": total_assets == total_liabilities_equity
     }
 
 @router.get("/reports/cash-flow")
