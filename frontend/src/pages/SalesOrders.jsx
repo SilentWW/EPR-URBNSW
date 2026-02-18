@@ -527,6 +527,27 @@ export const SalesOrders = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label>Payment Received To *</Label>
+              <Select 
+                value={paymentData.bank_account_id} 
+                onValueChange={(v) => setPaymentData({ ...paymentData, bank_account_id: v })}
+              >
+                <SelectTrigger data-testid="payment-account-select">
+                  <SelectValue placeholder="Select receiving account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.account_name} ({acc.account_type === 'cash' ? 'Cash' : acc.bank_name}) - {formatCurrency(acc.current_balance)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Select the bank or cash account where payment was received
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Payment Method</Label>
               <Select value={paymentData.payment_method} onValueChange={(v) => setPaymentData({ ...paymentData, payment_method: v })}>
                 <SelectTrigger data-testid="payment-method">
@@ -536,7 +557,8 @@ export const SalesOrders = () => {
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="bank">Bank Transfer</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="online">Online Payment</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -545,12 +567,19 @@ export const SalesOrders = () => {
               <Input
                 value={paymentData.notes}
                 onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
+                placeholder="Payment reference, cheque number, etc."
               />
+            </div>
+            <div className="bg-green-50 p-3 rounded-lg text-sm text-green-800">
+              <strong>This will:</strong><br />
+              • Increase selected account balance<br />
+              • Reduce Accounts Receivable<br />
+              • Create journal entry in General Ledger
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleRecordPayment} disabled={submitting || !paymentData.amount} className="bg-indigo-600 hover:bg-indigo-700" data-testid="submit-payment-btn">
+            <Button onClick={handleRecordPayment} disabled={submitting || !paymentData.amount || !paymentData.bank_account_id} className="bg-indigo-600 hover:bg-indigo-700" data-testid="submit-payment-btn">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Record Payment
             </Button>
