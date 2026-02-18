@@ -34,6 +34,7 @@ import SystemAdmin from './pages/SystemAdmin';
 import Investors from './pages/Investors';
 import QuickTransactions from './pages/QuickTransactions';
 import BankAccounts from './pages/BankAccounts';
+import PackagingItems from './pages/PackagingItems';
 
 // Layout
 import Layout from './components/Layout';
