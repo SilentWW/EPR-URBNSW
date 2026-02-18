@@ -286,15 +286,17 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - Added comprehensive list: Hosting, Domain, Materials, Raw Materials, Equipment, Office Supplies, Utilities, Transportation, etc.
 
 ## Testing Status
-- **Backend Tests**: 100% passed (iteration_9)
+- **Backend Tests**: 100% passed (iteration_10)
 - **Frontend Tests**: 100% passed (all UI flows verified)
-- **Last Test Run**: iteration_9.json (Feb 18, 2026)
+- **Last Test Run**: iteration_10.json (Feb 18, 2026)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
 - **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
 - **Dynamic Business Name**: Fully tested - Company name displays in sidebar
 - **COGS Recognition**: Fully tested - Sales orders create SALE- and COGS- journal entries, returns create RET- and RCOGS- reversal entries
 - **Sales Order Payment**: Fully tested - Payment recording updates bank balance, creates journal entries (REC- prefix)
+- **Sample Data Seeding**: Fully tested - New user registration seeds 38 default accounts, Balance Sheet balances correctly
+- **Financial Reports Consistency**: Verified - Balance Sheet balanced, Trial Balance balanced, Net Profit consistent across reports
 
 ## Test Credentials
 - **Email**: test@demo.com
