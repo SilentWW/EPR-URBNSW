@@ -1089,6 +1089,44 @@ async def get_transaction_types():
         ]
     }
 
+@router.get("/expense-accounts")
+async def get_expense_accounts(current_user: dict = Depends(get_current_user)):
+    """Get available expense account categories for expense recording"""
+    company_id = current_user["company_id"]
+    
+    # Get all expense accounts from the Chart of Accounts
+    expense_accounts = await db.accounts.find(
+        {
+            "company_id": company_id,
+            "account_type": "expense",
+            "is_active": {"$ne": False}
+        },
+        {"_id": 0, "id": 1, "code": 1, "name": 1, "category": 1, "current_balance": 1}
+    ).sort("code", 1).to_list(100)
+    
+    # If no expense accounts exist, return default categories
+    if not expense_accounts:
+        return {
+            "accounts": [],
+            "default_categories": [
+                {"code": "6100", "name": "Salaries & Wages", "category": "Payroll"},
+                {"code": "6200", "name": "Rent Expense", "category": "Operating"},
+                {"code": "6300", "name": "Utilities Expense", "category": "Operating"},
+                {"code": "6400", "name": "Marketing & Advertising", "category": "Operating"},
+                {"code": "6500", "name": "Office Supplies", "category": "Operating"},
+                {"code": "6600", "name": "Depreciation Expense", "category": "Operating"},
+                {"code": "6700", "name": "Insurance Expense", "category": "Operating"},
+                {"code": "6800", "name": "Professional Fees", "category": "Operating"},
+                {"code": "6900", "name": "Miscellaneous Expense", "category": "Other"},
+                {"code": "5100", "name": "Cost of Goods Sold", "category": "COGS"},
+            ]
+        }
+    
+    return {
+        "accounts": expense_accounts,
+        "default_categories": []
+    }
+
 @router.get("/recent-transactions")
 async def get_recent_transactions(
     limit: int = 20,
