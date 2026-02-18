@@ -1832,6 +1832,41 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
         if not ar_account:
             ar_account = await db.accounts.find_one({"company_id": company_id, "category": "accounts_receivable"})
         
+        # If required accounts are missing, seed them automatically
+        if not ar_account:
+            ar_account_id = str(uuid.uuid4())
+            ar_account = {
+                "id": ar_account_id,
+                "company_id": company_id,
+                "code": "1300",
+                "name": "Accounts Receivable",
+                "account_type": "asset",
+                "category": "accounts_receivable",
+                "current_balance": 0,
+                "is_system": True,
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.accounts.insert_one(ar_account)
+            logger.info(f"Auto-created Accounts Receivable account for company {company_id}")
+        
+        if not cash_account:
+            cash_account_id = str(uuid.uuid4())
+            cash_account = {
+                "id": cash_account_id,
+                "company_id": company_id,
+                "code": "1100",
+                "name": "Cash",
+                "account_type": "asset",
+                "category": "cash",
+                "current_balance": 0,
+                "is_system": True,
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.accounts.insert_one(cash_account)
+            logger.info(f"Auto-created Cash account for company {company_id}")
+        
         if cash_account and ar_account:
             entry_id = str(uuid.uuid4())
             entry_number = f"REC-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
