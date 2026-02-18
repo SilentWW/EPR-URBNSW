@@ -112,6 +112,7 @@ function AppRoutes() {
       <Route path="/investors" element={<ProtectedRoute><Investors /></ProtectedRoute>} />
       <Route path="/quick-transactions" element={<ProtectedRoute><QuickTransactions /></ProtectedRoute>} />
       <Route path="/bank-accounts" element={<ProtectedRoute><BankAccounts /></ProtectedRoute>} />
+      <Route path="/packaging-items" element={<ProtectedRoute><PackagingItems /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
