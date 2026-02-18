@@ -85,8 +85,8 @@ class TestPaymentBankBalanceUpdate:
             
     def test_chart_of_accounts_has_ar(self):
         """Test that Chart of Accounts includes Accounts Receivable (code 1300)"""
-        response = self.session.get(f"{BASE_URL}/api/accounts")
-        assert response.status_code == 200
+        response = self.session.get(f"{BASE_URL}/api/finance/chart-of-accounts")
+        assert response.status_code == 200, f"Chart of Accounts API failed: {response.text}"
         
         accounts = response.json()
         ar_account = None
@@ -251,8 +251,8 @@ class TestPaymentBankBalanceUpdate:
         Entry should be: Debit Cash, Credit Accounts Receivable
         """
         # Get journal entries
-        response = self.session.get(f"{BASE_URL}/api/journal-entries")
-        assert response.status_code == 200
+        response = self.session.get(f"{BASE_URL}/api/finance/journal-entries")
+        assert response.status_code == 200, f"Journal entries API failed: {response.text}"
         
         entries = response.json()
         print(f"Found {len(entries)} journal entries")
@@ -282,8 +282,8 @@ class TestPaymentBankBalanceUpdate:
         Verify that Chart of Accounts balances are updated after payment.
         Cash account should increase, AR should decrease.
         """
-        response = self.session.get(f"{BASE_URL}/api/accounts")
-        assert response.status_code == 200
+        response = self.session.get(f"{BASE_URL}/api/finance/chart-of-accounts")
+        assert response.status_code == 200, f"Chart of Accounts API failed: {response.text}"
         
         accounts = response.json()
         
