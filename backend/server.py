@@ -276,6 +276,19 @@ class BankTransferCreate(BaseModel):
     description: Optional[str] = None
     transaction_date: Optional[str] = None
 
+# Packaging Items Models
+class PackagingItemCreate(BaseModel):
+    product_id: str  # Link to product in inventory
+    name: str
+    description: Optional[str] = None
+    is_active: bool = True
+
+class PackagingItemUpdate(BaseModel):
+    product_id: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
 # ============== HELPER FUNCTIONS ==============
 
 def hash_password(password: str) -> str:
