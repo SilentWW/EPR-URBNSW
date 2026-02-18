@@ -181,6 +181,10 @@ export const SalesOrders = () => {
   };
 
   const handleRecordPayment = async () => {
+    if (!paymentData.bank_account_id) {
+      toast.error('Please select an account to receive payment');
+      return;
+    }
     setSubmitting(true);
     try {
       await paymentsAPI.create({
@@ -188,11 +192,12 @@ export const SalesOrders = () => {
         reference_id: selectedOrder.id,
         amount: parseFloat(paymentData.amount),
         payment_method: paymentData.payment_method,
+        bank_account_id: paymentData.bank_account_id,
         notes: paymentData.notes,
       });
       toast.success('Payment recorded successfully');
       setPaymentDialogOpen(false);
-      setPaymentData({ amount: '', payment_method: 'cash', notes: '' });
+      setPaymentData({ amount: '', payment_method: 'bank', bank_account_id: '', notes: '' });
       fetchData();
     } catch (error) {
       toast.error('Failed to record payment');
