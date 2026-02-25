@@ -2066,11 +2066,11 @@ async def process_additional_charges(
                     
                     # Update account balances
                     await db.accounts.update_one(
-                        {"company_id": company_id, "account_code": account_info["code"]},
+                        {"company_id": company_id, "code": account_info["code"]},
                         {"$inc": {"balance": amount}}
                     )
                     await db.accounts.update_one(
-                        {"company_id": company_id, "account_code": "2100"},
+                        {"company_id": company_id, "code": "2100"},
                         {"$inc": {"balance": amount}}
                     )
                     
