@@ -161,12 +161,36 @@ export const RawMaterials = () => {
 
   const handleOpenAddStock = (material) => {
     setSelectedMaterial(material);
+    const unitCost = material.cost_price || 0;
     setAddStockData({ 
       quantity: '', 
-      cost_price: material.cost_price?.toString() || '', 
-      reference: '' 
+      cost_price: unitCost.toString(), 
+      total_cost: '',
+      reference: '',
+      bank_account_id: ''
     });
     setAddStockDialogOpen(true);
+  };
+
+  // Calculate total cost when quantity or unit price changes
+  const handleAddStockQuantityChange = (quantity) => {
+    const qty = parseFloat(quantity) || 0;
+    const unitPrice = parseFloat(addStockData.cost_price) || 0;
+    setAddStockData({ 
+      ...addStockData, 
+      quantity,
+      total_cost: (qty * unitPrice).toFixed(2)
+    });
+  };
+
+  const handleAddStockCostChange = (cost_price) => {
+    const qty = parseFloat(addStockData.quantity) || 0;
+    const unitPrice = parseFloat(cost_price) || 0;
+    setAddStockData({ 
+      ...addStockData, 
+      cost_price,
+      total_cost: (qty * unitPrice).toFixed(2)
+    });
   };
 
   const handleSubmit = async (e) => {
