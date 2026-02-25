@@ -291,6 +291,27 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Success toast shows "Product updated & synced to WooCommerce" for linked products
   - [x] Multi-category support with checkbox selection
 
+### Phase 11 - Purchase Order Edit & Delete (COMPLETED ✅) - Feb 2026
+- [x] **Role-Based Access Control**
+  - [x] Only **admin** and **manager** roles can edit or delete purchase orders
+  - [x] Other roles can still view, receive, and record payments
+- [x] **Edit Purchase Order**
+  - [x] Can modify supplier, items, quantities, prices, and notes
+  - [x] Cannot edit received orders (inventory already affected)
+  - [x] Totals automatically recalculated when items change
+- [x] **Delete Purchase Order**
+  - [x] Only pending orders without payments can be deleted
+  - [x] Received orders cannot be deleted
+  - [x] Orders with recorded payments cannot be deleted
+- [x] **Backend Implementation**
+  - [x] Updated `PurchaseOrderUpdate` model to include `supplier_id` and `items`
+  - [x] `PUT /api/purchase-orders/{id}` - Full edit with role check
+  - [x] `DELETE /api/purchase-orders/{id}` - Delete with role check
+- [x] **Frontend Implementation**
+  - [x] Edit dialog with supplier selector, item management, notes
+  - [x] Delete confirmation dialog with warning message
+  - [x] Edit/Delete options only visible to admin/manager roles in dropdown menu
+
 ### Bug Fixes (Session - Feb 18, 2026)
 - [x] **Sales Order Payment Not Updating Bank Balance** - FIXED
   - Root cause: Missing Chart of Accounts entries (specifically Accounts Receivable code 1300)
@@ -312,6 +333,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - **Sample Data Seeding**: Fully tested - New user registration seeds 38 default accounts, Balance Sheet balances correctly
 - **Financial Reports Consistency**: Verified - Balance Sheet balanced, Trial Balance balanced, Net Profit consistent across reports
 - **Two-Way WooCommerce Sync**: Verified - Product category updates sync from ERP to WooCommerce successfully
+- **Purchase Order Edit/Delete**: Verified - Role-based access (admin/manager only), business rules enforced
 
 
 ## Test Credentials
