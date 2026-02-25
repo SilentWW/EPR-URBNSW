@@ -518,7 +518,17 @@ export const PurchaseOrders = () => {
                                 <PackageCheck className="w-4 h-4 mr-2" />
                                 Quick Receive
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenChargesDialog(order)}>
+                                <TruckIcon className="w-4 h-4 mr-2" />
+                                Add Charges
+                              </DropdownMenuItem>
                             </>
+                          )}
+                          {order.status === 'received' && (
+                            <DropdownMenuItem onClick={() => handleOpenChargesDialog(order)}>
+                              <TruckIcon className="w-4 h-4 mr-2" />
+                              Add Charges
+                            </DropdownMenuItem>
                           )}
                           {order.payment_status !== 'paid' && (
                             <DropdownMenuItem onClick={() => {
