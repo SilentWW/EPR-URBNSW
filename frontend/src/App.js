@@ -119,6 +119,11 @@ function AppRoutes() {
       <Route path="/bank-accounts" element={<ProtectedRoute><BankAccounts /></ProtectedRoute>} />
       <Route path="/packaging-items" element={<ProtectedRoute><PackagingItems /></ProtectedRoute>} />
 
+      {/* Manufacturing Routes */}
+      <Route path="/raw-materials" element={<ProtectedRoute><RawMaterials /></ProtectedRoute>} />
+      <Route path="/bom" element={<ProtectedRoute><BillOfMaterials /></ProtectedRoute>} />
+      <Route path="/work-orders" element={<ProtectedRoute><WorkOrders /></ProtectedRoute>} />
+
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
