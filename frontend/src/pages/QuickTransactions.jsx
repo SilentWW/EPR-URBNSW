@@ -184,17 +184,37 @@ export default function QuickTransactions() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [investorsRes, transactionsRes] = await Promise.all([
-        api.get('/simple-finance/investors'),
-        api.get('/simple-finance/recent-transactions')
+      const [investorsRes] = await Promise.all([
+        api.get('/simple-finance/investors')
       ]);
       setInvestors(investorsRes.data);
-      setRecentTransactions(transactionsRes.data);
+      await fetchTransactions(1);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTransactions = async (page = 1, filter = transactionFilter) => {
+    try {
+      const response = await api.get(`/simple-finance/all-transactions?page=${page}&per_page=15&transaction_type=${filter}`);
+      setAllTransactions(response.data.transactions);
+      setPagination(response.data.pagination);
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.total_pages) {
+      fetchTransactions(newPage);
+    }
+  };
+
+  const handleFilterChange = (newFilter) => {
+    setTransactionFilter(newFilter);
+    fetchTransactions(1, newFilter);
   };
 
   const handleExpenseSubmit = async (e) => {
