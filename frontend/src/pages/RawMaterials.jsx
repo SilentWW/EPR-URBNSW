@@ -37,7 +37,7 @@ import {
 } from '../components/ui/dropdown-menu';
 import { 
   Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, Package, AlertTriangle, 
-  PackagePlus, Boxes
+  PackagePlus, Boxes, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
