@@ -395,6 +395,7 @@ export default function QuickTransactions() {
       case 'so_payment':
       case 'sales_payment':
       case 'discount_received':
+      case 'mfg_production':
         return 'bg-green-50 border-green-200';
       case 'grn_return':
         return 'bg-amber-50 border-amber-200';
@@ -403,9 +404,15 @@ export default function QuickTransactions() {
       case 'salary_payment':
       case 'loan_repayment':
       case 'po_payment':
+      case 'mfg_scrap':
         return 'bg-red-50 border-red-200';
       case 'additional_charge':
+      case 'mfg_reversal':
         return 'bg-slate-100 border-slate-300';
+      case 'mfg_material_issue':
+      case 'mfg_labor':
+      case 'manufacturing':
+        return 'bg-indigo-50 border-indigo-200';
       default:
         return 'bg-slate-50 border-slate-200';
     }
