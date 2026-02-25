@@ -133,6 +133,7 @@ class ProductUpdate(BaseModel):
     tags: Optional[str] = None
     manage_stock: Optional[bool] = None
     attributes: Optional[List[dict]] = None
+    product_type: Optional[str] = None  # simple or variable
 
 # GRN (Goods Received Note) Models
 class GRNItem(BaseModel):
