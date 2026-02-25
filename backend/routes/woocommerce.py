@@ -98,19 +98,117 @@ async def get_woo_client(company_id: str) -> WooCommerceClient:
 
 @router.get("/categories")
 async def get_woo_categories(current_user: dict = Depends(get_current_user)):
-    """Get product categories from WooCommerce"""
+    """Get product categories from WooCommerce and local database"""
+    company_id = current_user["company_id"]
+    
     try:
-        client = await get_woo_client(current_user["company_id"])
-        categories = await client.get("products/categories", params={"per_page": 100})
-        return [{"id": c["id"], "name": c["name"], "slug": c["slug"], "count": c["count"]} for c in categories]
+        client = await get_woo_client(company_id)
+        woo_categories = await client.get("products/categories", params={"per_page": 100})
+        
+        # Sync categories to local database
+        for cat in woo_categories:
+            await db.product_categories.update_one(
+                {"company_id": company_id, "woo_id": str(cat["id"])},
+                {"$set": {
+                    "company_id": company_id,
+                    "woo_id": str(cat["id"]),
+                    "name": cat["name"],
+                    "slug": cat["slug"],
+                    "parent_id": str(cat.get("parent", 0)) if cat.get("parent") else None,
+                    "count": cat.get("count", 0),
+                    "synced_from_woo": True,
+                    "updated_at": get_current_timestamp()
+                }},
+                upsert=True
+            )
+        
+        # Return all categories (WooCommerce + local)
+        all_categories = await db.product_categories.find(
+            {"company_id": company_id},
+            {"_id": 0}
+        ).sort("name", 1).to_list(500)
+        
+        return all_categories
     except HTTPException:
-        # If WooCommerce not configured, return local categories
-        products = await db.products.find(
-            {"company_id": current_user["company_id"], "category": {"$ne": None}},
-            {"category": 1}
-        ).to_list(1000)
-        unique_categories = list(set([p["category"] for p in products if p.get("category")]))
-        return [{"id": i, "name": cat, "slug": cat.lower().replace(" ", "-"), "count": 0} for i, cat in enumerate(unique_categories)]
+        # If WooCommerce not configured, return local categories only
+        local_categories = await db.product_categories.find(
+            {"company_id": company_id},
+            {"_id": 0}
+        ).sort("name", 1).to_list(500)
+        
+        if not local_categories:
+            # Fallback to extracting from products
+            products = await db.products.find(
+                {"company_id": company_id, "category": {"$ne": None}},
+                {"category": 1}
+            ).to_list(1000)
+            unique_categories = list(set([p["category"] for p in products if p.get("category")]))
+            return [{"woo_id": str(i), "name": cat, "slug": cat.lower().replace(" ", "-"), "count": 0, "synced_from_woo": False} for i, cat in enumerate(unique_categories)]
+        
+        return local_categories
+
+@router.post("/categories")
+async def create_local_category(
+    name: str,
+    parent_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a local product category"""
+    company_id = current_user["company_id"]
+    
+    category_id = str(uuid.uuid4())
+    slug = name.lower().replace(" ", "-").replace("&", "and")
+    
+    category = {
+        "id": category_id,
+        "company_id": company_id,
+        "woo_id": None,  # Local category, not synced from WooCommerce
+        "name": name,
+        "slug": slug,
+        "parent_id": parent_id,
+        "count": 0,
+        "synced_from_woo": False,
+        "created_at": get_current_timestamp(),
+        "updated_at": get_current_timestamp()
+    }
+    
+    await db.product_categories.insert_one(category)
+    
+    return {"message": f"Category '{name}' created", "category": {k: v for k, v in category.items() if k != "_id"}}
+
+@router.post("/categories/sync")
+async def sync_woo_categories(current_user: dict = Depends(get_current_user)):
+    """Force sync categories from WooCommerce"""
+    company_id = current_user["company_id"]
+    
+    try:
+        client = await get_woo_client(company_id)
+        woo_categories = await client.get("products/categories", params={"per_page": 100})
+        
+        synced_count = 0
+        for cat in woo_categories:
+            result = await db.product_categories.update_one(
+                {"company_id": company_id, "woo_id": str(cat["id"])},
+                {"$set": {
+                    "company_id": company_id,
+                    "woo_id": str(cat["id"]),
+                    "name": cat["name"],
+                    "slug": cat["slug"],
+                    "parent_id": str(cat.get("parent", 0)) if cat.get("parent") else None,
+                    "count": cat.get("count", 0),
+                    "synced_from_woo": True,
+                    "updated_at": get_current_timestamp()
+                }},
+                upsert=True
+            )
+            if result.upserted_id or result.modified_count:
+                synced_count += 1
+        
+        return {"message": f"Synced {synced_count} categories from WooCommerce", "total": len(woo_categories)}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to sync categories: {str(e)}")
 
 @router.get("/tags")
 async def get_woo_tags(current_user: dict = Depends(get_current_user)):
