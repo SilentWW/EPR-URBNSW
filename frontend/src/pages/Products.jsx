@@ -118,6 +118,19 @@ export const Products = () => {
     }
   };
 
+  const fetchWooAttributes = async () => {
+    setLoadingWooAttributes(true);
+    try {
+      const response = await api.get('/woocommerce/attributes');
+      setWooAttributes(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch WooCommerce attributes:', error);
+      setWooAttributes([]);
+    } finally {
+      setLoadingWooAttributes(false);
+    }
+  };
+
   const fetchVariations = async (productId) => {
     setLoadingVariations(prev => ({ ...prev, [productId]: true }));
     try {
@@ -137,7 +150,7 @@ export const Products = () => {
   const syncAllVariations = async () => {
     setSyncingVariations(true);
     try {
-      const response = await api.post('/variations/sync/all');
+      await api.post('/variations/sync/all');
       toast.success('Variation sync started. This may take a few minutes.');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to sync variations');
