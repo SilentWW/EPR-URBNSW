@@ -837,12 +837,7 @@ async def return_grn(
                     {"id": grn.get("supplier_id")},
                     {"$inc": {"credit_balance": total_return_value}}
                 )
-        
-        else:
-            # Fallback: Old behavior - just reduce AP
-            ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})
-                {"$inc": {"balance": -total_return_value}}  # Reduce asset
-            )
+    
     else:
         # Damaged/Written Off: Debit Loss/Write-off Expense, Credit Inventory
         # Use Operating Expenses for write-off
