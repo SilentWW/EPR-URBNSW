@@ -752,6 +752,232 @@ export const Products = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Variable Product Dialog */}
+      <Dialog open={variableDialogOpen} onOpenChange={setVariableDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="variable-product-dialog">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'Outfit, sans-serif' }} className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-purple-600" />
+              Create Variable Product
+            </DialogTitle>
+            <DialogDescription>
+              Create a product with variations (e.g., different colors and sizes). 
+              All variation combinations will be auto-generated.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleVariableSubmit}>
+            <div className="grid gap-4 py-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="var-sku">SKU (Base) *</Label>
+                  <Input
+                    id="var-sku"
+                    value={variableFormData.sku}
+                    onChange={(e) => setVariableFormData({ ...variableFormData, sku: e.target.value })}
+                    required
+                    placeholder="TROUSER-001"
+                    data-testid="variable-product-sku"
+                  />
+                  <p className="text-xs text-slate-400">Variations will have suffixes like -BLU-S, -BLK-M</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="var-name">Product Name *</Label>
+                  <Input
+                    id="var-name"
+                    value={variableFormData.name}
+                    onChange={(e) => setVariableFormData({ ...variableFormData, name: e.target.value })}
+                    required
+                    placeholder="Classic Trouser"
+                    data-testid="variable-product-name"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="var-desc">Description</Label>
+                <Input
+                  id="var-desc"
+                  value={variableFormData.description}
+                  onChange={(e) => setVariableFormData({ ...variableFormData, description: e.target.value })}
+                  placeholder="Product description for WooCommerce"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="var-cat">Category</Label>
+                <Select
+                  value={variableFormData.category}
+                  onValueChange={(value) => setVariableFormData({ ...variableFormData, category: value })}
+                >
+                  <SelectTrigger data-testid="variable-product-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wooCategories.length > 0 ? (
+                      wooCategories.map((cat) => (
+                        <SelectItem key={cat.woo_id || cat.id} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))
+                    ) : categories.length > 0 ? (
+                      categories.map((cat, idx) => (
+                        <SelectItem key={idx} value={cat}>{cat}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="Clothing">Clothing</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Attributes Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium">Variation Attributes</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={addVariableAttribute}
+                    className="gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Add Attribute
+                  </Button>
+                </div>
+                <p className="text-sm text-slate-500">
+                  Define attributes like Color, Size. Enter options separated by commas.
+                </p>
+                
+                <div className="space-y-3 border rounded-lg p-4 bg-slate-50">
+                  {variableFormData.attributes.map((attr, idx) => (
+                    <div key={idx} className="flex gap-3 items-start">
+                      <div className="flex-1">
+                        <Label className="text-xs text-slate-500">Attribute Name</Label>
+                        <Input
+                          value={attr.name}
+                          onChange={(e) => handleVariableAttributeChange(idx, 'name', e.target.value)}
+                          placeholder="e.g., Color, Size"
+                          data-testid={`attr-name-${idx}`}
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <Label className="text-xs text-slate-500">Options (comma separated)</Label>
+                        <Input
+                          value={attr.options}
+                          onChange={(e) => handleVariableAttributeChange(idx, 'options', e.target.value)}
+                          placeholder="e.g., Blue, Black, Red or S, M, L, XL"
+                          data-testid={`attr-options-${idx}`}
+                        />
+                      </div>
+                      {variableFormData.attributes.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeVariableAttribute(idx)}
+                          className="mt-5 text-red-500 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Preview */}
+                {variableFormData.attributes.filter(a => a.name && a.options).length > 0 && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                    <p className="text-sm font-medium text-purple-700 mb-2">Preview: Variations to be created</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(() => {
+                        const validAttrs = variableFormData.attributes
+                          .filter(a => a.name.trim() && a.options.trim())
+                          .map(a => ({
+                            name: a.name,
+                            options: a.options.split(',').map(o => o.trim()).filter(o => o)
+                          }));
+                        
+                        if (validAttrs.length === 0) return null;
+                        
+                        // Calculate total combinations
+                        const totalCombos = validAttrs.reduce((acc, attr) => acc * attr.options.length, 1);
+                        
+                        // Show first few combinations
+                        const firstOptions = validAttrs.map(a => a.options.slice(0, 2));
+                        const sampleCombos = [];
+                        
+                        const generateSamples = (current, attrIdx) => {
+                          if (attrIdx >= firstOptions.length) {
+                            sampleCombos.push(current.join(' - '));
+                            return;
+                          }
+                          for (const opt of firstOptions[attrIdx]) {
+                            if (sampleCombos.length < 4) {
+                              generateSamples([...current, opt], attrIdx + 1);
+                            }
+                          }
+                        };
+                        generateSamples([], 0);
+                        
+                        return (
+                          <>
+                            {sampleCombos.map((combo, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {variableFormData.name || 'Product'} - {combo}
+                              </Badge>
+                            ))}
+                            {totalCombos > 4 && (
+                              <Badge variant="outline" className="text-xs text-purple-600">
+                                +{totalCombos - 4} more
+                              </Badge>
+                            )}
+                            <span className="text-xs text-purple-600 ml-2">
+                              Total: {totalCombos} variations
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Options */}
+              <div className="flex items-center gap-4 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={variableFormData.sync_to_woo}
+                    onChange={(e) => setVariableFormData({ ...variableFormData, sync_to_woo: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm">Sync to WooCommerce</span>
+                </label>
+              </div>
+
+              <p className="text-sm text-slate-500 bg-purple-50 p-3 rounded-lg">
+                💡 After creating, use Purchase Orders and GRN to add stock and set prices for each variation.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setVariableDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={submitting} 
+                className="bg-purple-600 hover:bg-purple-700" 
+                data-testid="variable-product-submit"
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Layers className="w-4 h-4 mr-2" />}
+                Create Variable Product
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
