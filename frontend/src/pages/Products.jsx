@@ -371,41 +371,71 @@ export const Products = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category (from WooCommerce)</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  >
-                    <SelectTrigger data-testid="product-category">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {wooCategories.length > 0 ? (
-                        wooCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.name}>
-                            {cat.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="name">Product Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    data-testid="product-name"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  data-testid="product-name"
-                />
+                <Label>Product Categories (Select Multiple)</Label>
+                <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-slate-50">
+                  {wooCategories.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {wooCategories.map((cat) => (
+                        <label 
+                          key={cat.woo_id || cat.id} 
+                          className="flex items-center gap-2 p-2 rounded hover:bg-white cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories.includes(cat.woo_id || String(cat.id))}
+                            onChange={() => handleCategoryToggle(cat.woo_id || String(cat.id), cat.name)}
+                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm">{cat.name}</span>
+                          {cat.count > 0 && (
+                            <span className="text-xs text-gray-400">({cat.count})</span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  ) : categories.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {categories.map((cat, idx) => (
+                        <label 
+                          key={idx} 
+                          className="flex items-center gap-2 p-2 rounded hover:bg-white cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories.includes(String(idx))}
+                            onChange={() => handleCategoryToggle(String(idx), cat)}
+                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm">{cat}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No categories found. Sync from WooCommerce or create products with categories.
+                    </p>
+                  )}
+                </div>
+                {selectedCategories.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {formData.category_names?.map((name, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-lg">
                 💡 Cost price, selling price, and stock quantity are set when receiving goods via GRN (Goods Received Note).
