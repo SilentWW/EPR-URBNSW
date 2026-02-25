@@ -46,6 +46,19 @@ class GRNCreate(BaseModel):
     sync_to_woo: bool = True
     po_id: Optional[str] = None  # Link to Purchase Order
 
+class GRNReturnItem(BaseModel):
+    product_id: Optional[str] = None
+    product_name: str
+    sku: Optional[str] = None
+    quantity: int
+    cost_price: float
+
+class GRNReturn(BaseModel):
+    return_type: str  # 'full' or 'partial'
+    return_reason: str  # 'supplier' or 'damaged'
+    notes: Optional[str] = None
+    items: List[GRNReturnItem]
+
 # ============== SKU GENERATION ==============
 
 async def generate_sku(company_id: str, prefix: str = "URBN") -> str:
