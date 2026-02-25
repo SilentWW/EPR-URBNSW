@@ -162,22 +162,51 @@ export default function GRN() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [grnsRes, suppliersRes, productsRes, skuRes, poRes, catRes, tagsRes] = await Promise.all([
+      const [grnsRes, suppliersRes, productsRes, skuRes, poRes, catRes, tagsRes, chargeTypesRes, bankAccountsRes, chartAccountsRes] = await Promise.all([
         api.get('/grn'),
         api.get('/suppliers'),
         api.get('/products'),
         api.get('/grn/next-sku'),
         api.get('/purchase-orders'),
         api.get('/woocommerce/categories').catch(() => ({ data: [] })),
-        api.get('/woocommerce/tags').catch(() => ({ data: [] }))
+        api.get('/woocommerce/tags').catch(() => ({ data: [] })),
+        api.get('/grn/charge-types').catch(() => ({ data: [] })),
+        api.get('/bank-accounts').catch(() => ({ data: [] })),
+        api.get('/finance/chart-of-accounts').catch(() => ({ data: [] }))
       ]);
       setGrns(grnsRes.data);
       setSuppliers(suppliersRes.data);
       setProducts(productsRes.data);
       setNextSku(skuRes.data.next_sku);
-      setPurchaseOrders(poRes.data.filter(po => po.status === 'pending')); // Only pending POs
+      setAllPurchaseOrders(poRes.data); // Store all POs
+      setPurchaseOrders(poRes.data.filter(po => po.status === 'pending')); // Only pending POs for GRN creation
       setWooCategories(catRes.data || []);
       setWooTags(tagsRes.data || []);
+      setChargeTypes(chargeTypesRes.data || []);
+      
+      // Combine bank accounts with cash/bank chart accounts
+      const bankAccts = (bankAccountsRes.data || []).map(a => ({
+        id: a.id,
+        name: a.account_name,
+        type: a.account_type,
+        balance: a.current_balance,
+        source: 'bank_account'
+      }));
+      
+      const cashBankCodes = ['1100', '1101', '1110', '1200', '1210'];
+      const chartCashBank = (chartAccountsRes.data || [])
+        .filter(a => cashBankCodes.includes(a.code))
+        .filter(a => !bankAccts.some(b => b.name === a.name))
+        .map(a => ({
+          id: a.id,
+          name: a.name,
+          type: a.code.startsWith('11') ? 'cash' : 'bank',
+          balance: a.balance || 0,
+          source: 'chart_account',
+          code: a.code
+        }));
+      
+      setBankAccounts([...bankAccts, ...chartCashBank]);
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
