@@ -479,6 +479,46 @@ Build a cloud-based ERP system for business operations with the intention of sel
 2. Scheduled backups UI exists but scheduler not implemented
 3. Reports based on current account balances (period filtering needs enhancement)
 
+### Phase 15 - Manufacturing Module (COMPLETED ✅) - Feb 2026
+- [x] **Raw Materials Management**
+  - [x] Separate Raw Materials inventory (distinct from finished products)
+  - [x] SKU auto-generation (RM0001, RM0002...)
+  - [x] Categories: Fabric, Thread, Buttons, Zippers, Labels, Packaging, Accessories
+  - [x] Unit of measure support: piece, meter, kg, liter, roll, sheet, etc.
+  - [x] Low stock alerts
+  - [x] Add stock functionality with reference tracking
+  - [x] Stock movement history
+- [x] **Bill of Materials (BOM)**
+  - [x] Define raw materials needed for each finished product
+  - [x] Support for variable products (per variation BOM)
+  - [x] Quantity per unit with wastage % allowance
+  - [x] Labor cost per unit
+  - [x] Overhead % calculation (% of material + labor)
+  - [x] Auto-calculate total production cost per unit
+  - [x] Expandable view showing component breakdown
+- [x] **Work Orders**
+  - [x] Create production orders for Stock or Customer Orders
+  - [x] Status flow: Draft → Materials Issued → In Progress → QC Pending → Completed
+  - [x] **Issue Materials**: Deduct raw materials from stock, charge to WIP
+  - [x] **Record Production**: Track completed quantities with labor cost
+  - [x] **QC Inspection**: Pass/Fail quantities with rejection reasons
+  - [x] **Cancel Order**: Return materials to stock with reversal entries
+  - [x] Cost tracking: Material, Labor, Overhead per unit
+- [x] **Financial Integration**
+  - [x] Material Issue: Dr. WIP, Cr. Raw Materials Inventory
+  - [x] Labor Cost: Dr. WIP, Cr. Manufacturing Labor
+  - [x] Production Complete: Dr. Finished Goods, Cr. WIP
+  - [x] QC Rejection/Scrap: Dr. Manufacturing Loss, Cr. WIP
+  - [x] Auto-create Chart of Accounts entries (1400 WIP, 1200 Raw Materials, etc.)
+- [x] **WooCommerce Integration**
+  - [x] Finished goods automatically sync to WooCommerce after QC completion
+  - [x] Updates product stock in WooCommerce
+- [x] **UI Pages**
+  - [x] `/raw-materials` - Raw Materials management
+  - [x] `/bom` - Bill of Materials management
+  - [x] `/work-orders` - Work Order management
+  - [x] Manufacturing section in sidebar navigation
+
 ## Future/Backlog (P2)
 - [ ] Payroll Module
 - [ ] Manufacturing Module
