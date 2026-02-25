@@ -271,7 +271,7 @@ export const Layout = ({ children }) => {
               <Menu className="w-5 h-5 text-slate-600" />
             </button>
             <h1 className="text-lg font-semibold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              {[...menuItems, ...financeMenuItems, ...adminMenuItems].find((item) => item.path === location.pathname)?.label || 'Dashboard'}
+              {[...menuItems, ...manufacturingMenuItems, ...financeMenuItems, ...adminMenuItems].find((item) => item.path === location.pathname)?.label || 'Dashboard'}
             </h1>
           </div>
 
