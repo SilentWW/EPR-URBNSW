@@ -140,6 +140,7 @@ export default function QuickTransactions() {
     fetchData();
     fetchCurrentUser();
     fetchBankAccounts();
+    fetchExpenseAccounts();
   }, []);
 
   const fetchCurrentUser = async () => {
@@ -157,6 +158,15 @@ export default function QuickTransactions() {
       setBankAccounts(response.data);
     } catch (error) {
       console.error('Failed to fetch bank accounts:', error);
+    }
+  };
+
+  const fetchExpenseAccounts = async () => {
+    try {
+      const response = await api.get('/simple-finance/expense-accounts');
+      setExpenseAccounts(response.data.accounts || []);
+    } catch (error) {
+      console.error('Failed to fetch expense accounts:', error);
     }
   };
 
