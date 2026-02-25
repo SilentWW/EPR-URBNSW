@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { productsAPI } from '../lib/api';
 import api from '../lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -33,9 +33,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, Package, AlertTriangle } from 'lucide-react';
+import { 
+  Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, Package, AlertTriangle, 
+  RefreshCw, ChevronDown, ChevronRight, Layers, Box 
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount) => {
@@ -56,6 +60,7 @@ const initialFormData = {
 
 export const Products = () => {
   const [products, setProducts] = useState([]);
+  const [variations, setVariations] = useState({});
   const [categories, setCategories] = useState([]);
   const [wooCategories, setWooCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +72,9 @@ export const Products = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [expandedProducts, setExpandedProducts] = useState({});
+  const [syncingVariations, setSyncingVariations] = useState(false);
+  const [loadingVariations, setLoadingVariations] = useState({});
 
   const fetchProducts = async () => {
     try {
@@ -93,13 +101,48 @@ export const Products = () => {
       setWooCategories(response.data);
     } catch (error) {
       console.error('Failed to fetch WooCommerce categories:', error);
-      // Silently fail - categories will just show local ones
     }
   };
 
-  const fetchData = async () => {
-    // Initial data fetch
-    await fetchProducts();
+  const fetchVariations = async (productId) => {
+    setLoadingVariations(prev => ({ ...prev, [productId]: true }));
+    try {
+      const response = await api.get(`/variations/product/${productId}`);
+      setVariations(prev => ({
+        ...prev,
+        [productId]: response.data.variations
+      }));
+    } catch (error) {
+      console.error('Failed to fetch variations:', error);
+      toast.error('Failed to load variations');
+    } finally {
+      setLoadingVariations(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const syncAllVariations = async () => {
+    setSyncingVariations(true);
+    try {
+      const response = await api.post('/variations/sync/all');
+      toast.success('Variation sync started. This may take a few minutes.');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to sync variations');
+    } finally {
+      setSyncingVariations(false);
+    }
+  };
+
+  const toggleExpanded = (productId) => {
+    const isExpanding = !expandedProducts[productId];
+    setExpandedProducts(prev => ({
+      ...prev,
+      [productId]: isExpanding
+    }));
+    
+    // Fetch variations if expanding and not already loaded
+    if (isExpanding && !variations[productId]) {
+      fetchVariations(productId);
+    }
   };
 
   useEffect(() => {
@@ -107,7 +150,6 @@ export const Products = () => {
   }, [search, categoryFilter]);
 
   useEffect(() => {
-    fetchData();
     fetchWooCategories();
   }, []);
 
@@ -125,7 +167,6 @@ export const Products = () => {
     } else {
       setSelectedProduct(null);
       setSelectedCategories([]);
-      // Fetch next available SKU for new product
       try {
         const skuRes = await api.get('/grn/next-sku');
         setFormData({
@@ -143,13 +184,11 @@ export const Products = () => {
     setSelectedCategories(prev => {
       const isSelected = prev.includes(categoryId);
       if (isSelected) {
-        // Remove category
         const newCategories = prev.filter(id => id !== categoryId);
         const newNames = formData.category_names.filter(name => name !== categoryName);
         setFormData(f => ({ ...f, categories: newCategories, category_names: newNames }));
         return newCategories;
       } else {
-        // Add category
         const newCategories = [...prev, categoryId];
         const newNames = [...(formData.category_names || []), categoryName];
         setFormData(f => ({ ...f, categories: newCategories, category_names: newNames }));
@@ -169,7 +208,6 @@ export const Products = () => {
         category: formData.category || (formData.category_names && formData.category_names[0]) || '',
         categories: selectedCategories,
         category_names: formData.category_names || [],
-        // Set defaults for price and stock - will be updated via GRN
         cost_price: 0,
         selling_price: 0,
         stock_quantity: 0,
@@ -177,14 +215,12 @@ export const Products = () => {
       };
 
       if (selectedProduct) {
-        // Only update name and categories for existing products
         await productsAPI.update(selectedProduct.id, {
           name: formData.name,
           category: formData.category || (formData.category_names && formData.category_names[0]) || '',
           categories: selectedCategories,
           category_names: formData.category_names || []
         });
-        // Show appropriate message based on whether product is linked to WooCommerce
         if (selectedProduct.woo_product_id) {
           toast.success('Product updated & synced to WooCommerce');
         } else {
@@ -216,14 +252,21 @@ export const Products = () => {
     }
   };
 
-  const getStockStatus = (product) => {
-    if (product.stock_quantity <= 0) {
+  const getStockStatus = (quantity, threshold) => {
+    if (quantity <= 0) {
       return <Badge className="badge-error">Out of Stock</Badge>;
     }
-    if (product.stock_quantity <= product.low_stock_threshold) {
+    if (quantity <= threshold) {
       return <Badge className="badge-warning">Low Stock</Badge>;
     }
     return <Badge className="badge-success">In Stock</Badge>;
+  };
+
+  const getProductTypeBadge = (product) => {
+    if (product.product_type === 'variable') {
+      return <Badge variant="outline" className="text-purple-600 border-purple-200 bg-purple-50">Variable</Badge>;
+    }
+    return <Badge variant="outline" className="text-gray-600">Simple</Badge>;
   };
 
   return (
@@ -236,10 +279,22 @@ export const Products = () => {
           </h2>
           <p className="text-slate-500 mt-1">{products.length} products in inventory</p>
         </div>
-        <Button onClick={() => handleOpenDialog()} className="gap-2 bg-indigo-600 hover:bg-indigo-700" data-testid="add-product-btn">
-          <Plus className="w-4 h-4" />
-          Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={syncAllVariations}
+            disabled={syncingVariations}
+            className="gap-2"
+            data-testid="sync-variations-btn"
+          >
+            {syncingVariations ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Sync Variations from WooCommerce
+          </Button>
+          <Button onClick={() => handleOpenDialog()} className="gap-2 bg-indigo-600 hover:bg-indigo-700" data-testid="add-product-btn">
+            <Plus className="w-4 h-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -291,8 +346,10 @@ export const Products = () => {
             <Table>
               <TableHeader>
                 <TableRow className="table-header">
+                  <TableHead className="table-header-cell w-8"></TableHead>
                   <TableHead className="table-header-cell">Product</TableHead>
                   <TableHead className="table-header-cell">SKU</TableHead>
+                  <TableHead className="table-header-cell">Type</TableHead>
                   <TableHead className="table-header-cell">Category</TableHead>
                   <TableHead className="table-header-cell text-right">Cost</TableHead>
                   <TableHead className="table-header-cell text-right">Price</TableHead>
@@ -303,58 +360,153 @@ export const Products = () => {
               </TableHeader>
               <TableBody>
                 {products.map((product) => (
-                  <TableRow key={product.id} className="table-row" data-testid={`product-row-${product.id}`}>
-                    <TableCell className="table-cell font-medium">{product.name}</TableCell>
-                    <TableCell className="table-cell text-slate-500">{product.sku}</TableCell>
-                    <TableCell className="table-cell">
-                      {product.category_names && product.category_names.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {product.category_names.map((cat, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
-                              {cat}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : product.category ? (
-                        <Badge variant="outline" className="text-xs">{product.category}</Badge>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="table-cell text-right">{formatCurrency(product.cost_price)}</TableCell>
-                    <TableCell className="table-cell text-right font-medium">{formatCurrency(product.selling_price)}</TableCell>
-                    <TableCell className="table-cell text-right">
-                      <span className={product.stock_quantity <= product.low_stock_threshold ? 'text-amber-600 font-medium' : ''}>
-                        {product.stock_quantity}
-                      </span>
-                    </TableCell>
-                    <TableCell className="table-cell">{getStockStatus(product)}</TableCell>
-                    <TableCell className="table-cell">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" data-testid={`product-menu-${product.id}`}>
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenDialog(product)}>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => {
-                              setSelectedProduct(product);
-                              setDeleteDialogOpen(true);
-                            }}
+                  <React.Fragment key={product.id}>
+                    {/* Main Product Row */}
+                    <TableRow className="table-row" data-testid={`product-row-${product.id}`}>
+                      <TableCell className="table-cell">
+                        {product.product_type === 'variable' ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-6 w-6"
+                            onClick={() => toggleExpanded(product.id)}
+                            data-testid={`expand-btn-${product.id}`}
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                            {expandedProducts[product.id] ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </Button>
+                        ) : (
+                          <Box className="w-4 h-4 text-slate-300" />
+                        )}
+                      </TableCell>
+                      <TableCell className="table-cell font-medium">{product.name}</TableCell>
+                      <TableCell className="table-cell text-slate-500">{product.sku}</TableCell>
+                      <TableCell className="table-cell">{getProductTypeBadge(product)}</TableCell>
+                      <TableCell className="table-cell">
+                        {product.category_names && product.category_names.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {product.category_names.map((cat, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {cat}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : product.category ? (
+                          <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="table-cell text-right">{formatCurrency(product.cost_price)}</TableCell>
+                      <TableCell className="table-cell text-right font-medium">{formatCurrency(product.selling_price)}</TableCell>
+                      <TableCell className="table-cell text-right">
+                        <span className={product.stock_quantity <= product.low_stock_threshold ? 'text-amber-600 font-medium' : ''}>
+                          {product.stock_quantity}
+                        </span>
+                      </TableCell>
+                      <TableCell className="table-cell">{getStockStatus(product.stock_quantity, product.low_stock_threshold)}</TableCell>
+                      <TableCell className="table-cell">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" data-testid={`product-menu-${product.id}`}>
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleOpenDialog(product)}>
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            {product.product_type === 'variable' && product.woo_product_id && (
+                              <DropdownMenuItem onClick={() => {
+                                api.post(`/variations/sync/product/${product.id}`)
+                                  .then(() => {
+                                    toast.success('Syncing variations...');
+                                    setTimeout(() => fetchVariations(product.id), 3000);
+                                  })
+                                  .catch(() => toast.error('Sync failed'));
+                              }}>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Sync Variations
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => {
+                                setSelectedProduct(product);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Variations Rows (Expanded) */}
+                    {expandedProducts[product.id] && (
+                      <>
+                        {loadingVariations[product.id] ? (
+                          <TableRow className="bg-slate-50">
+                            <TableCell colSpan={10} className="py-4 text-center">
+                              <Loader2 className="w-5 h-5 animate-spin mx-auto text-indigo-600" />
+                              <span className="text-sm text-slate-500 ml-2">Loading variations...</span>
+                            </TableCell>
+                          </TableRow>
+                        ) : variations[product.id]?.length > 0 ? (
+                          variations[product.id].map((variation) => (
+                            <TableRow 
+                              key={variation.id} 
+                              className="bg-slate-50 border-l-4 border-l-purple-200"
+                              data-testid={`variation-row-${variation.id}`}
+                            >
+                              <TableCell className="table-cell">
+                                <Layers className="w-4 h-4 text-purple-400 ml-2" />
+                              </TableCell>
+                              <TableCell className="table-cell pl-8">
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-slate-700">{variation.variation_name}</span>
+                                  <div className="flex gap-1 mt-1">
+                                    {variation.attributes?.map((attr, idx) => (
+                                      <Badge key={idx} variant="secondary" className="text-xs">
+                                        {attr.name}: {attr.option}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="table-cell text-slate-500">{variation.sku}</TableCell>
+                              <TableCell className="table-cell">
+                                <Badge variant="outline" className="text-purple-500 text-xs">Variation</Badge>
+                              </TableCell>
+                              <TableCell className="table-cell text-slate-400">-</TableCell>
+                              <TableCell className="table-cell text-right">{formatCurrency(variation.cost_price)}</TableCell>
+                              <TableCell className="table-cell text-right font-medium">{formatCurrency(variation.selling_price)}</TableCell>
+                              <TableCell className="table-cell text-right">
+                                <span className={variation.stock_quantity <= 5 ? 'text-amber-600 font-medium' : ''}>
+                                  {variation.stock_quantity}
+                                </span>
+                              </TableCell>
+                              <TableCell className="table-cell">{getStockStatus(variation.stock_quantity, 5)}</TableCell>
+                              <TableCell className="table-cell"></TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow className="bg-slate-50">
+                            <TableCell colSpan={10} className="py-4 text-center text-slate-500">
+                              No variations found. Click &quot;Sync Variations&quot; to fetch from WooCommerce.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
@@ -483,6 +635,11 @@ export const Products = () => {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete &quot;{selectedProduct?.name}&quot;? This action cannot be undone.
+              {selectedProduct?.product_type === 'variable' && (
+                <span className="block mt-2 text-amber-600">
+                  Warning: This will also delete all associated variations.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
