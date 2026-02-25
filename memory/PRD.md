@@ -401,6 +401,41 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [x] **Expanded Expense Categories in Quick Transactions** - COMPLETED
   - Added comprehensive list: Hosting, Domain, Materials, Raw Materials, Equipment, Office Supplies, Utilities, Transportation, etc.
 
+### Phase 14 - Product Variations & WooCommerce Variable Product Support (IN PROGRESS 🔄) - Feb 2026
+- [x] **Database Schema**
+  - [x] `product_variations` collection for storing variation data
+  - [x] `products` collection updated with `product_type` field (simple/variable)
+  - [x] Variations linked to parent products via `parent_product_id`
+  - [x] Each variation stores: SKU, attributes (Color, Size), cost_price, regular_price, sale_price, stock_quantity
+- [x] **WooCommerce Variation Sync**
+  - [x] `POST /api/variations/sync/all` - Sync all variable products and their variations from WooCommerce
+  - [x] `POST /api/variations/sync/product/{id}` - Sync variations for a specific product
+  - [x] `GET /api/variations/product/{id}` - Get all variations for a product
+  - [x] `GET /api/variations/attributes/list` - Get unique attribute names and values
+  - [x] Background sync task for large catalogs
+- [x] **Inventory at Variation Level**
+  - [x] GRN supports variation selection for variable products
+  - [x] Stock quantity tracked per variation (e.g., Trouser Blue Size 32: 10 units)
+  - [x] Parent product shows total stock (sum of all variations)
+  - [x] WooCommerce stock sync at variation level
+- [x] **Purchase Order Variation Support**
+  - [x] Product selector shows "(Variable)" indicator for variable products
+  - [x] Variation dropdown appears when variable product selected
+  - [x] Variation dropdown shows: variation name, SKU, current stock
+  - [x] PO items store both `product_id` and `variation_id`
+- [x] **GRN Variation Support**
+  - [x] When creating GRN from PO, variation information preserved
+  - [x] Manual GRN allows variation selection for variable products
+  - [x] Stock updates at variation level with WooCommerce sync
+- [x] **Products Page Enhancements**
+  - [x] "Sync Variations from WooCommerce" button
+  - [x] "Type" column showing Simple/Variable badge
+  - [x] Expandable rows for variable products to show variations
+  - [x] Per-product "Sync Variations" option in dropdown menu
+  - [x] Variations display: name, SKU, attributes, prices, stock
+
+**Note**: This feature requires variable products to exist in WooCommerce. The sync pulls variation data (Color, Size attributes) from WooCommerce and enables variation-level inventory management in the ERP.
+
 ## Testing Status
 - **Backend Tests**: 100% passed (iteration_10)
 - **Frontend Tests**: 100% passed (all UI flows verified)
