@@ -40,6 +40,7 @@ import PackagingItems from './pages/PackagingItems';
 import RawMaterials from './pages/RawMaterials';
 import BillOfMaterials from './pages/BillOfMaterials';
 import WorkOrders from './pages/WorkOrders';
+import ManufacturingDashboard from './pages/ManufacturingDashboard';
 
 // Layout
 import Layout from './components/Layout';
@@ -120,6 +121,7 @@ function AppRoutes() {
       <Route path="/packaging-items" element={<ProtectedRoute><PackagingItems /></ProtectedRoute>} />
 
       {/* Manufacturing Routes */}
+      <Route path="/manufacturing" element={<ProtectedRoute><ManufacturingDashboard /></ProtectedRoute>} />
       <Route path="/raw-materials" element={<ProtectedRoute><RawMaterials /></ProtectedRoute>} />
       <Route path="/bom" element={<ProtectedRoute><BillOfMaterials /></ProtectedRoute>} />
       <Route path="/work-orders" element={<ProtectedRoute><WorkOrders /></ProtectedRoute>} />

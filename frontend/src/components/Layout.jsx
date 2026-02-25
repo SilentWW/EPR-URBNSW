@@ -64,6 +64,7 @@ const menuItems = [
 ];
 
 const manufacturingMenuItems = [
+  { icon: LayoutDashboard, label: 'Manufacturing', path: '/manufacturing' },
   { icon: Hammer, label: 'Raw Materials', path: '/raw-materials' },
   { icon: ScrollText, label: 'Bill of Materials', path: '/bom' },
   { icon: Factory, label: 'Work Orders', path: '/work-orders' },
