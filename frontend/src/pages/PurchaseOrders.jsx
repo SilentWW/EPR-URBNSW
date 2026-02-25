@@ -123,17 +123,42 @@ export const PurchaseOrders = () => {
       const params = {};
       if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
 
-      const [ordersRes, suppliersRes, productsRes, bankAccountsRes, chargeTypesRes] = await Promise.all([
+      const [ordersRes, suppliersRes, productsRes, bankAccountsRes, chargeTypesRes, chartAccountsRes] = await Promise.all([
         purchaseOrdersAPI.getAll(params),
         suppliersAPI.getAll(),
         productsAPI.getAll(),
         api.get('/bank-accounts'),
         api.get('/grn/charge-types').catch(() => ({ data: [] })),
+        api.get('/finance/chart-of-accounts').catch(() => ({ data: [] })),
       ]);
       setOrders(ordersRes.data);
       setSuppliers(suppliersRes.data);
       setProducts(productsRes.data);
-      setBankAccounts(bankAccountsRes.data);
+      
+      // Combine bank accounts with cash/bank chart accounts
+      const bankAccts = bankAccountsRes.data.map(a => ({
+        id: a.id,
+        name: a.account_name,
+        type: a.account_type,
+        balance: a.current_balance,
+        source: 'bank_account'
+      }));
+      
+      // Add cash/bank accounts from Chart of Accounts that aren't already linked
+      const cashBankCodes = ['1100', '1101', '1110', '1200', '1210'];
+      const chartCashBank = (chartAccountsRes.data || [])
+        .filter(a => cashBankCodes.includes(a.code))
+        .filter(a => !bankAccts.some(b => b.name === a.name))
+        .map(a => ({
+          id: a.id,
+          name: a.name,
+          type: a.code.startsWith('11') ? 'cash' : 'bank',
+          balance: a.balance || 0,
+          source: 'chart_account',
+          code: a.code
+        }));
+      
+      setBankAccounts([...bankAccts, ...chartCashBank]);
       setChargeTypes(chargeTypesRes.data || []);
     } catch (error) {
       toast.error('Failed to fetch data');
