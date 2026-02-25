@@ -107,9 +107,14 @@ export const PurchaseOrders = () => {
 
   const [newItem, setNewItem] = useState({
     product_id: '',
+    variation_id: '',
     quantity: 1,
     unit_price: '',
   });
+
+  // State for variations when selecting a variable product
+  const [productVariations, setProductVariations] = useState([]);
+  const [loadingVariations, setLoadingVariations] = useState(false);
 
   const [paymentData, setPaymentData] = useState({
     amount: '',
