@@ -553,14 +553,29 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Production Complete transactions (mfg_production)
   - [x] Scrap/Reject transactions (mfg_scrap)
   - [x] Manufacturing Reversal transactions (mfg_reversal)
+  - [x] Raw Material Purchase transactions (raw_material_purchase)
 - [x] **Quick Transactions Page Enhancements**
   - [x] Manufacturing filter option in dropdown
   - [x] Proper icons for each manufacturing transaction type
   - [x] Color coding: Production (green), Material Issue/Labor (indigo), Scrap (red)
-  - [x] Labels: Material Issue, Labor Cost, Production, Scrap/Reject
+  - [x] Labels: Material Issue, Labor Cost, Production, Scrap/Reject, RM Purchase
 - [x] **Backend Integration**
-  - [x] GET /api/simple-finance/all-transactions includes MFG- prefix journal entries
+  - [x] GET /api/simple-finance/all-transactions includes MFG- and RM- prefix journal entries
   - [x] Filter by "manufacturing" shows all manufacturing-related transaction types
+
+### Phase 18 - Raw Material Stock Financial Integration (COMPLETED ✅) - Feb 25, 2026
+- [x] **Bug Fix: Raw Material Cost Not Deducting from Accounts**
+  - [x] Added bank account selector to Add Stock dialog
+  - [x] Total Cost field auto-calculates (Quantity × Unit Cost)
+  - [x] When bank account selected:
+    - Creates journal entry (Dr: Raw Materials Inventory 1200, Cr: Bank/Cash)
+    - Reduces bank account balance
+    - Updates Chart of Accounts balances
+  - [x] Without bank account: Works as before (no financial entry)
+- [x] **Journal Entry Details**
+  - [x] Entry number format: RM-{SKU}-{movement_id}
+  - [x] Reference type: raw_material_receipt
+  - [x] Appears in Quick Transactions with "RM Purchase" label
 
 ## Future/Backlog (P2)
 - [ ] Payroll Module
