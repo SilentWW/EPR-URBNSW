@@ -58,6 +58,19 @@ const initialFormData = {
   category_names: [],
 };
 
+const initialVariableFormData = {
+  name: '',
+  sku: '',
+  description: '',
+  category: '',
+  attributes: [
+    { name: 'Color', options: '' },
+    { name: 'Size', options: '' }
+  ],
+  generate_variations: true,
+  sync_to_woo: true
+};
+
 export const Products = () => {
   const [products, setProducts] = useState([]);
   const [variations, setVariations] = useState({});
@@ -67,9 +80,11 @@ export const Products = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [variableDialogOpen, setVariableDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
+  const [variableFormData, setVariableFormData] = useState(initialVariableFormData);
   const [submitting, setSubmitting] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [expandedProducts, setExpandedProducts] = useState({});
