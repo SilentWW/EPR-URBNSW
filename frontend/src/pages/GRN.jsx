@@ -167,6 +167,7 @@ export default function GRN() {
     // Map PO items to GRN items
     const grnItems = po.items.map(item => ({
       product_id: item.product_id,
+      variation_id: item.variation_id || '',  // Include variation if present
       product_name: item.product_name,
       sku: item.sku || '',
       description: '',
