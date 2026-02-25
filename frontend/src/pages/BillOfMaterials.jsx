@@ -496,15 +496,15 @@ export const BillOfMaterials = () => {
                   <div className="space-y-2">
                     <Label>Variation</Label>
                     <Select
-                      value={formData.variation_id}
-                      onValueChange={(v) => setFormData({ ...formData, variation_id: v })}
+                      value={formData.variation_id || "all"}
+                      onValueChange={(v) => setFormData({ ...formData, variation_id: v === "all" ? "" : v })}
                       disabled={!!selectedBOM}
                     >
                       <SelectTrigger data-testid="bom-variation">
                         <SelectValue placeholder="Select variation (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Variations (Generic BOM)</SelectItem>
+                        <SelectItem value="all">All Variations (Generic BOM)</SelectItem>
                         {(variations[formData.product_id] || []).map((v) => (
                           <SelectItem key={v.id} value={v.id}>
                             {v.variation_name}
