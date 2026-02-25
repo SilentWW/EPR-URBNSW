@@ -30,7 +30,10 @@ import {
   Wallet,
   Zap,
   UserPlus,
-  PackageOpen
+  PackageOpen,
+  Factory,
+  Hammer,
+  ScrollText
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -58,6 +61,12 @@ const menuItems = [
   { icon: CreditCard, label: 'Payments', path: '/payments' },
   { icon: TrendingUp, label: 'Accounting', path: '/accounting' },
   { icon: PieChart, label: 'Reports', path: '/reports' },
+];
+
+const manufacturingMenuItems = [
+  { icon: Hammer, label: 'Raw Materials', path: '/raw-materials' },
+  { icon: ScrollText, label: 'Bill of Materials', path: '/bom' },
+  { icon: Factory, label: 'Work Orders', path: '/work-orders' },
 ];
 
 const financeMenuItems = [
