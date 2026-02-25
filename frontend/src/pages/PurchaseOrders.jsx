@@ -799,7 +799,7 @@ export const PurchaseOrders = () => {
                 <SelectContent>
                   {bankAccounts.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
-                      {acc.account_name} ({acc.account_type === 'bank' ? acc.bank_name : 'Cash'}) - {formatCurrency(acc.current_balance)}
+                      {acc.name} ({acc.type === 'bank' ? 'Bank' : 'Cash'}) - {formatCurrency(acc.balance)}
                     </SelectItem>
                   ))}
                 </SelectContent>
