@@ -4436,7 +4436,7 @@ async def root():
 app.include_router(api_router)
 
 # Import and configure new modular routers
-from routes import finance, admin, woocommerce, grn, simple_finance, variations
+from routes import finance, admin, woocommerce, grn, simple_finance, variations, manufacturing
 
 # Set database and auth for finance router
 finance.set_db(db)
