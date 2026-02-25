@@ -301,7 +301,21 @@ export const Products = () => {
                   <TableRow key={product.id} className="table-row" data-testid={`product-row-${product.id}`}>
                     <TableCell className="table-cell font-medium">{product.name}</TableCell>
                     <TableCell className="table-cell text-slate-500">{product.sku}</TableCell>
-                    <TableCell className="table-cell">{product.category || '-'}</TableCell>
+                    <TableCell className="table-cell">
+                      {product.category_names && product.category_names.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {product.category_names.map((cat, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {cat}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : product.category ? (
+                        <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="table-cell text-right">{formatCurrency(product.cost_price)}</TableCell>
                     <TableCell className="table-cell text-right font-medium">{formatCurrency(product.selling_price)}</TableCell>
                     <TableCell className="table-cell text-right">
