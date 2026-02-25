@@ -892,10 +892,14 @@ async def return_grn(
         "return_date": return_date,
         "return_type": data.return_type,
         "return_reason": data.return_reason,
+        "settlement_type": data.settlement_type,
+        "refund_account_id": data.refund_account_id,
+        "supplier_credit_id": supplier_credit_id,
         "notes": data.notes,
         "items": [item.model_dump() for item in data.items],
         "total_value": total_return_value,
         "journal_entry_number": entry_number,
+        "refund_entry_number": refund_entry_number,
         "created_by": current_user["user_id"]
     }
     
@@ -928,9 +932,45 @@ async def return_grn(
             }}
         )
     
+    # Sync stock to WooCommerce
+    woo_sync_results = []
+    company = await db.companies.find_one({"id": company_id})
+    woo_settings = company.get("woo_settings") if company else None
+    
+    if woo_settings and woo_settings.get("enabled"):
+        import httpx
+        store_url = woo_settings["store_url"].rstrip('/')
+        consumer_key = woo_settings["consumer_key"]
+        consumer_secret = woo_settings["consumer_secret"]
+        api_url = f"{store_url}/wp-json/wc/v3"
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for product_info in products_to_sync:
+                if product_info.get("woo_product_id"):
+                    try:
+                        response = await client.put(
+                            f"{api_url}/products/{product_info['woo_product_id']}",
+                            auth=(consumer_key, consumer_secret),
+                            json={"stock_quantity": product_info["new_stock"]}
+                        )
+                        woo_sync_results.append({
+                            "product_id": product_info["product_id"],
+                            "woo_product_id": product_info["woo_product_id"],
+                            "status": "synced" if response.status_code < 400 else "failed"
+                        })
+                    except Exception as e:
+                        woo_sync_results.append({
+                            "product_id": product_info["product_id"],
+                            "status": "failed",
+                            "error": str(e)
+                        })
+    
     return {
         "message": "GRN return processed successfully",
         "return_value": total_return_value,
         "journal_entry": entry_number,
-        "new_status": new_status
+        "new_status": new_status,
+        "settlement_type": data.settlement_type,
+        "supplier_credit_id": supplier_credit_id,
+        "woo_sync_results": woo_sync_results
     }
