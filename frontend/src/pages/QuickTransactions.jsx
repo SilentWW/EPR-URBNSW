@@ -441,6 +441,7 @@ export default function QuickTransactions() {
       case 'mfg_scrap': return 'Scrap/Reject';
       case 'mfg_reversal': return 'MFG Reversal';
       case 'manufacturing': return 'Manufacturing';
+      case 'raw_material_purchase': return 'RM Purchase';
       default: return 'Transaction';
     }
   };
