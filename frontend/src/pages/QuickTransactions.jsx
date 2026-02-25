@@ -406,6 +406,7 @@ export default function QuickTransactions() {
       case 'loan_repayment':
       case 'po_payment':
       case 'mfg_scrap':
+      case 'raw_material_purchase':
         return 'bg-red-50 border-red-200';
       case 'additional_charge':
       case 'mfg_reversal':
