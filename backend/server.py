@@ -112,6 +112,7 @@ class ProductCreate(BaseModel):
     manage_stock: bool = True  # WooCommerce stock management
     attributes: Optional[List[dict]] = None  # WooCommerce attributes
     woo_product_id: Optional[str] = None
+    product_type: str = "simple"  # simple or variable
 
 class ProductUpdate(BaseModel):
     sku: Optional[str] = None
