@@ -1860,6 +1860,288 @@ async def receive_purchase_order(order_id: str, current_user: dict = Depends(get
     
     return {"message": "Goods received successfully"}
 
+# Helper function to process additional charges
+async def process_additional_charges(
+    charges: List[dict],
+    order: dict,
+    company_id: str,
+    user_id: str
+):
+    """Process additional charges for GRN - creates journal entries and updates payables"""
+    
+    # Account mappings for charge types
+    CHARGE_ACCOUNT_MAP = {
+        "shipping": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
+        "courier": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
+        "customs": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
+        "handling": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
+        "other": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
+        "discount": {"code": "4200", "name": "Other Income", "type": "income"},
+    }
+    
+    total_expenses_to_payable = 0
+    total_discount = 0
+    journal_entries = []
+    
+    for charge in charges:
+        charge_type = charge["charge_type"]
+        amount = charge["amount"]
+        description = charge.get("description") or charge_type.replace("_", " ").title()
+        pay_immediately = charge.get("pay_immediately", False)
+        bank_account_id = charge.get("bank_account_id")
+        
+        account_info = CHARGE_ACCOUNT_MAP.get(charge_type, CHARGE_ACCOUNT_MAP["other"])
+        
+        if charge_type == "discount":
+            # Discount received - reduces payable and records as Other Income
+            total_discount += amount
+            
+            # Journal Entry: Debit AP, Credit Other Income
+            entry_number = f"DISC-{order['order_number']}-{str(uuid.uuid4())[:4].upper()}"
+            
+            # Get Accounts Payable account
+            ap_account = await db.accounts.find_one({
+                "company_id": company_id,
+                "account_code": "2100"  # Accounts Payable
+            })
+            
+            # Get Other Income account
+            income_account = await db.accounts.find_one({
+                "company_id": company_id,
+                "account_code": "4200"  # Other Income
+            })
+            
+            if ap_account and income_account:
+                journal_entry = {
+                    "id": str(uuid.uuid4()),
+                    "company_id": company_id,
+                    "entry_number": entry_number,
+                    "date": datetime.now(timezone.utc).isoformat(),
+                    "description": f"Discount Received - {order['order_number']}: {description}",
+                    "reference_type": "purchase_order",
+                    "reference_id": order["id"],
+                    "lines": [
+                        {
+                            "account_code": "2100",
+                            "account_name": ap_account["name"],
+                            "debit": amount,
+                            "credit": 0,
+                            "description": f"Discount reduces payable"
+                        },
+                        {
+                            "account_code": "4200",
+                            "account_name": income_account["name"],
+                            "debit": 0,
+                            "credit": amount,
+                            "description": f"Discount income"
+                        }
+                    ],
+                    "total_debit": amount,
+                    "total_credit": amount,
+                    "status": "posted",
+                    "created_by": user_id,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.journal_entries.insert_one(journal_entry)
+                
+                # Update account balances
+                await db.accounts.update_one(
+                    {"company_id": company_id, "account_code": "2100"},
+                    {"$inc": {"balance": -amount}}  # Reduce liability
+                )
+                await db.accounts.update_one(
+                    {"company_id": company_id, "account_code": "4200"},
+                    {"$inc": {"balance": amount}}  # Increase income
+                )
+                
+                journal_entries.append(entry_number)
+        else:
+            # Expense charge (shipping, courier, customs, handling, other)
+            entry_number = f"CHG-{order['order_number']}-{str(uuid.uuid4())[:4].upper()}"
+            
+            # Get expense account
+            expense_account = await db.accounts.find_one({
+                "company_id": company_id,
+                "account_code": account_info["code"]
+            })
+            
+            if pay_immediately and bank_account_id:
+                # Pay immediately from bank account
+                bank_account = await db.accounts.find_one({
+                    "company_id": company_id,
+                    "id": bank_account_id
+                })
+                
+                if expense_account and bank_account:
+                    journal_entry = {
+                        "id": str(uuid.uuid4()),
+                        "company_id": company_id,
+                        "entry_number": entry_number,
+                        "date": datetime.now(timezone.utc).isoformat(),
+                        "description": f"{description} - {order['order_number']} (Paid)",
+                        "reference_type": "purchase_order",
+                        "reference_id": order["id"],
+                        "lines": [
+                            {
+                                "account_code": account_info["code"],
+                                "account_name": expense_account["name"],
+                                "debit": amount,
+                                "credit": 0,
+                                "description": description
+                            },
+                            {
+                                "account_code": bank_account["account_code"],
+                                "account_name": bank_account["name"],
+                                "debit": 0,
+                                "credit": amount,
+                                "description": f"Payment for {description}"
+                            }
+                        ],
+                        "total_debit": amount,
+                        "total_credit": amount,
+                        "status": "posted",
+                        "created_by": user_id,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    await db.journal_entries.insert_one(journal_entry)
+                    
+                    # Update account balances
+                    await db.accounts.update_one(
+                        {"company_id": company_id, "account_code": account_info["code"]},
+                        {"$inc": {"balance": amount}}
+                    )
+                    await db.accounts.update_one(
+                        {"company_id": company_id, "id": bank_account_id},
+                        {"$inc": {"balance": -amount}}
+                    )
+                    
+                    journal_entries.append(entry_number)
+            else:
+                # Add to Accounts Payable
+                total_expenses_to_payable += amount
+                
+                ap_account = await db.accounts.find_one({
+                    "company_id": company_id,
+                    "account_code": "2100"
+                })
+                
+                if expense_account and ap_account:
+                    journal_entry = {
+                        "id": str(uuid.uuid4()),
+                        "company_id": company_id,
+                        "entry_number": entry_number,
+                        "date": datetime.now(timezone.utc).isoformat(),
+                        "description": f"{description} - {order['order_number']} (To Payable)",
+                        "reference_type": "purchase_order",
+                        "reference_id": order["id"],
+                        "lines": [
+                            {
+                                "account_code": account_info["code"],
+                                "account_name": expense_account["name"],
+                                "debit": amount,
+                                "credit": 0,
+                                "description": description
+                            },
+                            {
+                                "account_code": "2100",
+                                "account_name": ap_account["name"],
+                                "debit": 0,
+                                "credit": amount,
+                                "description": f"Payable for {description}"
+                            }
+                        ],
+                        "total_debit": amount,
+                        "total_credit": amount,
+                        "status": "posted",
+                        "created_by": user_id,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    await db.journal_entries.insert_one(journal_entry)
+                    
+                    # Update account balances
+                    await db.accounts.update_one(
+                        {"company_id": company_id, "account_code": account_info["code"]},
+                        {"$inc": {"balance": amount}}
+                    )
+                    await db.accounts.update_one(
+                        {"company_id": company_id, "account_code": "2100"},
+                        {"$inc": {"balance": amount}}
+                    )
+                    
+                    journal_entries.append(entry_number)
+    
+    return {
+        "journal_entries": journal_entries,
+        "total_expenses_to_payable": total_expenses_to_payable,
+        "total_discount": total_discount
+    }
+
+@api_router.post("/purchase-orders/{order_id}/additional-charges")
+async def add_additional_charges_to_po(
+    order_id: str,
+    data: GRNAdditionalCharges,
+    current_user: dict = Depends(get_current_user)
+):
+    """Add additional charges (shipping, courier, customs, handling, discount) to a purchase order"""
+    
+    order = await db.purchase_orders.find_one({
+        "id": order_id,
+        "company_id": current_user["company_id"]
+    })
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Process the charges
+    charges_list = [charge.model_dump() for charge in data.additional_charges]
+    result = await process_additional_charges(
+        charges_list,
+        order,
+        current_user["company_id"],
+        current_user["user_id"]
+    )
+    
+    # Calculate new totals
+    existing_charges = order.get("additional_charges", [])
+    all_charges = existing_charges + charges_list
+    
+    # Calculate charges summary
+    total_expenses = sum(c["amount"] for c in all_charges if c["charge_type"] != "discount")
+    total_discounts = sum(c["amount"] for c in all_charges if c["charge_type"] == "discount")
+    
+    # Update order with additional charges
+    new_total = order["subtotal"] + total_expenses - total_discounts
+    
+    await db.purchase_orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "additional_charges": all_charges,
+            "total_expenses": total_expenses,
+            "total_discounts": total_discounts,
+            "total": new_total,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    updated_order = await db.purchase_orders.find_one({"id": order_id}, {"_id": 0})
+    
+    return {
+        "message": "Additional charges added successfully",
+        "journal_entries": result["journal_entries"],
+        "order": updated_order
+    }
+
+@api_router.get("/grn/charge-types")
+async def get_charge_types(current_user: dict = Depends(get_current_user)):
+    """Get available charge types for GRN"""
+    return [
+        {"id": "shipping", "name": "Shipping Charges", "type": "expense"},
+        {"id": "courier", "name": "Courier Fees", "type": "expense"},
+        {"id": "customs", "name": "Customs/Import Duties", "type": "expense"},
+        {"id": "handling", "name": "Handling Fees", "type": "expense"},
+        {"id": "other", "name": "Other Charges", "type": "expense"},
+        {"id": "discount", "name": "Discount Received", "type": "income"},
+    ]
+
 # ============== PAYMENT ROUTES ==============
 
 @api_router.get("/payments")
