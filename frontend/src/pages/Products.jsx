@@ -184,7 +184,12 @@ export const Products = () => {
           categories: selectedCategories,
           category_names: formData.category_names || []
         });
-        toast.success('Product updated successfully');
+        // Show appropriate message based on whether product is linked to WooCommerce
+        if (selectedProduct.woo_product_id) {
+          toast.success('Product updated & synced to WooCommerce');
+        } else {
+          toast.success('Product updated successfully');
+        }
       } else {
         await productsAPI.create(data);
         toast.success('Product created successfully');
