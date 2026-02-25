@@ -124,6 +124,7 @@ export default function GRN() {
 
   const emptyItem = {
     product_id: '',
+    variation_id: '',  // For variable products
     product_name: '',
     sku: '',
     description: '',
@@ -138,6 +139,10 @@ export default function GRN() {
     tags: '',
     attributes: []
   };
+  
+  // State for variations when selecting a variable product
+  const [productVariations, setProductVariations] = useState({});
+  const [loadingVariations, setLoadingVariations] = useState({});
 
   useEffect(() => {
     fetchData();
