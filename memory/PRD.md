@@ -339,13 +339,39 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [x] **Frontend Implementation**
   - [x] "Add Charges" option in PO dropdown menu
   - [x] "Add Charges" button in GRN expanded view
-  - [x] Additional Charges dialog with:
-    - Charge type selector
-    - Description field
-    - Amount field
-    - Pay Now toggle with bank account selector (shows all accounts)
-    - Charges table showing added items
-    - Summary showing subtotal, expenses, discounts, new total
+  - [x] Additional Charges dialog with charge type, amount, pay now toggle
+
+### Phase 13 - GRN View & Return (COMPLETED ✅) - Feb 2026
+- [x] **GRN View Details**
+  - [x] View detailed GRN information in modal dialog
+  - [x] Shows GRN number, supplier, date, linked PO
+  - [x] Items table with SKU, product, qty, prices, line totals
+  - [x] Total Cost (COGS) summary
+  - [x] Notes and return history (if any)
+- [x] **GRN Return - Full or Partial**
+  - [x] Full Return: Return all items in GRN
+  - [x] Partial Return: Select specific items and quantities to return
+  - [x] Return reasons: "Return to Supplier" or "Damaged/Written Off"
+- [x] **GRN Return - Financial Impact**
+  - [x] Return to Supplier: Debit AP (reduce payable), Credit Inventory
+  - [x] Damaged/Written Off: Debit Operating Expenses (loss), Credit Inventory
+  - [x] Journal entries created with GRNRET- prefix
+  - [x] Inventory quantities reduced
+  - [x] Inventory movements recorded
+- [x] **Role-Based Access Control**
+  - [x] Only Admin and Manager can process GRN returns
+  - [x] All users can view GRN details
+- [x] **Backend Implementation**
+  - [x] `GRNReturn` and `GRNReturnItem` Pydantic models
+  - [x] `POST /api/grn/{id}/return` endpoint
+  - [x] Role check for admin/manager
+  - [x] Updates GRN status (returned/partial_return)
+- [x] **Frontend Implementation**
+  - [x] Actions dropdown with View Details and Return GRN options
+  - [x] View Details dialog with comprehensive GRN info
+  - [x] Return GRN dialog with return type, reason, item selection
+  - [x] Warning message about irreversible action
+  - [x] Status badges for returned/partial return GRNs
 
 ### Bug Fixes (Session - Feb 18, 2026)
 - [x] **Sales Order Payment Not Updating Bank Balance** - FIXED
