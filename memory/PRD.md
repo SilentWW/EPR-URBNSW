@@ -277,6 +277,20 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] On sale: Add packaging cost to COGS journal entry
   - [x] Backend API: `/api/packaging-items` (GET, POST, DELETE)
 
+### Phase 10 - Two-Way WooCommerce Product Sync (COMPLETED ✅) - Feb 2026
+- [x] **ERP to WooCommerce Product Sync**
+  - [x] When editing a product in ERP that is linked to WooCommerce, changes are automatically pushed to WooCommerce
+  - [x] Categories updated in ERP are synced to WooCommerce in real-time
+  - [x] Syncs: name, SKU, description, prices, stock, categories, tags, visibility
+- [x] **Backend Implementation**
+  - [x] New helper function `sync_product_to_woocommerce()` in `server.py`
+  - [x] Uses WooCommerce REST API `PUT /products/{id}` endpoint
+  - [x] Converts ERP category IDs to WooCommerce category IDs
+  - [x] Non-blocking: sync failures logged but don't fail the product update
+- [x] **Frontend Enhancement**
+  - [x] Success toast shows "Product updated & synced to WooCommerce" for linked products
+  - [x] Multi-category support with checkbox selection
+
 ### Bug Fixes (Session - Feb 18, 2026)
 - [x] **Sales Order Payment Not Updating Bank Balance** - FIXED
   - Root cause: Missing Chart of Accounts entries (specifically Accounts Receivable code 1300)
@@ -297,6 +311,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - **Sales Order Payment**: Fully tested - Payment recording updates bank balance, creates journal entries (REC- prefix)
 - **Sample Data Seeding**: Fully tested - New user registration seeds 38 default accounts, Balance Sheet balances correctly
 - **Financial Reports Consistency**: Verified - Balance Sheet balanced, Trial Balance balanced, Net Profit consistent across reports
+- **Two-Way WooCommerce Sync**: Verified - Product category updates sync from ERP to WooCommerce successfully
+
 
 ## Test Credentials
 - **Email**: test@demo.com
