@@ -544,6 +544,22 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Refresh button to reload data
   - [x] View Work Orders button
 
+### Phase 17 - Manufacturing Financial Integration & Consolidated Transactions (COMPLETED ✅) - Feb 25, 2026
+- [x] **Manufacturing Transactions in Consolidated List**
+  - [x] Material Issue transactions (mfg_material_issue)
+  - [x] Labor Cost transactions (mfg_labor)
+  - [x] Production Complete transactions (mfg_production)
+  - [x] Scrap/Reject transactions (mfg_scrap)
+  - [x] Manufacturing Reversal transactions (mfg_reversal)
+- [x] **Quick Transactions Page Enhancements**
+  - [x] Manufacturing filter option in dropdown
+  - [x] Proper icons for each manufacturing transaction type
+  - [x] Color coding: Production (green), Material Issue/Labor (indigo), Scrap (red)
+  - [x] Labels: Material Issue, Labor Cost, Production, Scrap/Reject
+- [x] **Backend Integration**
+  - [x] GET /api/simple-finance/all-transactions includes MFG- prefix journal entries
+  - [x] Filter by "manufacturing" shows all manufacturing-related transaction types
+
 ## Future/Backlog (P2)
 - [ ] Payroll Module
 - [ ] Manufacturing Module
