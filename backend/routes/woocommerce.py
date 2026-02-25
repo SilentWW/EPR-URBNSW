@@ -156,7 +156,7 @@ async def create_local_category(
     """Create a local product category"""
     company_id = current_user["company_id"]
     
-    category_id = str(uuid.uuid4())
+    category_id = generate_id()
     slug = name.lower().replace(" ", "-").replace("&", "and")
     
     category = {
