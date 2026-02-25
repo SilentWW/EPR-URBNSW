@@ -433,6 +433,12 @@ export default function QuickTransactions() {
       case 'grn_return': return 'GRN Return';
       case 'additional_charge': return 'Charge';
       case 'discount_received': return 'Discount';
+      case 'mfg_material_issue': return 'Material Issue';
+      case 'mfg_labor': return 'Labor Cost';
+      case 'mfg_production': return 'Production';
+      case 'mfg_scrap': return 'Scrap/Reject';
+      case 'mfg_reversal': return 'MFG Reversal';
+      case 'manufacturing': return 'Manufacturing';
       default: return 'Transaction';
     }
   };
