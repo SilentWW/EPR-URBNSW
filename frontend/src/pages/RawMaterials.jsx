@@ -108,15 +108,17 @@ export const RawMaterials = () => {
       if (search) params.search = search;
       if (categoryFilter && categoryFilter !== 'all') params.category = categoryFilter;
       
-      const [materialsRes, categoriesRes, suppliersRes] = await Promise.all([
+      const [materialsRes, categoriesRes, suppliersRes, bankAccountsRes] = await Promise.all([
         api.get('/manufacturing/raw-materials', { params }),
         api.get('/manufacturing/raw-materials/categories'),
-        api.get('/suppliers')
+        api.get('/suppliers'),
+        api.get('/bank-accounts')
       ]);
       
       setMaterials(materialsRes.data);
       setCategories(categoriesRes.data);
       setSuppliers(suppliersRes.data);
+      setBankAccounts(bankAccountsRes.data || []);
     } catch (error) {
       toast.error('Failed to fetch raw materials');
     } finally {
