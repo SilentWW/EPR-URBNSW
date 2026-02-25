@@ -57,6 +57,7 @@ export default function GRN() {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [allPurchaseOrders, setAllPurchaseOrders] = useState([]); // All POs for charges lookup
   const [wooCategories, setWooCategories] = useState([]);
   const [wooTags, setWooTags] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +65,21 @@ export default function GRN() {
   const [expandedGrn, setExpandedGrn] = useState(null);
   const [nextSku, setNextSku] = useState('');
   const [fromPO, setFromPO] = useState(null); // Track if GRN is being created from a PO
+  
+  // Additional charges state
+  const [chargesDialogOpen, setChargesDialogOpen] = useState(false);
+  const [chargeTypes, setChargeTypes] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [selectedPO, setSelectedPO] = useState(null);
+  const [additionalCharges, setAdditionalCharges] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [newCharge, setNewCharge] = useState({
+    charge_type: '',
+    description: '',
+    amount: '',
+    pay_immediately: false,
+    bank_account_id: ''
+  });
   
   const [formData, setFormData] = useState({
     supplier_id: '',
