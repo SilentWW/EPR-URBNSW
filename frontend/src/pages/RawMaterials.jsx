@@ -90,6 +90,7 @@ export const RawMaterials = () => {
   const [materials, setMaterials] = useState([]);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -98,7 +99,7 @@ export const RawMaterials = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
-  const [addStockData, setAddStockData] = useState({ quantity: '', cost_price: '', reference: '' });
+  const [addStockData, setAddStockData] = useState({ quantity: '', cost_price: '', total_cost: '', reference: '', bank_account_id: '' });
   const [submitting, setSubmitting] = useState(false);
 
   const fetchMaterials = async () => {
