@@ -93,6 +93,18 @@ export const PurchaseOrders = () => {
     notes: '',
   });
 
+  // Additional charges state
+  const [chargesDialogOpen, setChargesDialogOpen] = useState(false);
+  const [chargeTypes, setChargeTypes] = useState([]);
+  const [additionalCharges, setAdditionalCharges] = useState([]);
+  const [newCharge, setNewCharge] = useState({
+    charge_type: '',
+    description: '',
+    amount: '',
+    pay_immediately: false,
+    bank_account_id: ''
+  });
+
   const [newItem, setNewItem] = useState({
     product_id: '',
     quantity: 1,
