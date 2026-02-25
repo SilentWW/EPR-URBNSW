@@ -1493,7 +1493,7 @@ export default function GRN() {
 
       {/* Return GRN Dialog */}
       <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
-        <DialogContent className="max-w-2xl" data-testid="return-grn-dialog">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="return-grn-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600" style={{ fontFamily: 'Outfit, sans-serif' }}>
               <RotateCcw className="w-5 h-5" />
@@ -1506,6 +1506,30 @@ export default function GRN() {
           
           {selectedGrn && (
             <div className="space-y-4 py-4">
+              {/* PO Payment Status */}
+              {linkedPODetails && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm font-medium text-blue-800 mb-2">Purchase Order Payment Status</p>
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <span className="text-blue-600">PO Number:</span>
+                      <span className="ml-1 font-medium">{linkedPODetails.order_number}</span>
+                    </div>
+                    <div>
+                      <span className="text-blue-600">Total:</span>
+                      <span className="ml-1 font-medium">{formatCurrency(linkedPODetails.total)}</span>
+                    </div>
+                    <div>
+                      <span className="text-blue-600">Paid:</span>
+                      <span className="ml-1 font-medium">{formatCurrency(linkedPODetails.paid_amount)}</span>
+                      {linkedPODetails.paid_amount >= linkedPODetails.total && (
+                        <Badge className="ml-2 bg-green-100 text-green-800">Fully Paid</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Return Type */}
               <div className="space-y-2">
                 <Label>Return Type</Label>
@@ -1547,12 +1571,75 @@ export default function GRN() {
                     <SelectItem value="damaged">Damaged / Written Off</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500">
-                  {returnReason === 'supplier' 
-                    ? 'Goods will be sent back to supplier. Inventory reduced, AP adjusted.'
-                    : 'Goods will be written off as a loss. Inventory reduced, Loss recorded.'}
-                </p>
               </div>
+
+              {/* Settlement Type - Only for Return to Supplier */}
+              {returnReason === 'supplier' && (
+                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border">
+                  <Label className="text-base font-medium">How will supplier settle this return?</Label>
+                  <div className="space-y-3">
+                    <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border bg-white hover:bg-slate-50">
+                      <input
+                        type="radio"
+                        name="settlementType"
+                        value="refund"
+                        checked={returnSettlement === 'refund'}
+                        onChange={() => setReturnSettlement('refund')}
+                        className="w-4 h-4 mt-1"
+                      />
+                      <div>
+                        <span className="font-medium">Supplier Returns Money (Refund)</span>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Supplier will refund the amount to your bank/cash account
+                        </p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border bg-white hover:bg-slate-50">
+                      <input
+                        type="radio"
+                        name="settlementType"
+                        value="credit"
+                        checked={returnSettlement === 'credit'}
+                        onChange={() => setReturnSettlement('credit')}
+                        className="w-4 h-4 mt-1"
+                      />
+                      <div>
+                        <span className="font-medium">Supplier Sends More Qty (Credit)</span>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Amount will be tracked as credit with supplier for future orders
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Refund Account Selection */}
+                  {returnSettlement === 'refund' && (
+                    <div className="mt-3">
+                      <Label>Receive Refund To</Label>
+                      <Select value={refundAccountId} onValueChange={setRefundAccountId}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select account to receive refund" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map((acc) => (
+                            <SelectItem key={acc.id} value={acc.id}>
+                              {acc.name} ({acc.type}) - {formatCurrency(acc.balance)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Damaged/Written Off Info */}
+              {returnReason === 'damaged' && (
+                <div className="p-3 bg-amber-50 rounded-lg text-sm text-amber-800">
+                  <p className="font-medium">Damaged / Written Off</p>
+                  <p className="text-xs mt-1">Goods will be written off as a loss. Inventory reduced, Loss expense recorded.</p>
+                </div>
+              )}
 
               {/* Items Selection (for partial return) */}
               {returnType === 'partial' && (
