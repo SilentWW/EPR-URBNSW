@@ -4458,6 +4458,10 @@ app.include_router(grn.router, prefix="/api")
 simple_finance.set_db(db)
 app.include_router(simple_finance.router, prefix="/api")
 
+# Set database for variations router
+variations.set_db(db)
+app.include_router(variations.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
