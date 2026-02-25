@@ -903,55 +903,115 @@ export const Products = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-medium">Variation Attributes</Label>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addVariableAttribute}
-                    className="gap-1"
-                  >
-                    <Plus className="w-3 h-3" /> Add Attribute
-                  </Button>
+                  {wooAttributes.length === 0 && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={addVariableAttribute}
+                      className="gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add Attribute
+                    </Button>
+                  )}
                 </div>
-                <p className="text-sm text-slate-500">
-                  Define attributes like Color, Size. Enter options separated by commas.
-                </p>
                 
-                <div className="space-y-3 border rounded-lg p-4 bg-slate-50">
-                  {variableFormData.attributes.map((attr, idx) => (
-                    <div key={idx} className="flex gap-3 items-start">
-                      <div className="flex-1">
-                        <Label className="text-xs text-slate-500">Attribute Name</Label>
-                        <Input
-                          value={attr.name}
-                          onChange={(e) => handleVariableAttributeChange(idx, 'name', e.target.value)}
-                          placeholder="e.g., Color, Size"
-                          data-testid={`attr-name-${idx}`}
-                        />
-                      </div>
-                      <div className="flex-[2]">
-                        <Label className="text-xs text-slate-500">Options (comma separated)</Label>
-                        <Input
-                          value={attr.options}
-                          onChange={(e) => handleVariableAttributeChange(idx, 'options', e.target.value)}
-                          placeholder="e.g., Blue, Black, Red or S, M, L, XL"
-                          data-testid={`attr-options-${idx}`}
-                        />
-                      </div>
-                      {variableFormData.attributes.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeVariableAttribute(idx)}
-                          className="mt-5 text-red-500 hover:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
+                {loadingWooAttributes ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-500 py-4">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading attributes from WooCommerce...
+                  </div>
+                ) : wooAttributes.length > 0 ? (
+                  <>
+                    <p className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                      ✓ Select options from your WooCommerce attributes below
+                    </p>
+                    <div className="space-y-4 border rounded-lg p-4 bg-slate-50">
+                      {variableFormData.attributes.map((attr, idx) => (
+                        <div key={idx} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="font-medium text-slate-700">{attr.name}</Label>
+                            {attr.selectedOptions?.length > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {attr.selectedOptions.length} selected
+                              </Badge>
+                            )}
+                          </div>
+                          {attr.wooOptions && attr.wooOptions.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {attr.wooOptions.map((opt) => (
+                                <label 
+                                  key={opt.id || opt.name} 
+                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${
+                                    (attr.selectedOptions || []).includes(opt.name)
+                                      ? 'bg-purple-100 border-purple-400 text-purple-700'
+                                      : 'bg-white border-slate-200 hover:border-purple-300'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={(attr.selectedOptions || []).includes(opt.name)}
+                                    onChange={() => handleAttributeOptionToggle(idx, opt.name)}
+                                    className="w-3.5 h-3.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                  />
+                                  <span className="text-sm">{opt.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          ) : (
+                            <Input
+                              value={attr.options}
+                              onChange={(e) => handleVariableAttributeChange(idx, 'options', e.target.value)}
+                              placeholder="Enter options separated by commas"
+                              className="text-sm"
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-slate-500">
+                      No attributes found in WooCommerce. Enter manually below.
+                    </p>
+                    <div className="space-y-3 border rounded-lg p-4 bg-slate-50">
+                      {variableFormData.attributes.map((attr, idx) => (
+                        <div key={idx} className="flex gap-3 items-start">
+                          <div className="flex-1">
+                            <Label className="text-xs text-slate-500">Attribute Name</Label>
+                            <Input
+                              value={attr.name}
+                              onChange={(e) => handleVariableAttributeChange(idx, 'name', e.target.value)}
+                              placeholder="e.g., Color, Size"
+                              data-testid={`attr-name-${idx}`}
+                            />
+                          </div>
+                          <div className="flex-[2]">
+                            <Label className="text-xs text-slate-500">Options (comma separated)</Label>
+                            <Input
+                              value={attr.options}
+                              onChange={(e) => handleVariableAttributeChange(idx, 'options', e.target.value)}
+                              placeholder="e.g., Blue, Black, Red or S, M, L, XL"
+                              data-testid={`attr-options-${idx}`}
+                            />
+                          </div>
+                          {variableFormData.attributes.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeVariableAttribute(idx)}
+                              className="mt-5 text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 {/* Preview */}
                 {variableFormData.attributes.filter(a => a.name && a.options).length > 0 && (
