@@ -56,6 +56,8 @@ class GRNReturnItem(BaseModel):
 class GRNReturn(BaseModel):
     return_type: str  # 'full' or 'partial'
     return_reason: str  # 'supplier' or 'damaged'
+    settlement_type: Optional[str] = None  # 'refund' or 'credit' (only for supplier returns)
+    refund_account_id: Optional[str] = None  # Bank/cash account to receive refund
     notes: Optional[str] = None
     items: List[GRNReturnItem]
 
