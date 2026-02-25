@@ -628,6 +628,7 @@ async def return_grn(
     company_id = current_user["company_id"]
     return_date = datetime.now(timezone.utc).isoformat()
     total_return_value = 0
+    products_to_sync = []  # Track products for WooCommerce sync
     
     # Process each return item
     for item in data.items:
