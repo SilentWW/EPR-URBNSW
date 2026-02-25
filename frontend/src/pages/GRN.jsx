@@ -410,6 +410,86 @@ export default function GRN() {
     return { expenses, discounts, net: expenses - discounts };
   };
 
+  // View GRN handler
+  const handleViewGrn = (grn) => {
+    setSelectedGrn(grn);
+    setViewDialogOpen(true);
+  };
+
+  // Return GRN handlers
+  const handleOpenReturnDialog = (grn) => {
+    if (grn.status === 'returned') {
+      toast.error('This GRN has already been returned');
+      return;
+    }
+    setSelectedGrn(grn);
+    setReturnType('full');
+    setReturnReason('supplier');
+    setReturnNotes('');
+    // Initialize return items with all items selected for full return
+    setReturnItems(grn.items.map(item => ({
+      ...item,
+      selected: true,
+      return_quantity: item.quantity
+    })));
+    setReturnDialogOpen(true);
+  };
+
+  const handleReturnItemChange = (index, field, value) => {
+    const updated = [...returnItems];
+    updated[index][field] = value;
+    // If quantity changed, ensure it doesn't exceed original
+    if (field === 'return_quantity') {
+      const maxQty = selectedGrn.items[index].quantity;
+      updated[index].return_quantity = Math.min(Math.max(0, parseInt(value) || 0), maxQty);
+    }
+    setReturnItems(updated);
+  };
+
+  const handleSubmitReturn = async () => {
+    // Validate
+    const itemsToReturn = returnType === 'full' 
+      ? selectedGrn.items.map(item => ({ ...item, return_quantity: item.quantity }))
+      : returnItems.filter(item => item.selected && item.return_quantity > 0);
+    
+    if (itemsToReturn.length === 0) {
+      toast.error('Please select at least one item to return');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post(`/grn/${selectedGrn.id}/return`, {
+        return_type: returnType,
+        return_reason: returnReason,
+        notes: returnNotes,
+        items: itemsToReturn.map(item => ({
+          product_id: item.product_id,
+          product_name: item.product_name,
+          sku: item.sku,
+          quantity: item.return_quantity || item.quantity,
+          cost_price: item.cost_price
+        }))
+      });
+      toast.success('GRN return processed successfully');
+      setReturnDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to process return');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const calculateReturnTotal = () => {
+    if (returnType === 'full') {
+      return selectedGrn?.items.reduce((sum, item) => sum + (item.quantity * item.cost_price), 0) || 0;
+    }
+    return returnItems
+      .filter(item => item.selected && item.return_quantity > 0)
+      .reduce((sum, item) => sum + (item.return_quantity * item.cost_price), 0);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
