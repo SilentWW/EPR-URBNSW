@@ -514,10 +514,33 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Finished goods automatically sync to WooCommerce after QC completion
   - [x] Updates product stock in WooCommerce
 - [x] **UI Pages**
+  - [x] `/manufacturing` - Manufacturing Dashboard with KPIs (added Feb 25, 2026)
   - [x] `/raw-materials` - Raw Materials management
   - [x] `/bom` - Bill of Materials management
   - [x] `/work-orders` - Work Order management
   - [x] Manufacturing section in sidebar navigation
+
+### Phase 16 - Manufacturing Dashboard (COMPLETED ✅) - Feb 25, 2026
+- [x] **KPI Cards**
+  - [x] This Month Production value and units produced
+  - [x] Orders Completed count
+  - [x] Active Orders count (in progress)
+  - [x] Low Stock Alerts count
+- [x] **Work Order Status Breakdown**
+  - [x] Visual progress bars for all statuses
+  - [x] Status counts: Draft, Materials Issued, In Progress, QC Pending, Completed, Cancelled
+  - [x] Total work orders summary
+- [x] **Raw Material Stock Alerts**
+  - [x] Display low stock materials with threshold info
+  - [x] "All materials in stock" message when no alerts
+- [x] **Recent Work Orders Table**
+  - [x] Shows WO Number, Product, Quantity, Completed, Est. Cost, Status
+  - [x] Clickable rows navigate to Work Orders page
+- [x] **Quick Action Cards**
+  - [x] Navigate to Raw Materials, BOM, Work Orders pages
+- [x] **Dashboard Actions**
+  - [x] Refresh button to reload data
+  - [x] View Work Orders button
 
 ## Future/Backlog (P2)
 - [ ] Payroll Module
