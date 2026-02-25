@@ -1871,11 +1871,11 @@ async def process_additional_charges(
     
     # Account mappings for charge types
     CHARGE_ACCOUNT_MAP = {
-        "shipping": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
-        "courier": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
-        "customs": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
-        "handling": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
-        "other": {"code": "6100", "name": "Operating Expenses", "type": "expense"},
+        "shipping": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
+        "courier": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
+        "customs": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
+        "handling": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
+        "other": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
         "discount": {"code": "4200", "name": "Other Income", "type": "income"},
     }
     
