@@ -91,8 +91,11 @@ export default function GRN() {
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [returnType, setReturnType] = useState('full'); // 'full' or 'partial'
   const [returnReason, setReturnReason] = useState('supplier'); // 'supplier' or 'damaged'
+  const [returnSettlement, setReturnSettlement] = useState('refund'); // 'refund' or 'credit'
+  const [refundAccountId, setRefundAccountId] = useState('');
   const [returnNotes, setReturnNotes] = useState('');
   const [returnItems, setReturnItems] = useState([]); // For partial returns
+  const [linkedPODetails, setLinkedPODetails] = useState(null); // PO payment status
   
   // Additional charges state
   const [chargesDialogOpen, setChargesDialogOpen] = useState(false);
