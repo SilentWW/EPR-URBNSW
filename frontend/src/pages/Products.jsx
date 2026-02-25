@@ -211,12 +211,47 @@ export const Products = () => {
   const handleOpenVariableDialog = async () => {
     try {
       const skuRes = await api.get('/grn/next-sku');
+      
+      // Initialize attributes from WooCommerce if available
+      let initialAttributes = [];
+      if (wooAttributes.length > 0) {
+        // Pre-populate with WooCommerce attributes and their options
+        initialAttributes = wooAttributes.map(attr => ({
+          id: attr.id,
+          name: attr.name,
+          options: attr.options.map(opt => opt.name).join(', '),
+          wooOptions: attr.options,  // Store original options for reference
+          selectedOptions: []  // For multi-select
+        }));
+      } else {
+        // Fallback to manual entry
+        initialAttributes = [
+          { name: 'Color', options: '', selectedOptions: [] },
+          { name: 'Size', options: '', selectedOptions: [] }
+        ];
+      }
+      
       setVariableFormData({
         ...initialVariableFormData,
-        sku: skuRes.data.next_sku
+        sku: skuRes.data.next_sku,
+        attributes: initialAttributes
       });
     } catch (error) {
-      setVariableFormData(initialVariableFormData);
+      setVariableFormData({
+        ...initialVariableFormData,
+        attributes: wooAttributes.length > 0 
+          ? wooAttributes.map(attr => ({
+              id: attr.id,
+              name: attr.name,
+              options: attr.options.map(opt => opt.name).join(', '),
+              wooOptions: attr.options,
+              selectedOptions: []
+            }))
+          : [
+              { name: 'Color', options: '', selectedOptions: [] },
+              { name: 'Size', options: '', selectedOptions: [] }
+            ]
+      });
     }
     setVariableDialogOpen(true);
   };
@@ -227,10 +262,29 @@ export const Products = () => {
     setVariableFormData({ ...variableFormData, attributes: newAttributes });
   };
 
+  const handleAttributeOptionToggle = (attrIndex, optionName) => {
+    const newAttributes = [...variableFormData.attributes];
+    const attr = newAttributes[attrIndex];
+    const currentSelected = attr.selectedOptions || [];
+    
+    if (currentSelected.includes(optionName)) {
+      // Remove option
+      attr.selectedOptions = currentSelected.filter(o => o !== optionName);
+    } else {
+      // Add option
+      attr.selectedOptions = [...currentSelected, optionName];
+    }
+    
+    // Update options string based on selected
+    attr.options = attr.selectedOptions.join(', ');
+    
+    setVariableFormData({ ...variableFormData, attributes: newAttributes });
+  };
+
   const addVariableAttribute = () => {
     setVariableFormData({
       ...variableFormData,
-      attributes: [...variableFormData.attributes, { name: '', options: '' }]
+      attributes: [...variableFormData.attributes, { name: '', options: '', selectedOptions: [] }]
     });
   };
 
