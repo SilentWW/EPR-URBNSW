@@ -118,9 +118,13 @@ export const Products = () => {
         sku: product.sku,
         name: product.name,
         category: product.category || '',
+        categories: product.categories || [],
+        category_names: product.category_names || [],
       });
+      setSelectedCategories(product.categories || []);
     } else {
       setSelectedProduct(null);
+      setSelectedCategories([]);
       // Fetch next available SKU for new product
       try {
         const skuRes = await api.get('/grn/next-sku');
@@ -133,6 +137,25 @@ export const Products = () => {
       }
     }
     setDialogOpen(true);
+  };
+
+  const handleCategoryToggle = (categoryId, categoryName) => {
+    setSelectedCategories(prev => {
+      const isSelected = prev.includes(categoryId);
+      if (isSelected) {
+        // Remove category
+        const newCategories = prev.filter(id => id !== categoryId);
+        const newNames = formData.category_names.filter(name => name !== categoryName);
+        setFormData(f => ({ ...f, categories: newCategories, category_names: newNames }));
+        return newCategories;
+      } else {
+        // Add category
+        const newCategories = [...prev, categoryId];
+        const newNames = [...(formData.category_names || []), categoryName];
+        setFormData(f => ({ ...f, categories: newCategories, category_names: newNames }));
+        return newCategories;
+      }
+    });
   };
 
   const handleSubmit = async (e) => {
