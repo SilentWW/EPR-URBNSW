@@ -210,17 +210,30 @@ class SalesOrderUpdate(BaseModel):
     notes: Optional[str] = None
 
 # Purchase Order Models
+class AdditionalCharge(BaseModel):
+    charge_type: str  # shipping, courier, customs, handling, other, discount
+    description: Optional[str] = None
+    amount: float
+    pay_immediately: bool = False  # True = pay from bank, False = add to payable
+    bank_account_id: Optional[str] = None  # Required if pay_immediately is True
+
 class PurchaseOrderCreate(BaseModel):
     supplier_id: str
     items: List[OrderItem]
+    additional_charges: Optional[List[AdditionalCharge]] = []
     notes: Optional[str] = None
 
 class PurchaseOrderUpdate(BaseModel):
     supplier_id: Optional[str] = None
     items: Optional[List[OrderItem]] = None
+    additional_charges: Optional[List[AdditionalCharge]] = None
     status: Optional[str] = None
     payment_status: Optional[str] = None
     notes: Optional[str] = None
+
+# GRN Additional Charges Model
+class GRNAdditionalCharges(BaseModel):
+    additional_charges: List[AdditionalCharge]
 
 # Payment Models
 class PaymentCreate(BaseModel):
