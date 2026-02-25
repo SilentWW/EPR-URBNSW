@@ -371,7 +371,7 @@ export const Products = () => {
           </h2>
           <p className="text-slate-500 mt-1">{products.length} products in inventory</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             variant="outline" 
             onClick={syncAllVariations}
@@ -380,11 +380,19 @@ export const Products = () => {
             data-testid="sync-variations-btn"
           >
             {syncingVariations ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Sync Variations from WooCommerce
+            Sync from WooCommerce
+          </Button>
+          <Button 
+            onClick={handleOpenVariableDialog} 
+            className="gap-2 bg-purple-600 hover:bg-purple-700" 
+            data-testid="add-variable-product-btn"
+          >
+            <Layers className="w-4 h-4" />
+            Create Variable Product
           </Button>
           <Button onClick={() => handleOpenDialog()} className="gap-2 bg-indigo-600 hover:bg-indigo-700" data-testid="add-product-btn">
             <Plus className="w-4 h-4" />
-            Add Product
+            Add Simple Product
           </Button>
         </div>
       </div>
