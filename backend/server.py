@@ -1702,17 +1702,86 @@ async def create_purchase_order(data: PurchaseOrderCreate, current_user: dict = 
 
 @api_router.put("/purchase-orders/{order_id}")
 async def update_purchase_order(order_id: str, data: PurchaseOrderUpdate, current_user: dict = Depends(get_current_user)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    # Role check - only admin and manager can edit
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin and manager can edit purchase orders")
     
-    result = await db.purchase_orders.update_one(
-        {"id": order_id, "company_id": current_user["company_id"]},
-        {"$set": update_data}
-    )
-    if result.matched_count == 0:
+    # Check if order exists
+    existing_order = await db.purchase_orders.find_one({
+        "id": order_id,
+        "company_id": current_user["company_id"]
+    })
+    if not existing_order:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # Cannot edit received orders
+    if existing_order["status"] == "received" and data.items is not None:
+        raise HTTPException(status_code=400, detail="Cannot modify items of a received order")
+    
+    update_data = {}
+    
+    # Handle supplier update
+    if data.supplier_id:
+        supplier = await db.suppliers.find_one({
+            "id": data.supplier_id,
+            "company_id": current_user["company_id"]
+        })
+        if not supplier:
+            raise HTTPException(status_code=404, detail="Supplier not found")
+        update_data["supplier_id"] = data.supplier_id
+        update_data["supplier_name"] = supplier["name"]
+    
+    # Handle items update - recalculate totals
+    if data.items is not None:
+        items_list = [item.model_dump() for item in data.items]
+        subtotal = sum(item["total"] for item in items_list)
+        update_data["items"] = items_list
+        update_data["subtotal"] = subtotal
+        update_data["total"] = subtotal
+    
+    # Handle other fields
+    if data.status is not None:
+        update_data["status"] = data.status
+    if data.payment_status is not None:
+        update_data["payment_status"] = data.payment_status
+    if data.notes is not None:
+        update_data["notes"] = data.notes
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.purchase_orders.update_one(
+        {"id": order_id},
+        {"$set": update_data}
+    )
+    
     return await db.purchase_orders.find_one({"id": order_id}, {"_id": 0})
+
+@api_router.delete("/purchase-orders/{order_id}")
+async def delete_purchase_order(order_id: str, current_user: dict = Depends(get_current_user)):
+    # Role check - only admin and manager can delete
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin and manager can delete purchase orders")
+    
+    # Check if order exists
+    order = await db.purchase_orders.find_one({
+        "id": order_id,
+        "company_id": current_user["company_id"]
+    })
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Cannot delete received orders (inventory already affected)
+    if order["status"] == "received":
+        raise HTTPException(status_code=400, detail="Cannot delete a received order. Inventory has already been updated.")
+    
+    # Cannot delete orders with payments
+    if order["paid_amount"] > 0:
+        raise HTTPException(status_code=400, detail="Cannot delete an order with recorded payments")
+    
+    # Delete the order
+    await db.purchase_orders.delete_one({"id": order_id})
+    
+    return {"message": "Purchase order deleted successfully"}
 
 @api_router.post("/purchase-orders/{order_id}/receive")
 async def receive_purchase_order(order_id: str, current_user: dict = Depends(get_current_user)):
