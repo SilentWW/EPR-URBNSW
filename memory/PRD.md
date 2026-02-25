@@ -474,10 +474,12 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [ ] Multi-Currency Support
 - [ ] Bank Reconciliation
 - [ ] WooCommerce End-to-End Testing
+- [ ] Credit-based payment schemes (30, 60, 90 days) for purchase orders
+- [ ] WooCommerce conflict resolution & batch import
 
 ## Test Credentials
-- **Email**: admin@example.com
-- **Password**: admin123
+- **Email**: lahiruraja97@gmail.com
+- **Password**: password123
 
 ## File Structure
 ```
@@ -488,7 +490,11 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │   │   ├── finance.py     # Finance module routes
 │   │   ├── simple_finance.py # Simplified accounting for non-accountants
 │   │   ├── admin.py       # Admin module routes
-│   │   └── woocommerce.py # WooCommerce integration
+│   │   ├── woocommerce.py # WooCommerce integration
+│   │   ├── variations.py  # Product variations management (NEW)
+│   │   ├── grn.py         # Goods Received Note routes
+│   │   ├── purchasing.py  # Purchase Order routes
+│   │   └── transactions.py # Consolidated transactions
 │   ├── models/
 │   │   ├── finance.py     # Finance data models
 │   │   └── admin.py       # Admin data models
@@ -499,6 +505,9 @@ Build a cloud-based ERP system for business operations with the intention of sel
 ├── frontend/
 │   └── src/
 │       ├── pages/
+│       │   ├── Products.jsx        # Product list with variations support
+│       │   ├── PurchaseOrders.jsx  # PO with variation selection
+│       │   ├── GRN.jsx             # GRN with variation support
 │       │   ├── ChartOfAccounts.jsx
 │       │   ├── GeneralLedger.jsx
 │       │   ├── FinancialReports.jsx
@@ -513,4 +522,4 @@ Build a cloud-based ERP system for business operations with the intention of sel
 
 ---
 *Last Updated: February 25, 2026*
-*Version: 2.5.0*
+*Version: 2.6.0*
