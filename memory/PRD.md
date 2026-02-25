@@ -453,10 +453,12 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Sync to WooCommerce checkbox
 
 ## Testing Status
-- **Backend Tests**: 100% passed (iteration_10)
+- **Backend Tests**: 100% passed (iteration_13)
 - **Frontend Tests**: 100% passed (all UI flows verified)
 - **Manufacturing Dashboard Tests**: 100% passed (iteration_12 - Feb 25, 2026)
-- **Last Test Run**: iteration_12.json (Feb 25, 2026)
+- **Manufacturing Financial Integration Tests**: 100% passed (iteration_13 - Feb 25, 2026)
+- **Consolidated Transaction List Tests**: 100% passed - 57 total transactions including 12 manufacturing
+- **Last Test Run**: iteration_13.json (Feb 25, 2026)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
 - **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
