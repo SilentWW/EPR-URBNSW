@@ -198,7 +198,7 @@ export default function QuickTransactions() {
       });
       toast.success(response.data.message);
       setActiveModal(null);
-      setExpenseForm({ expense_type: '', description: '', amount: '', vendor: '', payment_method: 'bank', reference: '', notes: '', date: getTodayDate() });
+      setExpenseForm({ expense_type: '', expense_account_code: '', description: '', amount: '', vendor: '', bank_account_id: '', payment_method: 'bank', reference: '', notes: '', date: getTodayDate() });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record expense');
