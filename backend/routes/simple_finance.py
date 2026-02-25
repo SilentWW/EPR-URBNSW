@@ -1338,6 +1338,29 @@ async def get_all_transactions(
             "created_at": mfg["created_at"]
         })
     
+    # 8. Get Raw Material Purchase Transactions (from journal entries with RM- prefix)
+    raw_material_txns = await db.journal_entries.find(
+        {
+            "company_id": company_id,
+            "entry_number": {"$regex": "^RM-"},
+            "is_reversed": {"$ne": True}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    for rm in raw_material_txns:
+        all_transactions.append({
+            "id": rm["id"],
+            "date": rm.get("date") or rm["created_at"],
+            "description": rm.get("description", "Raw Material Purchase"),
+            "amount": rm.get("total_debit", 0),
+            "transaction_type": "raw_material_purchase",
+            "category": "manufacturing",
+            "reference": rm.get("entry_number", ""),
+            "source": "Raw Materials",
+            "created_at": rm["created_at"]
+        })
+    
     # Remove duplicates based on id
     seen_ids = set()
     unique_transactions = []
