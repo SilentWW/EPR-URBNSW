@@ -57,6 +57,26 @@ class VariationUpdate(BaseModel):
     stock_quantity: Optional[int] = None
     weight: Optional[float] = None
 
+# Models for creating variable products from ERP
+class ProductAttribute(BaseModel):
+    name: str  # e.g., "Color", "Size"
+    options: List[str]  # e.g., ["Blue", "Black", "Red"] or ["S", "M", "L", "XL"]
+
+class VariableProductCreate(BaseModel):
+    name: str
+    sku: str
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    category: Optional[str] = None
+    attributes: List[ProductAttribute]  # Define Color, Size options
+    generate_variations: bool = True  # Auto-generate all combinations
+    sync_to_woo: bool = True
+
+class BulkVariationCreate(BaseModel):
+    parent_product_id: str
+    variations: List[VariationCreate]
+    sync_to_woo: bool = True
+
 # ============== WOOCOMMERCE CLIENT HELPER ==============
 
 async def get_woo_client(company_id: str):
