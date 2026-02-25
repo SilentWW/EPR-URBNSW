@@ -1926,14 +1926,14 @@ async def process_additional_charges(
                             "account_name": ap_account["name"],
                             "debit": amount,
                             "credit": 0,
-                            "description": f"Discount reduces payable"
+                            "description": "Discount reduces payable"
                         },
                         {
                             "account_code": "4200",
                             "account_name": income_account["name"],
                             "debit": 0,
                             "credit": amount,
-                            "description": f"Discount income"
+                            "description": "Discount income"
                         }
                     ],
                     "total_debit": amount,
