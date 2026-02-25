@@ -79,7 +79,9 @@ const formatDate = (dateStr) => {
 export default function QuickTransactions() {
   const [investors, setInvestors] = useState([]);
   const [bankAccounts, setBankAccounts] = useState([]);
-  const [recentTransactions, setRecentTransactions] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, per_page: 15, total: 0, total_pages: 0 });
+  const [transactionFilter, setTransactionFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
