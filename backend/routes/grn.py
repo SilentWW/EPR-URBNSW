@@ -23,6 +23,7 @@ def set_db(database):
 
 class GRNItem(BaseModel):
     product_id: Optional[str] = None
+    variation_id: Optional[str] = None  # For variable products
     product_name: str
     sku: Optional[str] = None
     description: Optional[str] = None
@@ -48,6 +49,7 @@ class GRNCreate(BaseModel):
 
 class GRNReturnItem(BaseModel):
     product_id: Optional[str] = None
+    variation_id: Optional[str] = None  # For variable products
     product_name: str
     sku: Optional[str] = None
     quantity: int
