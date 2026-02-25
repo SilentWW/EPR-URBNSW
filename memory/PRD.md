@@ -312,6 +312,35 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Delete confirmation dialog with warning message
   - [x] Edit/Delete options only visible to admin/manager roles in dropdown menu
 
+### Phase 12 - GRN Additional Charges (COMPLETED ✅) - Feb 2026
+- [x] **Additional Charge Types Supported**
+  - [x] Shipping Charges → Operating Expenses (6000)
+  - [x] Courier Fees → Operating Expenses (6000)
+  - [x] Customs/Import Duties → Operating Expenses (6000)
+  - [x] Handling Fees → Operating Expenses (6000)
+  - [x] Other Charges → Operating Expenses (6000)
+  - [x] Discount Received → Other Income (4900) - reduces total payable
+- [x] **Payment Options**
+  - [x] Add to Accounts Payable (pay later with PO payment)
+  - [x] Pay immediately from bank/cash account
+- [x] **Journal Entries Created**
+  - [x] Expenses: Debit Operating Expenses, Credit AP (or Bank if paid immediately)
+  - [x] Discounts: Debit AP (reduce payable), Credit Other Income
+- [x] **Backend Implementation**
+  - [x] `AdditionalCharge` Pydantic model
+  - [x] `POST /api/purchase-orders/{id}/additional-charges` endpoint
+  - [x] `GET /api/grn/charge-types` endpoint
+  - [x] `process_additional_charges()` helper function
+- [x] **Frontend Implementation**
+  - [x] "Add Charges" option in PO dropdown menu
+  - [x] Additional Charges dialog with:
+    - Charge type selector
+    - Description field
+    - Amount field
+    - Pay Now toggle with bank account selector
+    - Charges table showing added items
+    - Summary showing subtotal, expenses, discounts, new total
+
 ### Bug Fixes (Session - Feb 18, 2026)
 - [x] **Sales Order Payment Not Updating Bank Balance** - FIXED
   - Root cause: Missing Chart of Accounts entries (specifically Accounts Receivable code 1300)
@@ -334,6 +363,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - **Financial Reports Consistency**: Verified - Balance Sheet balanced, Trial Balance balanced, Net Profit consistent across reports
 - **Two-Way WooCommerce Sync**: Verified - Product category updates sync from ERP to WooCommerce successfully
 - **Purchase Order Edit/Delete**: Verified - Role-based access (admin/manager only), business rules enforced
+- **GRN Additional Charges**: Verified - Journal entries created correctly (CHG- prefix), account balances updated
 
 
 ## Test Credentials
