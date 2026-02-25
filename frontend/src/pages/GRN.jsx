@@ -598,7 +598,46 @@ export default function GRN() {
                       </div>
                     )}
                     
+                    {/* Show additional charges if any exist on linked PO */}
+                    {grn.po_id && (() => {
+                      const linkedPO = allPurchaseOrders.find(po => po.id === grn.po_id);
+                      if (linkedPO && linkedPO.additional_charges && linkedPO.additional_charges.length > 0) {
+                        return (
+                          <div className="mt-3 p-3 bg-amber-50 rounded-lg">
+                            <p className="text-sm font-medium text-amber-800 mb-2">Additional Charges (from PO)</p>
+                            <div className="space-y-1">
+                              {linkedPO.additional_charges.map((charge, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span className="text-slate-600">{charge.charge_type_name || charge.charge_type}</span>
+                                  <span className={charge.charge_type === 'discount' ? 'text-green-600' : 'text-slate-800'}>
+                                    {charge.charge_type === 'discount' ? '-' : ''}{formatCurrency(charge.amount)}
+                                  </span>
+                                </div>
+                              ))}
+                              <div className="border-t border-amber-200 pt-1 mt-1 flex justify-between font-medium">
+                                <span>Net Charges</span>
+                                <span>{formatCurrency(linkedPO.total_expenses - linkedPO.total_discounts)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    
                     <div className="mt-3 flex justify-end gap-2">
+                      {/* Add Charges button - only for GRNs linked to a PO */}
+                      {grn.po_id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenChargesDialog(grn)}
+                          data-testid={`add-charges-${grn.id}`}
+                        >
+                          <TruckIcon className="w-4 h-4 mr-1" />
+                          Add Charges
+                        </Button>
+                      )}
                       {grn.woo_sync_status !== 'synced' && (
                         <Button
                           variant="outline"
