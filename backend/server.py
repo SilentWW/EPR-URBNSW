@@ -216,6 +216,8 @@ class PurchaseOrderCreate(BaseModel):
     notes: Optional[str] = None
 
 class PurchaseOrderUpdate(BaseModel):
+    supplier_id: Optional[str] = None
+    items: Optional[List[OrderItem]] = None
     status: Optional[str] = None
     payment_status: Optional[str] = None
     notes: Optional[str] = None
