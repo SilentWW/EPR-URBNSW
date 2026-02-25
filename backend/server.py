@@ -4465,6 +4465,10 @@ app.include_router(simple_finance.router, prefix="/api")
 variations.set_db(db)
 app.include_router(variations.router, prefix="/api")
 
+# Set database for manufacturing router
+manufacturing.set_db(db)
+app.include_router(manufacturing.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
