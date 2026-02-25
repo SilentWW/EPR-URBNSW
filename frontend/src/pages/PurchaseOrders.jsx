@@ -428,6 +428,28 @@ export const PurchaseOrders = () => {
                               Record Payment
                             </DropdownMenuItem>
                           )}
+                          {/* Edit and Delete - only for admin and manager */}
+                          {canEditDelete && order.status === 'pending' && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleOpenEditDialog(order)}>
+                                <Pencil className="w-4 h-4 mr-2" />
+                                Edit Order
+                              </DropdownMenuItem>
+                              {order.paid_amount === 0 && (
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Order
+                                </DropdownMenuItem>
+                              )}
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
