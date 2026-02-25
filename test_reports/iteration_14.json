@@ -1,0 +1,105 @@
+{
+  "summary": "Raw Material Add Stock with Bank Account Bug Fix - ALL TESTS PASSED. Backend API correctly creates journal entries with RM- prefix when bank account is selected, reduces bank balance, and includes raw material purchases in manufacturing filter. Frontend Add Stock dialog displays all required fields: quantity, unit cost price, total cost (auto-calculates), bank account selector dropdown, and reference field.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "add_stock_dialog_bank_selector": {
+      "status": "PASS",
+      "details": "Add Stock dialog shows 'Pay From Account' dropdown with bank accounts and current balances"
+    },
+    "add_stock_dialog_unit_cost_price": {
+      "status": "PASS",
+      "details": "Unit Cost Price field shown, pre-populated with material's cost price"
+    },
+    "add_stock_dialog_total_cost": {
+      "status": "PASS",
+      "details": "Total Cost field shown, auto-calculates when quantity or unit price changes"
+    },
+    "add_stock_total_cost_auto_calculation": {
+      "status": "PASS",
+      "details": "Total Cost = Quantity x Unit Cost Price. Verified: 10 x 100 = 1000.00"
+    },
+    "add_stock_with_bank_creates_journal_entry": {
+      "status": "PASS",
+      "details": "Adding stock WITH bank account creates journal entry with RM- prefix (RM-RM0003-2ed71e)"
+    },
+    "add_stock_with_bank_reduces_balance": {
+      "status": "PASS",
+      "details": "Bank account balance reduced from 29899.87 to 29649.87 (reduced by 250)"
+    },
+    "add_stock_without_bank_works": {
+      "status": "PASS",
+      "details": "Adding stock WITHOUT bank account works normally, journal_entry_created: false"
+    },
+    "rm_purchase_in_quick_transactions": {
+      "status": "PASS",
+      "details": "Raw material purchase appears in Quick Transactions with 'RM Purchase' label"
+    },
+    "manufacturing_filter_includes_rm_purchase": {
+      "status": "PASS",
+      "details": "Manufacturing filter includes raw_material_purchase type along with mfg_* types. 13 total manufacturing transactions found."
+    }
+  },
+  "api_tests": {
+    "POST /api/manufacturing/raw-materials/{id}/add-stock": {
+      "with_bank_account": {
+        "status": "PASS",
+        "response": {
+          "message": "Stock added successfully",
+          "new_quantity": 90,
+          "total_cost": 250,
+          "journal_entry_created": true
+        }
+      },
+      "without_bank_account": {
+        "status": "PASS",
+        "response": {
+          "message": "Stock added successfully",
+          "journal_entry_created": false
+        }
+      }
+    },
+    "GET /api/simple-finance/all-transactions?transaction_type=manufacturing": {
+      "status": "PASS",
+      "response": {
+        "total_transactions": 13,
+        "transaction_types_returned": ["raw_material_purchase", "mfg_material_issue", "mfg_labor", "mfg_production", "mfg_scrap"]
+      }
+    },
+    "GET /api/bank-accounts": {
+      "status": "PASS",
+      "details": "Returns bank accounts with current_balance field"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_raw_material_stock_bank.py",
+    "/app/test_reports/pytest/pytest_raw_material_stock.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_raw_material_stock_bank.py"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all 9 features verified via UI automation)"
+  },
+  "test_credentials": {
+    "email": "lahiruraja97@gmail.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "None - used existing raw materials (Buttons RM0003, Cotton RM0001, treads RM0004, zipper RM0002) and bank account (Cash In Hand)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Raw material add stock with bank account integration fully working. Journal entries created with RM- prefix appear in Quick Transactions under 'RM Purchase' label. Manufacturing filter correctly includes raw_material_purchase transactions. Bank balance is correctly reduced when adding stock with bank account selected.",
+  "mocked_apis": {
+    "has_mocked_apis": false
+  }
+}
