@@ -210,6 +210,52 @@ async def sync_woo_categories(current_user: dict = Depends(get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to sync categories: {str(e)}")
 
+# ============== PRODUCT ATTRIBUTES ==============
+
+@router.get("/attributes")
+async def get_woo_attributes(current_user: dict = Depends(get_current_user)):
+    """Get all product attributes from WooCommerce (e.g., Color, Size)"""
+    try:
+        client = await get_woo_client(current_user["company_id"])
+        attributes = await client.get("products/attributes", params={"per_page": 100})
+        
+        result = []
+        for attr in attributes:
+            # Fetch terms (options) for each attribute
+            try:
+                terms = await client.get(f"products/attributes/{attr['id']}/terms", params={"per_page": 100})
+                options = [{"id": t["id"], "name": t["name"], "slug": t["slug"]} for t in terms]
+            except Exception:
+                options = []
+            
+            result.append({
+                "id": attr["id"],
+                "name": attr["name"],
+                "slug": attr["slug"],
+                "type": attr.get("type", "select"),
+                "order_by": attr.get("order_by", "menu_order"),
+                "has_archives": attr.get("has_archives", False),
+                "options": options
+            })
+        
+        return result
+    except HTTPException:
+        # Return empty list if WooCommerce not configured
+        return []
+
+@router.get("/attributes/{attribute_id}/terms")
+async def get_woo_attribute_terms(
+    attribute_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get terms (options) for a specific attribute"""
+    try:
+        client = await get_woo_client(current_user["company_id"])
+        terms = await client.get(f"products/attributes/{attribute_id}/terms", params={"per_page": 100})
+        return [{"id": t["id"], "name": t["name"], "slug": t["slug"], "count": t.get("count", 0)} for t in terms]
+    except HTTPException:
+        return []
+
 @router.get("/tags")
 async def get_woo_tags(current_user: dict = Depends(get_current_user)):
     """Get product tags from WooCommerce"""
