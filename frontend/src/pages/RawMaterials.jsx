@@ -228,14 +228,28 @@ export const RawMaterials = () => {
     setSubmitting(true);
 
     try {
-      await api.post(`/manufacturing/raw-materials/${selectedMaterial.id}/add-stock`, null, {
-        params: {
-          quantity: parseFloat(addStockData.quantity),
-          cost_price: addStockData.cost_price ? parseFloat(addStockData.cost_price) : null,
-          reference: addStockData.reference || null
-        }
-      });
-      toast.success('Stock added successfully');
+      const params = {
+        quantity: parseFloat(addStockData.quantity),
+        total_cost: parseFloat(addStockData.total_cost) || 0
+      };
+      
+      if (addStockData.cost_price) {
+        params.cost_price = parseFloat(addStockData.cost_price);
+      }
+      if (addStockData.reference) {
+        params.reference = addStockData.reference;
+      }
+      if (addStockData.bank_account_id && addStockData.bank_account_id !== 'none') {
+        params.bank_account_id = addStockData.bank_account_id;
+      }
+      
+      const response = await api.post(`/manufacturing/raw-materials/${selectedMaterial.id}/add-stock`, null, { params });
+      
+      if (response.data.journal_entry_created) {
+        toast.success('Stock added and payment recorded');
+      } else {
+        toast.success('Stock added successfully');
+      }
       setAddStockDialogOpen(false);
       fetchMaterials();
     } catch (error) {
