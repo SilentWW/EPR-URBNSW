@@ -290,6 +290,98 @@ export default function GRN() {
     return formData.items.reduce((sum, item) => sum + (item.quantity * item.cost_price), 0);
   };
 
+  // Additional charges handlers
+  const handleOpenChargesDialog = (grn) => {
+    // Find the linked PO
+    const linkedPO = allPurchaseOrders.find(po => po.id === grn.po_id);
+    if (!linkedPO) {
+      toast.error('No linked Purchase Order found for this GRN');
+      return;
+    }
+    setSelectedPO(linkedPO);
+    setAdditionalCharges(linkedPO.additional_charges || []);
+    setNewCharge({
+      charge_type: '',
+      description: '',
+      amount: '',
+      pay_immediately: false,
+      bank_account_id: ''
+    });
+    setChargesDialogOpen(true);
+  };
+
+  const handleAddCharge = () => {
+    if (!newCharge.charge_type || !newCharge.amount) {
+      toast.error('Please select charge type and enter amount');
+      return;
+    }
+    if (newCharge.pay_immediately && !newCharge.bank_account_id) {
+      toast.error('Please select a bank account for immediate payment');
+      return;
+    }
+    
+    const chargeType = chargeTypes.find(ct => ct.id === newCharge.charge_type);
+    setAdditionalCharges([
+      ...additionalCharges,
+      {
+        ...newCharge,
+        amount: parseFloat(newCharge.amount),
+        charge_type_name: chargeType?.name || newCharge.charge_type
+      }
+    ]);
+    setNewCharge({
+      charge_type: '',
+      description: '',
+      amount: '',
+      pay_immediately: false,
+      bank_account_id: ''
+    });
+  };
+
+  const handleRemoveCharge = (index) => {
+    setAdditionalCharges(additionalCharges.filter((_, i) => i !== index));
+  };
+
+  const handleSubmitCharges = async () => {
+    if (additionalCharges.length === 0) {
+      toast.error('Please add at least one charge');
+      return;
+    }
+
+    const existingChargeCount = (selectedPO.additional_charges || []).length;
+    const newCharges = additionalCharges.slice(existingChargeCount);
+    
+    if (newCharges.length === 0) {
+      toast.info('No new charges to add');
+      setChargesDialogOpen(false);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post(`/purchase-orders/${selectedPO.id}/additional-charges`, {
+        additional_charges: newCharges
+      });
+      toast.success('Additional charges added successfully');
+      setChargesDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to add charges');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const calculateChargesTotal = () => {
+    const expenses = additionalCharges
+      .filter(c => c.charge_type !== 'discount')
+      .reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+    const discounts = additionalCharges
+      .filter(c => c.charge_type === 'discount')
+      .reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+    return { expenses, discounts, net: expenses - discounts };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
