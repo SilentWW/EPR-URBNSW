@@ -337,6 +337,88 @@ def serialize_doc(doc: dict) -> dict:
             result[key] = value
     return result
 
+# ============== WOOCOMMERCE SYNC HELPER ==============
+
+async def sync_product_to_woocommerce(company_id: str, product: dict, woo_product_id: str):
+    """
+    Sync product changes from ERP to WooCommerce (ERP -> WooCommerce direction).
+    This enables two-way sync for products including categories.
+    """
+    # Get company WooCommerce settings
+    company = await db.companies.find_one({"id": company_id})
+    if not company:
+        raise Exception("Company not found")
+    
+    woo_settings = company.get("woo_settings")
+    if not woo_settings or not woo_settings.get("enabled"):
+        raise Exception("WooCommerce integration not configured or disabled")
+    
+    store_url = woo_settings["store_url"].rstrip('/')
+    consumer_key = woo_settings["consumer_key"]
+    consumer_secret = woo_settings["consumer_secret"]
+    api_url = f"{store_url}/wp-json/wc/v3"
+    
+    # Prepare WooCommerce product data
+    woo_data = {
+        "name": product.get("name"),
+        "sku": product.get("sku"),
+        "description": product.get("description", ""),
+        "short_description": product.get("short_description", ""),
+        "regular_price": str(product.get("regular_price") or product.get("selling_price", 0)),
+        "manage_stock": product.get("manage_stock", True),
+        "stock_quantity": product.get("stock_quantity", 0),
+        "status": "publish" if product.get("visibility") == "public" else "private"
+    }
+    
+    # Add sale price if set
+    if product.get("sale_price"):
+        woo_data["sale_price"] = str(product["sale_price"])
+    
+    # Add weight if set
+    if product.get("weight"):
+        woo_data["weight"] = str(product["weight"])
+    
+    # Add tags if set
+    if product.get("tags"):
+        tags = [{"name": tag.strip()} for tag in product["tags"].split(",") if tag.strip()]
+        if tags:
+            woo_data["tags"] = tags
+    
+    # Handle categories - convert ERP categories to WooCommerce format
+    if product.get("categories"):
+        woo_categories = []
+        for cat_id in product["categories"]:
+            # Look up the category in our local DB to get the WooCommerce ID
+            local_cat = await db.product_categories.find_one({
+                "company_id": company_id,
+                "$or": [
+                    {"woo_id": cat_id},
+                    {"id": cat_id}
+                ]
+            })
+            if local_cat and local_cat.get("woo_id"):
+                try:
+                    woo_cat_id = int(local_cat["woo_id"])
+                    woo_categories.append({"id": woo_cat_id})
+                except (ValueError, TypeError):
+                    pass
+        
+        if woo_categories:
+            woo_data["categories"] = woo_categories
+    
+    # Make the API request to update product in WooCommerce
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.put(
+            f"{api_url}/products/{woo_product_id}",
+            auth=(consumer_key, consumer_secret),
+            json=woo_data
+        )
+        
+        if response.status_code >= 400:
+            raise Exception(f"WooCommerce API error: {response.text}")
+        
+        return response.json()
+
 # ============== AUTH ROUTES ==============
 
 @api_router.post("/auth/register", response_model=TokenResponse)
