@@ -285,12 +285,15 @@ async def delete_raw_material(
 async def add_raw_material_stock(
     material_id: str,
     quantity: float,
+    total_cost: float,
+    bank_account_id: Optional[str] = None,
     cost_price: Optional[float] = None,
     reference: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Add stock to raw material (e.g., from purchase)"""
+    """Add stock to raw material (e.g., from purchase) with financial entries"""
     company_id = current_user["company_id"]
+    user_id = current_user["user_id"]
     
     material = await db.raw_materials.find_one({
         "id": material_id,
@@ -299,12 +302,16 @@ async def add_raw_material_stock(
     if not material:
         raise HTTPException(status_code=404, detail="Raw material not found")
     
+    # Calculate total cost if not provided
+    unit_cost = cost_price if cost_price is not None else material["cost_price"]
+    calculated_total = total_cost if total_cost > 0 else (unit_cost * quantity)
+    
+    # Update stock and cost price
     update_data = {
         "stock_quantity": material["stock_quantity"] + quantity,
         "updated_at": get_current_timestamp()
     }
     
-    # Update cost price if provided (weighted average could be implemented)
     if cost_price is not None:
         update_data["cost_price"] = cost_price
     
@@ -314,21 +321,95 @@ async def add_raw_material_stock(
     )
     
     # Record stock movement
+    movement_id = generate_id()
     await db.raw_material_movements.insert_one({
-        "id": generate_id(),
+        "id": movement_id,
         "company_id": company_id,
         "raw_material_id": material_id,
         "movement_type": "receipt",
         "quantity": quantity,
-        "cost_price": cost_price or material["cost_price"],
+        "cost_price": unit_cost,
+        "total_cost": calculated_total,
+        "bank_account_id": bank_account_id,
         "reference": reference,
-        "created_by": current_user["user_id"],
+        "created_by": user_id,
         "created_at": get_current_timestamp()
     })
     
+    # Create journal entry if bank account provided (immediate payment)
+    if bank_account_id and calculated_total > 0:
+        # Get bank account details
+        bank_account = await db.bank_accounts.find_one({
+            "id": bank_account_id,
+            "company_id": company_id
+        })
+        
+        if bank_account:
+            # Debit: Raw Materials Inventory (1200)
+            # Credit: Bank/Cash Account
+            entry_id = generate_id()
+            timestamp = get_current_timestamp()
+            
+            journal_entry = {
+                "id": entry_id,
+                "company_id": company_id,
+                "entry_number": f"RM-{material['sku']}-{movement_id[:6]}",
+                "date": timestamp,
+                "description": f"Raw material purchase: {material['name']} - {quantity} {material['unit']}",
+                "reference_type": "raw_material_receipt",
+                "reference_id": movement_id,
+                "lines": [
+                    {
+                        "account_id": "1200",  # Raw Materials Inventory
+                        "account_name": "Raw Materials Inventory",
+                        "debit": calculated_total,
+                        "credit": 0
+                    },
+                    {
+                        "account_id": bank_account.get("chart_account_id", "1100"),
+                        "account_name": bank_account["account_name"],
+                        "debit": 0,
+                        "credit": calculated_total
+                    }
+                ],
+                "total_debit": calculated_total,
+                "total_credit": calculated_total,
+                "is_auto_generated": True,
+                "transaction_type": "raw_material_purchase",
+                "created_by": user_id,
+                "created_at": timestamp
+            }
+            
+            await db.journal_entries.insert_one(journal_entry)
+            
+            # Update bank account balance
+            await db.bank_accounts.update_one(
+                {"id": bank_account_id},
+                {
+                    "$inc": {"current_balance": -calculated_total},
+                    "$set": {"updated_at": timestamp}
+                }
+            )
+            
+            # Update Chart of Accounts balances
+            # Increase Raw Materials Inventory (Asset - debit increases)
+            await db.chart_of_accounts.update_one(
+                {"company_id": company_id, "account_code": "1200"},
+                {"$inc": {"balance": calculated_total}}
+            )
+            
+            # Decrease Bank/Cash (Asset - credit decreases)
+            bank_chart_code = bank_account.get("chart_account_id", "1100")
+            await db.chart_of_accounts.update_one(
+                {"company_id": company_id, "account_code": bank_chart_code},
+                {"$inc": {"balance": -calculated_total}}
+            )
+    
     return {
         "message": "Stock added successfully",
-        "new_quantity": material["stock_quantity"] + quantity
+        "new_quantity": material["stock_quantity"] + quantity,
+        "total_cost": calculated_total,
+        "journal_entry_created": bank_account_id is not None and calculated_total > 0
     }
 
 # ============== BILL OF MATERIALS (BOM) ENDPOINTS ==============
