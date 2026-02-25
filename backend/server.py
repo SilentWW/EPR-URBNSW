@@ -1962,15 +1962,20 @@ async def process_additional_charges(
             # Get expense account
             expense_account = await db.accounts.find_one({
                 "company_id": company_id,
-                "account_code": account_info["code"]
+                "code": account_info["code"]
             })
             
             if pay_immediately and bank_account_id:
                 # Pay immediately from bank account
-                bank_account = await db.accounts.find_one({
+                bank_account = await db.bank_accounts.find_one({
                     "company_id": company_id,
                     "id": bank_account_id
                 })
+                
+                # Get the chart account linked to bank account
+                bank_chart_account = None
+                if bank_account and bank_account.get("chart_account_id"):
+                    bank_chart_account = await db.accounts.find_one({"id": bank_account["chart_account_id"]})
                 
                 if expense_account and bank_account:
                     journal_entry = {
@@ -1990,7 +1995,7 @@ async def process_additional_charges(
                                 "description": description
                             },
                             {
-                                "account_code": bank_account["account_code"],
+                                "account_code": bank_chart_account["code"] if bank_chart_account else "1100",
                                 "account_name": bank_account["name"],
                                 "debit": 0,
                                 "credit": amount,
@@ -2007,10 +2012,11 @@ async def process_additional_charges(
                     
                     # Update account balances
                     await db.accounts.update_one(
-                        {"company_id": company_id, "account_code": account_info["code"]},
+                        {"company_id": company_id, "code": account_info["code"]},
                         {"$inc": {"balance": amount}}
                     )
-                    await db.accounts.update_one(
+                    # Update bank account balance
+                    await db.bank_accounts.update_one(
                         {"company_id": company_id, "id": bank_account_id},
                         {"$inc": {"balance": -amount}}
                     )
@@ -2022,7 +2028,7 @@ async def process_additional_charges(
                 
                 ap_account = await db.accounts.find_one({
                     "company_id": company_id,
-                    "account_code": "2100"
+                    "code": "2100"
                 })
                 
                 if expense_account and ap_account:
