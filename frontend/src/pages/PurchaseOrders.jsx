@@ -62,6 +62,7 @@ const paymentColors = {
 
 export const PurchaseOrders = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -69,12 +70,23 @@ export const PurchaseOrders = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Check if user can edit/delete (admin or manager)
+  const canEditDelete = user?.role === 'admin' || user?.role === 'manager';
+
   const [formData, setFormData] = useState({
+    supplier_id: '',
+    items: [],
+    notes: '',
+  });
+
+  const [editFormData, setEditFormData] = useState({
     supplier_id: '',
     items: [],
     notes: '',
