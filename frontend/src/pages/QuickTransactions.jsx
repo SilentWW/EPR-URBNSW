@@ -560,6 +560,40 @@ export default function QuickTransactions() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Record To Account *</Label>
+                <Select
+                  value={expenseForm.expense_account_code}
+                  onValueChange={(value) => setExpenseForm({ ...expenseForm, expense_account_code: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select expense account category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {expenseAccounts.length > 0 ? (
+                      expenseAccounts.map((acc) => (
+                        <SelectItem key={acc.code} value={acc.code}>
+                          {acc.code} - {acc.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="6100">6100 - Salaries & Wages</SelectItem>
+                        <SelectItem value="6200">6200 - Rent Expense</SelectItem>
+                        <SelectItem value="6300">6300 - Utilities Expense</SelectItem>
+                        <SelectItem value="6400">6400 - Marketing Expense</SelectItem>
+                        <SelectItem value="6500">6500 - Office Supplies</SelectItem>
+                        <SelectItem value="6600">6600 - Depreciation Expense</SelectItem>
+                        <SelectItem value="6700">6700 - Insurance Expense</SelectItem>
+                        <SelectItem value="6800">6800 - Professional Fees</SelectItem>
+                        <SelectItem value="6900">6900 - Miscellaneous Expense</SelectItem>
+                        <SelectItem value="5100">5100 - Cost of Goods Sold</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">Select which Chart of Accounts category this expense belongs to</p>
+              </div>
+              <div className="space-y-2">
                 <Label>Description *</Label>
                 <Input
                   value={expenseForm.description}
