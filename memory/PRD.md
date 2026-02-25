@@ -401,18 +401,24 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [x] **Expanded Expense Categories in Quick Transactions** - COMPLETED
   - Added comprehensive list: Hosting, Domain, Materials, Raw Materials, Equipment, Office Supplies, Utilities, Transportation, etc.
 
-### Phase 14 - Product Variations & WooCommerce Variable Product Support (IN PROGRESS 🔄) - Feb 2026
+### Phase 14 - Product Variations & WooCommerce Variable Product Support (COMPLETED ✅) - Feb 2026
 - [x] **Database Schema**
   - [x] `product_variations` collection for storing variation data
   - [x] `products` collection updated with `product_type` field (simple/variable)
   - [x] Variations linked to parent products via `parent_product_id`
   - [x] Each variation stores: SKU, attributes (Color, Size), cost_price, regular_price, sale_price, stock_quantity
-- [x] **WooCommerce Variation Sync**
+- [x] **WooCommerce Variation Sync (Two-Way)**
   - [x] `POST /api/variations/sync/all` - Sync all variable products and their variations from WooCommerce
   - [x] `POST /api/variations/sync/product/{id}` - Sync variations for a specific product
   - [x] `GET /api/variations/product/{id}` - Get all variations for a product
   - [x] `GET /api/variations/attributes/list` - Get unique attribute names and values
   - [x] Background sync task for large catalogs
+- [x] **Create Variable Products from ERP**
+  - [x] `POST /api/variations/variable-product` - Create variable product with all variation combinations
+  - [x] Auto-generates SKU suffixes (e.g., TROUSER-001-BLU-30)
+  - [x] Supports multiple attributes (Color, Size, etc.)
+  - [x] Auto-generates all variation combinations (e.g., 3 colors × 4 sizes = 12 variations)
+  - [x] Syncs to WooCommerce automatically (creates product + all variations)
 - [x] **Inventory at Variation Level**
   - [x] GRN supports variation selection for variable products
   - [x] Stock quantity tracked per variation (e.g., Trouser Blue Size 32: 10 units)
@@ -428,13 +434,20 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Manual GRN allows variation selection for variable products
   - [x] Stock updates at variation level with WooCommerce sync
 - [x] **Products Page Enhancements**
-  - [x] "Sync Variations from WooCommerce" button
+  - [x] "Sync from WooCommerce" button - pulls variable products
+  - [x] "Create Variable Product" button (purple) - creates from ERP
+  - [x] "Add Simple Product" button (blue) - existing simple product flow
   - [x] "Type" column showing Simple/Variable badge
   - [x] Expandable rows for variable products to show variations
   - [x] Per-product "Sync Variations" option in dropdown menu
-  - [x] Variations display: name, SKU, attributes, prices, stock
-
-**Note**: This feature requires variable products to exist in WooCommerce. The sync pulls variation data (Color, Size attributes) from WooCommerce and enables variation-level inventory management in the ERP.
+  - [x] Variations display: name, SKU, attributes (Color, Size badges), prices, stock
+- [x] **Create Variable Product Dialog**
+  - [x] Auto-generated base SKU
+  - [x] Product name, description, category fields
+  - [x] Dynamic attribute management (add/remove attributes)
+  - [x] Comma-separated options input for each attribute
+  - [x] Live preview showing variation combinations and count
+  - [x] Sync to WooCommerce checkbox
 
 ## Testing Status
 - **Backend Tests**: 100% passed (iteration_10)
