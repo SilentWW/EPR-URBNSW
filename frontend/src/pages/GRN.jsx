@@ -1004,6 +1004,188 @@ export default function GRN() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Additional Charges Dialog */}
+      <Dialog open={chargesDialogOpen} onOpenChange={setChargesDialogOpen}>
+        <DialogContent className="max-w-2xl" data-testid="grn-charges-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <TruckIcon className="w-5 h-5" />
+              Additional Charges
+            </DialogTitle>
+            <DialogDescription>
+              Add shipping, customs, handling fees or discounts for {selectedPO?.order_number}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Add new charge form */}
+            <div className="grid grid-cols-12 gap-2 items-end">
+              <div className="col-span-3">
+                <Label className="text-xs">Charge Type</Label>
+                <Select 
+                  value={newCharge.charge_type} 
+                  onValueChange={(v) => setNewCharge({ ...newCharge, charge_type: v })}
+                >
+                  <SelectTrigger data-testid="grn-charge-type-select">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {chargeTypes.map((ct) => (
+                      <SelectItem key={ct.id} value={ct.id}>
+                        {ct.name} {ct.type === 'income' && '(-)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-3">
+                <Label className="text-xs">Description</Label>
+                <Input
+                  value={newCharge.description}
+                  onChange={(e) => setNewCharge({ ...newCharge, description: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Amount</Label>
+                <Input
+                  type="number"
+                  value={newCharge.amount}
+                  onChange={(e) => setNewCharge({ ...newCharge, amount: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="col-span-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Switch
+                    id="grn-pay-immediately"
+                    checked={newCharge.pay_immediately}
+                    onCheckedChange={(v) => setNewCharge({ ...newCharge, pay_immediately: v })}
+                  />
+                  <Label htmlFor="grn-pay-immediately" className="text-xs">Pay Now</Label>
+                </div>
+                {newCharge.pay_immediately && (
+                  <Select 
+                    value={newCharge.bank_account_id} 
+                    onValueChange={(v) => setNewCharge({ ...newCharge, bank_account_id: v })}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.name} ({acc.type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="col-span-1">
+                <Button type="button" onClick={handleAddCharge} size="sm" className="w-full">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Charges list */}
+            {additionalCharges.length > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {additionalCharges.map((charge, index) => {
+                      const chargeType = chargeTypes.find(ct => ct.id === charge.charge_type);
+                      const isDiscount = charge.charge_type === 'discount';
+                      const isExisting = index < (selectedPO?.additional_charges?.length || 0);
+                      return (
+                        <TableRow key={index} className={isExisting ? 'opacity-60' : ''}>
+                          <TableCell>
+                            <Badge variant={isDiscount ? 'success' : 'default'} className={isDiscount ? 'bg-green-100 text-green-800' : ''}>
+                              {chargeType?.name || charge.charge_type_name || charge.charge_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600">{charge.description || '-'}</TableCell>
+                          <TableCell className={`text-right font-medium ${isDiscount ? 'text-green-600' : ''}`}>
+                            {isDiscount ? '-' : ''}{formatCurrency(charge.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs text-slate-500">
+                              {charge.pay_immediately ? 'Paid' : 'To Payable'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {!isExisting && (
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoveCharge(index)}>
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Summary */}
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">PO Subtotal</p>
+                  <p className="text-lg font-semibold">{formatCurrency(selectedPO?.subtotal || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Additional Expenses</p>
+                  <p className="text-lg font-semibold">{formatCurrency(calculateChargesTotal().expenses)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Discounts Received</p>
+                  <p className="text-lg font-semibold text-green-600">-{formatCurrency(calculateChargesTotal().discounts)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">New Total</p>
+                  <p className="text-2xl font-bold text-indigo-600">
+                    {formatCurrency((selectedPO?.subtotal || 0) + calculateChargesTotal().net)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 p-3 rounded-lg text-sm text-amber-800">
+              <strong>Journal Entries Created:</strong>
+              <ul className="mt-1 list-disc list-inside">
+                <li>Expenses → Operating Expenses (Debit), {newCharge.pay_immediately ? 'Bank (Credit)' : 'Accounts Payable (Credit)'}</li>
+                <li>Discounts → Accounts Payable (Debit), Other Income (Credit)</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChargesDialogOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleSubmitCharges} 
+              disabled={submitting || additionalCharges.length === (selectedPO?.additional_charges?.length || 0)}
+              className="bg-indigo-600 hover:bg-indigo-700"
+              data-testid="grn-submit-charges-btn"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Save Charges
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
