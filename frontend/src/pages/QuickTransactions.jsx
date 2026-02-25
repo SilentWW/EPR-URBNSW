@@ -384,6 +384,7 @@ export default function QuickTransactions() {
       case 'mfg_scrap': return <AlertTriangle className="w-4 h-4 text-red-600" />;
       case 'mfg_reversal': return <RotateCcw className="w-4 h-4 text-slate-600" />;
       case 'manufacturing': return <Hammer className="w-4 h-4 text-indigo-600" />;
+      case 'raw_material_purchase': return <Boxes className="w-4 h-4 text-orange-600" />;
       default: return <FileText className="w-4 h-4 text-gray-600" />;
     }
   };
