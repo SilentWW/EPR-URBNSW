@@ -195,6 +195,83 @@ export const Products = () => {
     setDialogOpen(true);
   };
 
+  const handleOpenVariableDialog = async () => {
+    try {
+      const skuRes = await api.get('/grn/next-sku');
+      setVariableFormData({
+        ...initialVariableFormData,
+        sku: skuRes.data.next_sku
+      });
+    } catch (error) {
+      setVariableFormData(initialVariableFormData);
+    }
+    setVariableDialogOpen(true);
+  };
+
+  const handleVariableAttributeChange = (index, field, value) => {
+    const newAttributes = [...variableFormData.attributes];
+    newAttributes[index] = { ...newAttributes[index], [field]: value };
+    setVariableFormData({ ...variableFormData, attributes: newAttributes });
+  };
+
+  const addVariableAttribute = () => {
+    setVariableFormData({
+      ...variableFormData,
+      attributes: [...variableFormData.attributes, { name: '', options: '' }]
+    });
+  };
+
+  const removeVariableAttribute = (index) => {
+    const newAttributes = variableFormData.attributes.filter((_, i) => i !== index);
+    setVariableFormData({ ...variableFormData, attributes: newAttributes });
+  };
+
+  const handleVariableSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      // Validate attributes
+      const validAttributes = variableFormData.attributes
+        .filter(attr => attr.name.trim() && attr.options.trim())
+        .map(attr => ({
+          name: attr.name.trim(),
+          options: attr.options.split(',').map(o => o.trim()).filter(o => o)
+        }));
+
+      if (validAttributes.length === 0) {
+        toast.error('Please add at least one attribute with options');
+        setSubmitting(false);
+        return;
+      }
+
+      const data = {
+        name: variableFormData.name,
+        sku: variableFormData.sku,
+        description: variableFormData.description,
+        category: variableFormData.category,
+        attributes: validAttributes,
+        generate_variations: variableFormData.generate_variations,
+        sync_to_woo: variableFormData.sync_to_woo
+      };
+
+      const response = await api.post('/variations/variable-product', data);
+      
+      toast.success(
+        `Variable product created with ${response.data.variations_created} variations!` +
+        (data.sync_to_woo ? ' Syncing to WooCommerce...' : '')
+      );
+      
+      setVariableDialogOpen(false);
+      setVariableFormData(initialVariableFormData);
+      fetchProducts();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create variable product');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleCategoryToggle = (categoryId, categoryName) => {
     setSelectedCategories(prev => {
       const isSelected = prev.includes(categoryId);
