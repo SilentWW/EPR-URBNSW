@@ -1146,6 +1146,196 @@ async def get_recent_transactions(
     return transactions
 
 
+@router.get("/all-transactions")
+async def get_all_transactions(
+    page: int = 1,
+    per_page: int = 20,
+    transaction_type: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get ALL transactions with pagination including:
+    - Quick transactions (expenses, salary, revenue, loans, capital)
+    - PO payments
+    - GRN return refunds
+    - Additional charges
+    - Sales payments
+    """
+    company_id = current_user["company_id"]
+    all_transactions = []
+    
+    # 1. Get Quick Transactions (journal entries with transaction_type)
+    quick_txn_query = {
+        "company_id": company_id,
+        "is_auto_generated": True,
+        "transaction_type": {"$exists": True},
+        "is_reversed": {"$ne": True}
+    }
+    quick_transactions = await db.journal_entries.find(
+        quick_txn_query, {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    for tx in quick_transactions:
+        all_transactions.append({
+            "id": tx["id"],
+            "date": tx.get("entry_date") or tx.get("date") or tx["created_at"],
+            "description": tx.get("description", ""),
+            "amount": tx.get("total_debit", 0),
+            "transaction_type": tx.get("transaction_type", "other"),
+            "category": "quick_transaction",
+            "reference": tx.get("entry_number", ""),
+            "source": "Quick Transaction",
+            "created_at": tx["created_at"]
+        })
+    
+    # 2. Get PO Payments
+    payments = await db.payments.find(
+        {"company_id": company_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    for p in payments:
+        ref_type = p.get("reference_type", "")
+        all_transactions.append({
+            "id": p["id"],
+            "date": p.get("payment_date") or p["created_at"],
+            "description": f"Payment for {ref_type.replace('_', ' ').title()} - {p.get('notes', '')}",
+            "amount": p.get("amount", 0),
+            "transaction_type": "po_payment" if ref_type == "purchase_order" else "so_payment",
+            "category": "payment",
+            "reference": p.get("reference_id", ""),
+            "source": f"{ref_type.replace('_', ' ').title()} Payment",
+            "created_at": p["created_at"]
+        })
+    
+    # 3. Get GRN Return Transactions (from journal entries with GRNRET prefix)
+    grn_returns = await db.journal_entries.find(
+        {
+            "company_id": company_id,
+            "entry_number": {"$regex": "^GRNRET-"},
+            "is_reversed": {"$ne": True}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    for gr in grn_returns:
+        all_transactions.append({
+            "id": gr["id"],
+            "date": gr.get("date") or gr["created_at"],
+            "description": gr.get("description", "GRN Return"),
+            "amount": gr.get("total_debit", 0),
+            "transaction_type": "grn_return",
+            "category": "grn_return",
+            "reference": gr.get("entry_number", ""),
+            "source": "GRN Return",
+            "created_at": gr["created_at"]
+        })
+    
+    # 4. Get Additional Charges (from journal entries with CHG prefix)
+    charges = await db.journal_entries.find(
+        {
+            "company_id": company_id,
+            "entry_number": {"$regex": "^CHG-"},
+            "is_reversed": {"$ne": True}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    for ch in charges:
+        all_transactions.append({
+            "id": ch["id"],
+            "date": ch.get("date") or ch["created_at"],
+            "description": ch.get("description", "Additional Charge"),
+            "amount": ch.get("total_debit", 0),
+            "transaction_type": "additional_charge",
+            "category": "charge",
+            "reference": ch.get("entry_number", ""),
+            "source": "Additional Charge",
+            "created_at": ch["created_at"]
+        })
+    
+    # 5. Get Discount entries (from journal entries with DISC prefix)
+    discounts = await db.journal_entries.find(
+        {
+            "company_id": company_id,
+            "entry_number": {"$regex": "^DISC-"},
+            "is_reversed": {"$ne": True}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    for d in discounts:
+        all_transactions.append({
+            "id": d["id"],
+            "date": d.get("date") or d["created_at"],
+            "description": d.get("description", "Discount Received"),
+            "amount": d.get("total_debit", 0),
+            "transaction_type": "discount_received",
+            "category": "income",
+            "reference": d.get("entry_number", ""),
+            "source": "Discount",
+            "created_at": d["created_at"]
+        })
+    
+    # 6. Get Sales Order Payments (from journal entries with REC prefix)
+    sales_payments = await db.journal_entries.find(
+        {
+            "company_id": company_id,
+            "entry_number": {"$regex": "^REC-"},
+            "is_reversed": {"$ne": True}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    for sp in sales_payments:
+        all_transactions.append({
+            "id": sp["id"],
+            "date": sp.get("date") or sp["created_at"],
+            "description": sp.get("description", "Sales Payment Received"),
+            "amount": sp.get("total_debit", 0),
+            "transaction_type": "sales_payment",
+            "category": "income",
+            "reference": sp.get("entry_number", ""),
+            "source": "Sales Payment",
+            "created_at": sp["created_at"]
+        })
+    
+    # Remove duplicates based on id
+    seen_ids = set()
+    unique_transactions = []
+    for tx in all_transactions:
+        if tx["id"] not in seen_ids:
+            seen_ids.add(tx["id"])
+            unique_transactions.append(tx)
+    
+    # Sort by date descending
+    unique_transactions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    
+    # Filter by transaction type if specified
+    if transaction_type and transaction_type != "all":
+        unique_transactions = [tx for tx in unique_transactions if tx["transaction_type"] == transaction_type]
+    
+    # Calculate pagination
+    total = len(unique_transactions)
+    total_pages = (total + per_page - 1) // per_page
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    
+    paginated_transactions = unique_transactions[start_idx:end_idx]
+    
+    return {
+        "transactions": paginated_transactions,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    }
+
+
 @router.delete("/transaction/{transaction_id}")
 async def delete_transaction(
     transaction_id: str,
