@@ -87,6 +87,7 @@ export default function QuickTransactions() {
   // Form states
   const [expenseForm, setExpenseForm] = useState({
     expense_type: '',
+    expense_account_code: '',
     description: '',
     amount: '',
     vendor: '',
@@ -96,6 +97,8 @@ export default function QuickTransactions() {
     notes: '',
     date: getTodayDate()
   });
+  
+  const [expenseAccounts, setExpenseAccounts] = useState([]);
   
   const [salaryForm, setSalaryForm] = useState({
     employee_name: '',
