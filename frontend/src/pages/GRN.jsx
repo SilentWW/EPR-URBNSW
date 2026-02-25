@@ -643,11 +643,11 @@ export default function GRN() {
           <div className="divide-y divide-slate-100">
             {grns.map((grn) => (
               <div key={grn.id} className="hover:bg-slate-50" data-testid={`grn-${grn.grn_number}`}>
-                <button
-                  onClick={() => setExpandedGrn(expandedGrn === grn.id ? null : grn.id)}
-                  className="w-full p-4 flex items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-4">
+                <div className="p-4 flex items-center justify-between">
+                  <button
+                    onClick={() => setExpandedGrn(expandedGrn === grn.id ? null : grn.id)}
+                    className="flex items-center gap-4 text-left flex-1"
+                  >
                     <div className="flex items-center gap-2">
                       {expandedGrn === grn.id ? (
                         <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -660,16 +660,50 @@ export default function GRN() {
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{grn.grn_number}</span>
                         {getSyncStatusBadge(grn.woo_sync_status)}
+                        {grn.status === 'returned' && (
+                          <Badge variant="destructive" className="bg-red-100 text-red-800">Returned</Badge>
+                        )}
+                        {grn.status === 'partial_return' && (
+                          <Badge variant="warning" className="bg-amber-100 text-amber-800">Partial Return</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-slate-600">{grn.supplier_name}</p>
                     </div>
+                  </button>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm text-slate-500">{grn.received_date}</p>
+                      <p className="font-semibold">{formatCurrency(grn.total_cost)}</p>
+                      <p className="text-xs text-slate-400">{grn.items.length} items</p>
+                    </div>
+                    {/* Actions dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" data-testid={`grn-actions-${grn.id}`}>
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewGrn(grn)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        {canReturn && grn.status !== 'returned' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleOpenReturnDialog(grn)}
+                              className="text-red-600"
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Return GRN
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-slate-500">{grn.received_date}</p>
-                    <p className="font-semibold">{formatCurrency(grn.total_cost)}</p>
-                    <p className="text-xs text-slate-400">{grn.items.length} items</p>
-                  </div>
-                </button>
+                </div>
                 
                 {expandedGrn === grn.id && (
                   <div className="px-4 pb-4 border-t border-slate-100">
