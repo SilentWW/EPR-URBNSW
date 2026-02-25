@@ -631,12 +631,19 @@ async def resync_grn_to_woo(
     if not grn:
         raise HTTPException(status_code=404, detail="GRN not found")
     
-    # Get products from GRN items
-    product_ids = [item["product_id"] for item in grn["items"]]
+    # Get products and variations from GRN items
+    product_ids = [item["product_id"] for item in grn["items"] if item.get("product_id") and not item.get("variation_id")]
+    variation_ids = [item["variation_id"] for item in grn["items"] if item.get("variation_id")]
+    
     products = await db.products.find(
         {"id": {"$in": product_ids}},
         {"_id": 0}
     ).to_list(100)
+    
+    variations = await db.product_variations.find(
+        {"id": {"$in": variation_ids}},
+        {"_id": 0}
+    ).to_list(100) if variation_ids else []
     
     # Update sync status
     await db.grns.update_one(
@@ -648,7 +655,8 @@ async def resync_grn_to_woo(
         sync_grn_products_to_woo,
         current_user["company_id"],
         grn_id,
-        products
+        products,
+        variations
     )
     
     return {"message": "Re-sync initiated"}
