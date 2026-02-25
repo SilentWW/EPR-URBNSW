@@ -428,7 +428,18 @@ export default function GRN() {
     setSelectedGrn(grn);
     setReturnType('full');
     setReturnReason('supplier');
+    setReturnSettlement('refund');
+    setRefundAccountId('');
     setReturnNotes('');
+    
+    // Get linked PO details for payment status
+    if (grn.po_id) {
+      const linkedPO = allPurchaseOrders.find(po => po.id === grn.po_id);
+      setLinkedPODetails(linkedPO);
+    } else {
+      setLinkedPODetails(null);
+    }
+    
     // Initialize return items with all items selected for full return
     setReturnItems(grn.items.map(item => ({
       ...item,
@@ -459,12 +470,20 @@ export default function GRN() {
       toast.error('Please select at least one item to return');
       return;
     }
+    
+    // Validate refund account if returning to supplier with refund
+    if (returnReason === 'supplier' && returnSettlement === 'refund' && !refundAccountId) {
+      toast.error('Please select an account to receive the refund');
+      return;
+    }
 
     setSubmitting(true);
     try {
       await api.post(`/grn/${selectedGrn.id}/return`, {
         return_type: returnType,
         return_reason: returnReason,
+        settlement_type: returnReason === 'supplier' ? returnSettlement : null,
+        refund_account_id: returnSettlement === 'refund' ? refundAccountId : null,
         notes: returnNotes,
         items: itemsToReturn.map(item => ({
           product_id: item.product_id,
