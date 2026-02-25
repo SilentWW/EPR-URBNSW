@@ -63,10 +63,7 @@ const initialVariableFormData = {
   sku: '',
   description: '',
   category: '',
-  attributes: [
-    { name: 'Color', options: '' },
-    { name: 'Size', options: '' }
-  ],
+  attributes: [],  // Will be populated from WooCommerce
   generate_variations: true,
   sync_to_woo: true
 };
@@ -76,6 +73,8 @@ export const Products = () => {
   const [variations, setVariations] = useState({});
   const [categories, setCategories] = useState([]);
   const [wooCategories, setWooCategories] = useState([]);
+  const [wooAttributes, setWooAttributes] = useState([]);  // WooCommerce attributes (Color, Size, etc.)
+  const [loadingWooAttributes, setLoadingWooAttributes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
