@@ -166,7 +166,9 @@ export const Products = () => {
       const data = {
         sku: formData.sku,
         name: formData.name,
-        category: formData.category,
+        category: formData.category || (formData.category_names && formData.category_names[0]) || '',
+        categories: selectedCategories,
+        category_names: formData.category_names || [],
         // Set defaults for price and stock - will be updated via GRN
         cost_price: 0,
         selling_price: 0,
@@ -175,10 +177,12 @@ export const Products = () => {
       };
 
       if (selectedProduct) {
-        // Only update name and category for existing products
+        // Only update name and categories for existing products
         await productsAPI.update(selectedProduct.id, {
           name: formData.name,
-          category: formData.category
+          category: formData.category || (formData.category_names && formData.category_names[0]) || '',
+          categories: selectedCategories,
+          category_names: formData.category_names || []
         });
         toast.success('Product updated successfully');
       } else {
@@ -187,6 +191,7 @@ export const Products = () => {
       }
 
       setDialogOpen(false);
+      setSelectedCategories([]);
       fetchProducts();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Operation failed');
