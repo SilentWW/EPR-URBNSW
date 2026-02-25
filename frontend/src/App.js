@@ -36,6 +36,11 @@ import QuickTransactions from './pages/QuickTransactions';
 import BankAccounts from './pages/BankAccounts';
 import PackagingItems from './pages/PackagingItems';
 
+// Manufacturing Pages
+import RawMaterials from './pages/RawMaterials';
+import BillOfMaterials from './pages/BillOfMaterials';
+import WorkOrders from './pages/WorkOrders';
+
 // Layout
 import Layout from './components/Layout';
 
