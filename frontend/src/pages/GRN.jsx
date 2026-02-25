@@ -1739,9 +1739,9 @@ export default function GRN() {
                   <div>
                     <p className="text-sm text-red-800 font-medium">Total Return Value</p>
                     <p className="text-xs text-red-600">
-                      {returnReason === 'supplier' 
-                        ? 'Will reduce Accounts Payable'
-                        : 'Will record as Loss/Write-off'}
+                      {returnReason === 'damaged' && 'Will record as Loss/Write-off expense'}
+                      {returnReason === 'supplier' && returnSettlement === 'refund' && 'Supplier will refund to your account'}
+                      {returnReason === 'supplier' && returnSettlement === 'credit' && 'Will be tracked as supplier credit'}
                     </p>
                   </div>
                   <p className="text-2xl font-bold text-red-600">{formatCurrency(calculateReturnTotal())}</p>
