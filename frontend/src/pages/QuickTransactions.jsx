@@ -515,24 +515,47 @@ export default function QuickTransactions() {
       {/* Recent Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Recent Quick Transactions
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Recent Transactions
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-slate-400" />
+              <Select value={transactionFilter} onValueChange={handleFilterChange}>
+                <SelectTrigger className="w-[180px] h-8">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Transactions</SelectItem>
+                  <SelectItem value="expense_payment">Expenses</SelectItem>
+                  <SelectItem value="salary_payment">Salaries</SelectItem>
+                  <SelectItem value="revenue_receipt">Revenue</SelectItem>
+                  <SelectItem value="po_payment">PO Payments</SelectItem>
+                  <SelectItem value="sales_payment">Sales Payments</SelectItem>
+                  <SelectItem value="grn_return">GRN Returns</SelectItem>
+                  <SelectItem value="additional_charge">Charges</SelectItem>
+                  <SelectItem value="discount_received">Discounts</SelectItem>
+                  <SelectItem value="loan_received">Loans</SelectItem>
+                  <SelectItem value="capital_investment">Capital</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           {isAdmin && (
-            <p className="text-xs text-slate-500">As admin, you can delete transactions</p>
+            <p className="text-xs text-slate-500">As admin, you can delete quick transactions</p>
           )}
         </CardHeader>
         <CardContent>
-          {recentTransactions.length === 0 ? (
+          {allTransactions.length === 0 ? (
             <div className="text-center py-8">
               <Receipt className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">No transactions recorded yet</p>
+              <p className="text-slate-500">No transactions found</p>
               <p className="text-sm text-slate-400">Use the quick actions above to record your first transaction</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {recentTransactions.slice(0, 10).map((tx) => (
+              {allTransactions.map((tx) => (
                 <div 
                   key={tx.id}
                   className={`flex items-center justify-between p-3 rounded-lg border ${getTransactionColor(tx.transaction_type)}`}
@@ -540,12 +563,12 @@ export default function QuickTransactions() {
                   <div className="flex items-center gap-3">
                     {getTransactionIcon(tx.transaction_type)}
                     <div>
-                      <p className="font-medium text-slate-900">{tx.description}</p>
+                      <p className="font-medium text-slate-900 line-clamp-1">{tx.description}</p>
                       <div className="flex items-center gap-2 text-sm text-slate-500">
                         <Calendar className="w-3 h-3" />
-                        {formatDate(tx.entry_date || tx.created_at)}
-                        {tx.entry_number && (
-                          <span className="text-xs text-slate-400">({tx.entry_number})</span>
+                        {formatDate(tx.date || tx.created_at)}
+                        {tx.reference && (
+                          <span className="text-xs text-slate-400">({tx.reference})</span>
                         )}
                       </div>
                     </div>
@@ -553,18 +576,18 @@ export default function QuickTransactions() {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className={`font-semibold ${
-                        ['capital_investment', 'revenue_receipt', 'loan_received'].includes(tx.transaction_type)
+                        ['capital_investment', 'revenue_receipt', 'loan_received', 'so_payment', 'sales_payment', 'discount_received', 'grn_return'].includes(tx.transaction_type)
                           ? 'text-green-600'
                           : 'text-red-600'
                       }`}>
-                        {['capital_investment', 'revenue_receipt', 'loan_received'].includes(tx.transaction_type) ? '+' : '-'}
-                        {formatCurrency(tx.total_debit)}
+                        {['capital_investment', 'revenue_receipt', 'loan_received', 'so_payment', 'sales_payment', 'discount_received', 'grn_return'].includes(tx.transaction_type) ? '+' : '-'}
+                        {formatCurrency(tx.amount)}
                       </p>
                       <Badge variant="outline" className="text-xs">
-                        {tx.transaction_type.replace(/_/g, ' ')}
+                        {getTransactionLabel(tx.transaction_type)}
                       </Badge>
                     </div>
-                    {isAdmin && (
+                    {isAdmin && tx.category === 'quick_transaction' && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -581,6 +604,36 @@ export default function QuickTransactions() {
                   </div>
                 </div>
               ))}
+              
+              {/* Pagination */}
+              {pagination.total_pages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <p className="text-sm text-slate-500">
+                    Showing {((pagination.page - 1) * pagination.per_page) + 1} - {Math.min(pagination.page * pagination.per_page, pagination.total)} of {pagination.total}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={!pagination.has_prev}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-sm text-slate-600">
+                      Page {pagination.page} of {pagination.total_pages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={!pagination.has_next}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
