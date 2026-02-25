@@ -192,6 +192,7 @@ class SupplierUpdate(BaseModel):
 # Order Item Model
 class OrderItem(BaseModel):
     product_id: str
+    variation_id: Optional[str] = None  # For variable products
     product_name: str
     sku: str
     quantity: int
