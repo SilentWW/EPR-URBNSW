@@ -96,7 +96,9 @@ class ProductCreate(BaseModel):
     name: str
     description: Optional[str] = None
     short_description: Optional[str] = None
-    category: Optional[str] = None
+    category: Optional[str] = None  # Legacy single category
+    categories: Optional[List[str]] = None  # Multiple category IDs
+    category_names: Optional[List[str]] = None  # Category names for display
     cost_price: float = 0.0  # COGS
     regular_price: float = 0.0  # WooCommerce Regular Price
     sale_price: Optional[float] = None  # WooCommerce Sale Price
@@ -115,7 +117,9 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     short_description: Optional[str] = None
-    category: Optional[str] = None
+    category: Optional[str] = None  # Legacy single category
+    categories: Optional[List[str]] = None  # Multiple category IDs
+    category_names: Optional[List[str]] = None  # Category names for display
     cost_price: Optional[float] = None
     regular_price: Optional[float] = None
     sale_price: Optional[float] = None
