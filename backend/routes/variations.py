@@ -228,6 +228,266 @@ async def create_variation(
     
     return {"id": variation_id, "variation_name": variation_name, "message": "Variation created successfully"}
 
+# ============== VARIABLE PRODUCT CREATION ==============
+
+@router.post("/variable-product")
+async def create_variable_product(
+    data: VariableProductCreate,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new variable product with all variation combinations"""
+    company_id = current_user["company_id"]
+    
+    # Check SKU uniqueness for parent product
+    existing = await db.products.find_one({
+        "sku": data.sku,
+        "company_id": company_id
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Product SKU already exists")
+    
+    # Create parent product
+    product_id = generate_id()
+    
+    # Build attributes for WooCommerce format
+    product_attributes = []
+    for idx, attr in enumerate(data.attributes):
+        product_attributes.append({
+            "name": attr.name,
+            "position": idx,
+            "visible": True,
+            "variation": True,
+            "options": attr.options
+        })
+    
+    product = {
+        "id": product_id,
+        "company_id": company_id,
+        "sku": data.sku,
+        "name": data.name,
+        "description": data.description,
+        "short_description": data.short_description,
+        "category": data.category,
+        "product_type": "variable",
+        "cost_price": 0,
+        "regular_price": 0,
+        "selling_price": 0,
+        "stock_quantity": 0,
+        "low_stock_threshold": 10,
+        "visibility": "public",
+        "manage_stock": False,  # Stock managed at variation level
+        "attributes": product_attributes,
+        "woo_product_id": None,
+        "created_at": get_current_timestamp(),
+        "updated_at": get_current_timestamp()
+    }
+    
+    await db.products.insert_one(product)
+    
+    # Generate all variation combinations if requested
+    variations_created = []
+    if data.generate_variations and len(data.attributes) > 0:
+        from itertools import product as cartesian_product
+        
+        # Get all attribute options
+        attr_options = [[(attr.name, opt) for opt in attr.options] for attr in data.attributes]
+        
+        # Generate all combinations
+        combinations = list(cartesian_product(*attr_options))
+        
+        var_count = 0
+        for combo in combinations:
+            var_count += 1
+            
+            # Build SKU for variation
+            var_sku_parts = [data.sku]
+            for attr_name, attr_value in combo:
+                # Abbreviate attribute value for SKU
+                abbrev = attr_value[:3].upper()
+                var_sku_parts.append(abbrev)
+            var_sku = "-".join(var_sku_parts)
+            
+            # Build variation name
+            attr_display = " - ".join([opt for _, opt in combo])
+            var_name = f"{data.name} - {attr_display}"
+            
+            # Build attributes list
+            var_attributes = [{"name": name, "option": option} for name, option in combo]
+            
+            variation = {
+                "id": generate_id(),
+                "company_id": company_id,
+                "parent_product_id": product_id,
+                "parent_product_name": data.name,
+                "variation_name": var_name,
+                "woo_variation_id": None,
+                "sku": var_sku,
+                "attributes": var_attributes,
+                "cost_price": 0,
+                "regular_price": 0,
+                "sale_price": None,
+                "selling_price": 0,
+                "stock_quantity": 0,
+                "weight": None,
+                "manage_stock": True,
+                "created_at": get_current_timestamp(),
+                "updated_at": get_current_timestamp()
+            }
+            
+            await db.product_variations.insert_one(variation)
+            variations_created.append({
+                "id": variation["id"],
+                "sku": var_sku,
+                "name": var_name,
+                "attributes": var_attributes
+            })
+    
+    # Sync to WooCommerce in background if requested
+    if data.sync_to_woo:
+        background_tasks.add_task(
+            sync_variable_product_to_woo,
+            company_id,
+            product_id
+        )
+    
+    return {
+        "id": product_id,
+        "name": data.name,
+        "sku": data.sku,
+        "product_type": "variable",
+        "variations_created": len(variations_created),
+        "variations": variations_created,
+        "message": "Variable product created successfully",
+        "woo_sync": "Sync initiated" if data.sync_to_woo else "Not synced"
+    }
+
+async def sync_variable_product_to_woo(company_id: str, product_id: str):
+    """Sync a variable product and its variations to WooCommerce"""
+    try:
+        client = await get_woo_client(company_id)
+        
+        # Get product
+        product = await db.products.find_one({"id": product_id})
+        if not product:
+            return
+        
+        # Get variations
+        variations = await db.product_variations.find(
+            {"parent_product_id": product_id, "company_id": company_id}
+        ).to_list(1000)
+        
+        # Prepare WooCommerce product data
+        woo_product_data = {
+            "name": product["name"],
+            "type": "variable",
+            "sku": product["sku"],
+            "description": product.get("description", ""),
+            "short_description": product.get("short_description", ""),
+            "status": "publish" if product.get("visibility") == "public" else "private",
+            "attributes": product.get("attributes", [])
+        }
+        
+        # Add category if set
+        if product.get("category"):
+            try:
+                categories = await woo_request(
+                    client, "GET", "products/categories",
+                    params={"search": product["category"]}
+                )
+                if categories:
+                    woo_product_data["categories"] = [{"id": categories[0]["id"]}]
+            except Exception:
+                pass
+        
+        # Create or update product in WooCommerce
+        if product.get("woo_product_id"):
+            woo_product = await woo_request(
+                client, "PUT",
+                f"products/{product['woo_product_id']}",
+                data=woo_product_data
+            )
+        else:
+            woo_product = await woo_request(
+                client, "POST", "products",
+                data=woo_product_data
+            )
+            # Update local product with WooCommerce ID
+            await db.products.update_one(
+                {"id": product_id},
+                {"$set": {"woo_product_id": str(woo_product["id"])}}
+            )
+        
+        woo_product_id = woo_product["id"]
+        
+        # Create variations in WooCommerce
+        for variation in variations:
+            woo_var_data = {
+                "sku": variation["sku"],
+                "regular_price": str(variation.get("regular_price", 0)),
+                "manage_stock": True,
+                "stock_quantity": variation.get("stock_quantity", 0),
+                "attributes": [
+                    {"name": attr["name"], "option": attr["option"]}
+                    for attr in variation.get("attributes", [])
+                ]
+            }
+            
+            if variation.get("sale_price"):
+                woo_var_data["sale_price"] = str(variation["sale_price"])
+            
+            if variation.get("woo_variation_id"):
+                # Update existing variation
+                woo_var = await woo_request(
+                    client, "PUT",
+                    f"products/{woo_product_id}/variations/{variation['woo_variation_id']}",
+                    data=woo_var_data
+                )
+            else:
+                # Create new variation
+                woo_var = await woo_request(
+                    client, "POST",
+                    f"products/{woo_product_id}/variations",
+                    data=woo_var_data
+                )
+                # Update local variation with WooCommerce ID
+                await db.product_variations.update_one(
+                    {"id": variation["id"]},
+                    {"$set": {"woo_variation_id": str(woo_var["id"])}}
+                )
+        
+        print(f"Successfully synced variable product {product['name']} to WooCommerce")
+        
+    except Exception as e:
+        print(f"Error syncing variable product to WooCommerce: {e}")
+
+@router.post("/variable-product/{product_id}/sync-to-woo")
+async def sync_variable_product_to_woocommerce(
+    product_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """Manually trigger sync of a variable product to WooCommerce"""
+    company_id = current_user["company_id"]
+    
+    product = await db.products.find_one({
+        "id": product_id,
+        "company_id": company_id
+    })
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    if product.get("product_type") != "variable":
+        raise HTTPException(status_code=400, detail="Product is not a variable product")
+    
+    background_tasks.add_task(
+        sync_variable_product_to_woo,
+        company_id,
+        product_id
+    )
+    
+    return {"message": "Sync to WooCommerce initiated", "product_id": product_id}
+
 @router.put("/{variation_id}")
 async def update_variation(
     variation_id: str,
