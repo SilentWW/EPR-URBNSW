@@ -268,6 +268,23 @@ export default function GRN() {
     });
   };
 
+  // Fetch variations for a product
+  const fetchProductVariationsForGRN = async (productId, itemIndex) => {
+    setLoadingVariations(prev => ({ ...prev, [itemIndex]: true }));
+    try {
+      const response = await api.get(`/variations/product/${productId}`);
+      setProductVariations(prev => ({
+        ...prev,
+        [itemIndex]: response.data.variations || []
+      }));
+    } catch (error) {
+      console.error('Failed to fetch variations:', error);
+      setProductVariations(prev => ({ ...prev, [itemIndex]: [] }));
+    } finally {
+      setLoadingVariations(prev => ({ ...prev, [itemIndex]: false }));
+    }
+  };
+
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -288,7 +305,32 @@ export default function GRN() {
           sale_price: product.sale_price || '',
           weight: product.weight || '',
           visibility: product.visibility || 'public',
-          tags: product.tags || ''
+          tags: product.tags || '',
+          variation_id: ''  // Reset variation when product changes
+        };
+        
+        // If variable product, fetch variations
+        if (product.product_type === 'variable') {
+          fetchProductVariationsForGRN(product.id, index);
+        } else {
+          setProductVariations(prev => ({ ...prev, [index]: [] }));
+        }
+      }
+    }
+    
+    // If selecting a variation, update item details from variation
+    if (field === 'variation_id' && value) {
+      const variations = productVariations[index] || [];
+      const variation = variations.find(v => v.id === value);
+      if (variation) {
+        newItems[index] = {
+          ...newItems[index],
+          variation_id: value,
+          product_name: variation.variation_name,
+          sku: variation.sku,
+          cost_price: variation.cost_price || 0,
+          regular_price: variation.regular_price || 0,
+          sale_price: variation.sale_price || ''
         };
       }
     }
