@@ -598,7 +598,7 @@ export const RawMaterials = () => {
                     type="number"
                     step="0.01"
                     value={addStockData.quantity}
-                    onChange={(e) => setAddStockData({ ...addStockData, quantity: e.target.value })}
+                    onChange={(e) => handleAddStockQuantityChange(e.target.value)}
                     required
                     placeholder="Enter quantity"
                     className="flex-1"
@@ -609,22 +609,67 @@ export const RawMaterials = () => {
                   </span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>New Cost Price (optional)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={addStockData.cost_price}
-                  onChange={(e) => setAddStockData({ ...addStockData, cost_price: e.target.value })}
-                  placeholder={`Current: ${formatCurrency(selectedMaterial?.cost_price || 0)}`}
-                />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Unit Cost Price</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={addStockData.cost_price}
+                    onChange={(e) => handleAddStockCostChange(e.target.value)}
+                    placeholder="0.00"
+                    data-testid="add-stock-cost"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Cost</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={addStockData.total_cost}
+                    onChange={(e) => setAddStockData({ ...addStockData, total_cost: e.target.value })}
+                    placeholder="0.00"
+                    className="font-medium"
+                    data-testid="add-stock-total"
+                  />
+                </div>
               </div>
+              
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Pay From Account
+                </Label>
+                <Select
+                  value={addStockData.bank_account_id || "none"}
+                  onValueChange={(value) => setAddStockData({ ...addStockData, bank_account_id: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger data-testid="add-stock-bank">
+                    <SelectValue placeholder="Select account (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No immediate payment</SelectItem>
+                    {bankAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.account_name} ({formatCurrency(account.current_balance)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  {addStockData.bank_account_id && addStockData.bank_account_id !== 'none' 
+                    ? 'Payment will be deducted from selected account' 
+                    : 'Select an account to record immediate payment'}
+                </p>
+              </div>
+              
               <div className="space-y-2">
                 <Label>Reference (optional)</Label>
                 <Input
                   value={addStockData.reference}
                   onChange={(e) => setAddStockData({ ...addStockData, reference: e.target.value })}
-                  placeholder="e.g., Purchase Order #123"
+                  placeholder="e.g., Invoice #123, PO-2026-001"
                 />
               </div>
             </div>
