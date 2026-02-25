@@ -486,8 +486,8 @@ async def create_grn_finance_entries(
         "created_at": get_current_timestamp()
     })
 
-async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list):
-    """Sync GRN products to WooCommerce with full stock management"""
+async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list, variations: list = None):
+    """Sync GRN products and variations to WooCommerce with full stock management"""
     try:
         # Import WooCommerce client
         from routes.woocommerce import get_woo_client
@@ -496,6 +496,7 @@ async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list)
         synced_count = 0
         errors = []
         
+        # Sync simple products
         for product in products:
             try:
                 woo_data = {
@@ -572,6 +573,30 @@ async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list)
                 
             except Exception as e:
                 errors.append({"product_id": product["id"], "error": str(e)})
+        
+        # Sync variations
+        if variations:
+            for variation in variations:
+                try:
+                    # Get parent product woo_product_id
+                    parent_product = await db.products.find_one({"id": variation["parent_product_id"]})
+                    if not parent_product or not parent_product.get("woo_product_id"):
+                        continue
+                    
+                    if variation.get("woo_variation_id"):
+                        # Update variation stock in WooCommerce
+                        await client.put(
+                            f"products/{parent_product['woo_product_id']}/variations/{variation['woo_variation_id']}",
+                            {
+                                "stock_quantity": variation.get("stock_quantity", 0),
+                                "manage_stock": True,
+                                "regular_price": str(variation.get("regular_price", 0)),
+                                "sale_price": str(variation.get("sale_price", "")) if variation.get("sale_price") else ""
+                            }
+                        )
+                        synced_count += 1
+                except Exception as e:
+                    errors.append({"variation_id": variation.get("id"), "error": str(e)})
         
         # Update GRN sync status
         sync_status = "synced" if not errors else "partial"
