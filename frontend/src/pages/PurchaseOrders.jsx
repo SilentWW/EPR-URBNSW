@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { purchaseOrdersAPI, suppliersAPI, productsAPI, paymentsAPI } from '../lib/api';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -33,9 +34,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Eye, Loader2, ClipboardList, CreditCard, PackageCheck, Trash2, FileInput } from 'lucide-react';
+import { Plus, MoreHorizontal, Eye, Loader2, ClipboardList, CreditCard, PackageCheck, Trash2, FileInput, Pencil, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
