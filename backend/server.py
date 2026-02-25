@@ -1876,7 +1876,7 @@ async def process_additional_charges(
         "customs": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
         "handling": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
         "other": {"code": "6000", "name": "Operating Expenses", "type": "expense"},
-        "discount": {"code": "4200", "name": "Other Income", "type": "income"},
+        "discount": {"code": "4900", "name": "Other Income", "type": "income"},
     }
     
     total_expenses_to_payable = 0
