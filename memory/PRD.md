@@ -419,6 +419,9 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Supports multiple attributes (Color, Size, etc.)
   - [x] Auto-generates all variation combinations (e.g., 3 colors × 4 sizes = 12 variations)
   - [x] Syncs to WooCommerce automatically (creates product + all variations)
+  - [x] **Fetches attributes from WooCommerce** - `GET /api/woocommerce/attributes` endpoint
+  - [x] **Checkbox-based option selection** - Select Color/Size options from WooCommerce with checkboxes
+  - [x] **Live preview** shows total variations count based on selected options
 - [x] **Inventory at Variation Level**
   - [x] GRN supports variation selection for variable products
   - [x] Stock quantity tracked per variation (e.g., Trouser Blue Size 32: 10 units)
