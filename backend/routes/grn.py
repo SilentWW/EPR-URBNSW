@@ -666,58 +666,180 @@ async def return_grn(
                 "created_by": current_user["user_id"],
                 "created_at": return_date
             })
+            
+            # Track products for WooCommerce sync
+            products_to_sync.append({
+                "product_id": product["id"],
+                "new_stock": new_stock,
+                "woo_product_id": product.get("woo_product_id")
+            })
         
         total_return_value += item.quantity * item.cost_price
     
-    # Create journal entries based on return reason
+    # Create journal entries based on return reason and settlement type
     entry_id = str(uuid.uuid4())
     entry_number = f"GRNRET-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+    refund_entry_number = None
+    supplier_credit_id = None
     
     if data.return_reason == "supplier":
-        # Return to Supplier: Debit AP (reduce what we owe), Credit Inventory
-        ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})
         inventory_account = await db.accounts.find_one({"company_id": company_id, "code": "1400"})
         
-        if ap_account and inventory_account:
-            journal_entry = {
-                "id": entry_id,
+        if data.settlement_type == "refund" and data.refund_account_id:
+            # Supplier Returns Money (Refund)
+            # 1. First entry: Debit Bank/Cash, Credit Inventory (goods returned, money received)
+            bank_account = await db.bank_accounts.find_one({
                 "company_id": company_id,
-                "entry_number": entry_number,
-                "date": return_date,
-                "description": f"GRN Return to Supplier - {grn['grn_number']}",
-                "reference_type": "grn_return",
-                "reference_id": grn_id,
-                "lines": [
-                    {
-                        "account_code": "2100",
-                        "account_name": ap_account["name"],
-                        "debit": total_return_value,
-                        "credit": 0,
-                        "description": "Reduce payable - goods returned to supplier"
-                    },
-                    {
-                        "account_code": "1400",
-                        "account_name": inventory_account["name"],
-                        "debit": 0,
-                        "credit": total_return_value,
-                        "description": "Reduce inventory - goods returned"
-                    }
-                ],
-                "total_debit": total_return_value,
-                "total_credit": total_return_value,
-                "status": "posted",
+                "id": data.refund_account_id
+            })
+            
+            # Get chart account linked to bank account
+            bank_chart_account = None
+            if bank_account and bank_account.get("chart_account_id"):
+                bank_chart_account = await db.accounts.find_one({"id": bank_account["chart_account_id"]})
+            
+            # If no bank_account found, try chart of accounts directly
+            if not bank_account:
+                bank_chart_account = await db.accounts.find_one({
+                    "company_id": company_id,
+                    "id": data.refund_account_id
+                })
+            
+            if inventory_account and (bank_account or bank_chart_account):
+                bank_code = bank_chart_account["code"] if bank_chart_account else "1100"
+                bank_name = bank_account["account_name"] if bank_account else bank_chart_account["name"]
+                
+                journal_entry = {
+                    "id": entry_id,
+                    "company_id": company_id,
+                    "entry_number": entry_number,
+                    "date": return_date,
+                    "description": f"GRN Return - Supplier Refund - {grn['grn_number']}",
+                    "reference_type": "grn_return",
+                    "reference_id": grn_id,
+                    "lines": [
+                        {
+                            "account_code": bank_code,
+                            "account_name": bank_name,
+                            "debit": total_return_value,
+                            "credit": 0,
+                            "description": "Refund received from supplier"
+                        },
+                        {
+                            "account_code": "1400",
+                            "account_name": inventory_account["name"],
+                            "debit": 0,
+                            "credit": total_return_value,
+                            "description": "Reduce inventory - goods returned"
+                        }
+                    ],
+                    "total_debit": total_return_value,
+                    "total_credit": total_return_value,
+                    "status": "posted",
+                    "created_by": current_user["user_id"],
+                    "created_at": return_date
+                }
+                await db.journal_entries.insert_one(journal_entry)
+                
+                # Update bank account balance
+                if bank_account:
+                    await db.bank_accounts.update_one(
+                        {"id": data.refund_account_id},
+                        {"$inc": {"current_balance": total_return_value}}
+                    )
+                
+                # Update chart account balances
+                if bank_chart_account:
+                    await db.accounts.update_one(
+                        {"id": bank_chart_account["id"]},
+                        {"$inc": {"balance": total_return_value}}
+                    )
+                await db.accounts.update_one(
+                    {"company_id": company_id, "code": "1400"},
+                    {"$inc": {"balance": -total_return_value}}
+                )
+                
+                refund_entry_number = entry_number
+        
+        elif data.settlement_type == "credit":
+            # Supplier Sends More Qty (Credit)
+            # Create supplier credit record and journal entry
+            ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})
+            
+            if inventory_account and ap_account:
+                # Journal entry: Debit AP (reduce payable), Credit Inventory
+                journal_entry = {
+                    "id": entry_id,
+                    "company_id": company_id,
+                    "entry_number": entry_number,
+                    "date": return_date,
+                    "description": f"GRN Return - Supplier Credit - {grn['grn_number']}",
+                    "reference_type": "grn_return",
+                    "reference_id": grn_id,
+                    "lines": [
+                        {
+                            "account_code": "2100",
+                            "account_name": ap_account["name"],
+                            "debit": total_return_value,
+                            "credit": 0,
+                            "description": "Reduce payable - supplier credit"
+                        },
+                        {
+                            "account_code": "1400",
+                            "account_name": inventory_account["name"],
+                            "debit": 0,
+                            "credit": total_return_value,
+                            "description": "Reduce inventory - goods returned"
+                        }
+                    ],
+                    "total_debit": total_return_value,
+                    "total_credit": total_return_value,
+                    "status": "posted",
+                    "created_by": current_user["user_id"],
+                    "created_at": return_date
+                }
+                await db.journal_entries.insert_one(journal_entry)
+                
+                # Update account balances
+                await db.accounts.update_one(
+                    {"company_id": company_id, "code": "2100"},
+                    {"$inc": {"balance": -total_return_value}}
+                )
+                await db.accounts.update_one(
+                    {"company_id": company_id, "code": "1400"},
+                    {"$inc": {"balance": -total_return_value}}
+                )
+            
+            # Create supplier credit record
+            supplier_credit_id = str(uuid.uuid4())
+            supplier = await db.suppliers.find_one({"id": grn.get("supplier_id")})
+            
+            await db.supplier_credits.insert_one({
+                "id": supplier_credit_id,
+                "company_id": company_id,
+                "supplier_id": grn.get("supplier_id"),
+                "supplier_name": supplier["name"] if supplier else grn.get("supplier_name", "Unknown"),
+                "grn_id": grn_id,
+                "grn_number": grn["grn_number"],
+                "amount": total_return_value,
+                "remaining_amount": total_return_value,
+                "status": "active",
+                "reason": f"GRN Return - {grn['grn_number']}",
+                "notes": data.notes,
                 "created_by": current_user["user_id"],
                 "created_at": return_date
-            }
-            await db.journal_entries.insert_one(journal_entry)
+            })
             
-            # Update account balances
-            await db.accounts.update_one(
-                {"company_id": company_id, "code": "2100"},
-                {"$inc": {"balance": -total_return_value}}  # Reduce liability
-            )
-            await db.accounts.update_one(
-                {"company_id": company_id, "code": "1400"},
+            # Update supplier credit balance
+            if supplier:
+                await db.suppliers.update_one(
+                    {"id": grn.get("supplier_id")},
+                    {"$inc": {"credit_balance": total_return_value}}
+                )
+        
+        else:
+            # Fallback: Old behavior - just reduce AP
+            ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})
                 {"$inc": {"balance": -total_return_value}}  # Reduce asset
             )
     else:
