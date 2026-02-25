@@ -697,6 +697,159 @@ export const PurchaseOrders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit PO Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl" data-testid="edit-po-dialog">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'Outfit, sans-serif' }}>Edit Purchase Order</DialogTitle>
+            <DialogDescription>
+              {selectedOrder?.order_number} - Modify order details
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Supplier *</Label>
+                <Select value={editFormData.supplier_id} onValueChange={(v) => setEditFormData({ ...editFormData, supplier_id: v })}>
+                  <SelectTrigger data-testid="edit-select-supplier">
+                    <SelectValue placeholder="Select supplier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Add Item */}
+              <div className="flex gap-2">
+                <Select value={editItem.product_id} onValueChange={(v) => {
+                  const product = products.find(p => p.id === v);
+                  setEditItem({ ...editItem, product_id: v, unit_price: product?.cost_price.toString() || '' });
+                }}>
+                  <SelectTrigger className="flex-1" data-testid="edit-select-product">
+                    <SelectValue placeholder="Select product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  value={editItem.unit_price}
+                  onChange={(e) => setEditItem({ ...editItem, unit_price: e.target.value })}
+                  className="w-28"
+                  placeholder="Price"
+                />
+                <Input
+                  type="number"
+                  min="1"
+                  value={editItem.quantity}
+                  onChange={(e) => setEditItem({ ...editItem, quantity: e.target.value })}
+                  className="w-20"
+                  placeholder="Qty"
+                />
+                <Button type="button" onClick={handleAddEditItem} variant="outline">Add</Button>
+              </div>
+
+              {/* Items List */}
+              {editFormData.items.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {editFormData.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.product_name}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" onClick={() => handleRemoveEditItem(index)}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Input
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  placeholder="Optional notes"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <div className="text-right">
+                  <p className="text-sm text-slate-500">Total</p>
+                  <p className="text-2xl font-bold">{formatCurrency(calculateEditTotal())}</p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={submitting || !editFormData.supplier_id} className="bg-indigo-600 hover:bg-indigo-700" data-testid="submit-edit-po-btn">
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Update Order
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent data-testid="delete-po-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Purchase Order
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete order <strong>{selectedOrder?.order_number}</strong>?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-red-50 p-3 rounded-lg text-sm text-red-800">
+              <strong>Warning:</strong> This will permanently delete the purchase order.
+              {selectedOrder?.paid_amount > 0 && (
+                <p className="mt-2 font-medium">This order has payments recorded and cannot be deleted.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteOrder} 
+              disabled={submitting || (selectedOrder?.paid_amount > 0)}
+              data-testid="confirm-delete-po-btn"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Delete Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
