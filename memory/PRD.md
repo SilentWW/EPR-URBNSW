@@ -323,6 +323,11 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [x] **Payment Options**
   - [x] Add to Accounts Payable (pay later with PO payment)
   - [x] Pay immediately from bank/cash account
+  - [x] Account dropdown shows ALL cash/bank accounts (from both Bank Accounts and Chart of Accounts)
+- [x] **Available in Both PO and GRN Pages**
+  - [x] Purchase Orders page: "Add Charges" in dropdown menu
+  - [x] GRN page: "Add Charges" button in expanded GRN view (for GRNs linked to PO)
+  - [x] Shows existing charges with running totals
 - [x] **Journal Entries Created**
   - [x] Expenses: Debit Operating Expenses, Credit AP (or Bank if paid immediately)
   - [x] Discounts: Debit AP (reduce payable), Credit Other Income
@@ -333,11 +338,12 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] `process_additional_charges()` helper function
 - [x] **Frontend Implementation**
   - [x] "Add Charges" option in PO dropdown menu
+  - [x] "Add Charges" button in GRN expanded view
   - [x] Additional Charges dialog with:
     - Charge type selector
     - Description field
     - Amount field
-    - Pay Now toggle with bank account selector
+    - Pay Now toggle with bank account selector (shows all accounts)
     - Charges table showing added items
     - Summary showing subtotal, expenses, discounts, new total
 
