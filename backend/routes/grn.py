@@ -204,6 +204,7 @@ async def create_grn(
     total_cost = 0
     processed_items = []
     products_to_sync = []
+    variations_to_sync = []
     
     for item in data.items:
         # Generate SKU if not provided
@@ -214,8 +215,46 @@ async def create_grn(
         # Calculate selling price (sale_price if set, otherwise regular_price)
         selling_price = item.sale_price if item.sale_price else item.regular_price
         
-        # Check if product exists
-        if item.product_id:
+        # Check if this is a variation item
+        if item.variation_id:
+            # Handle variation-level inventory
+            variation = await db.product_variations.find_one({
+                "id": item.variation_id,
+                "company_id": company_id
+            })
+            if not variation:
+                raise HTTPException(status_code=404, detail=f"Variation {item.variation_id} not found")
+            
+            # Update variation stock and prices
+            await db.product_variations.update_one(
+                {"id": item.variation_id},
+                {"$set": {
+                    "cost_price": item.cost_price,
+                    "regular_price": item.regular_price,
+                    "sale_price": item.sale_price,
+                    "selling_price": selling_price,
+                    "updated_at": get_current_timestamp()
+                },
+                "$inc": {"stock_quantity": item.quantity}}
+            )
+            
+            # Also update parent product total stock
+            if variation.get("parent_product_id"):
+                await db.products.update_one(
+                    {"id": variation["parent_product_id"]},
+                    {"$inc": {"stock_quantity": item.quantity},
+                     "$set": {"updated_at": get_current_timestamp()}}
+                )
+            
+            product_id = variation.get("parent_product_id")
+            variation_id = item.variation_id
+            
+            # Get updated variation for sync
+            updated_variation = await db.product_variations.find_one({"id": variation_id}, {"_id": 0})
+            variations_to_sync.append(updated_variation)
+            
+        elif item.product_id:
+            # Check if product exists
             product = await db.products.find_one({"id": item.product_id, "company_id": company_id})
             if not product:
                 raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
@@ -239,6 +278,7 @@ async def create_grn(
                 "$inc": {"stock_quantity": item.quantity}}
             )
             product_id = item.product_id
+            variation_id = None
             
             # Get updated product for sync
             updated_product = await db.products.find_one({"id": product_id}, {"_id": 0})
@@ -265,12 +305,14 @@ async def create_grn(
                 "tags": item.tags,
                 "manage_stock": True,
                 "attributes": item.attributes,
+                "product_type": "simple",
                 "woo_product_id": None,
                 "created_at": get_current_timestamp(),
                 "updated_at": get_current_timestamp()
             }
             await db.products.insert_one(new_product)
             products_to_sync.append(new_product)
+            variation_id = None
         
         # Calculate line total
         line_total = item.quantity * item.cost_price
@@ -278,6 +320,7 @@ async def create_grn(
         
         processed_items.append({
             "product_id": product_id,
+            "variation_id": variation_id if item.variation_id else None,
             "product_name": item.product_name,
             "sku": sku,
             "quantity": item.quantity,
@@ -292,6 +335,7 @@ async def create_grn(
             "id": generate_id(),
             "company_id": company_id,
             "product_id": product_id,
+            "variation_id": variation_id if item.variation_id else None,
             "movement_type": "grn_receipt",
             "quantity": item.quantity,
             "reference_type": "grn",
@@ -338,7 +382,8 @@ async def create_grn(
             sync_grn_products_to_woo,
             company_id,
             grn_id,
-            products_to_sync
+            products_to_sync,
+            variations_to_sync
         )
     
     return {
