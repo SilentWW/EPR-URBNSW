@@ -1908,7 +1908,7 @@ async def process_additional_charges(
             # Get Other Income account
             income_account = await db.accounts.find_one({
                 "company_id": company_id,
-                "code": "4200"  # Other Income
+                "code": "4900"  # Other Income
             })
             
             if ap_account and income_account:
@@ -1929,7 +1929,7 @@ async def process_additional_charges(
                             "description": "Discount reduces payable"
                         },
                         {
-                            "account_code": "4200",
+                            "account_code": "4900",
                             "account_name": income_account["name"],
                             "debit": 0,
                             "credit": amount,
@@ -1950,7 +1950,7 @@ async def process_additional_charges(
                     {"$inc": {"balance": -amount}}  # Reduce liability
                 )
                 await db.accounts.update_one(
-                    {"company_id": company_id, "code": "4200"},
+                    {"company_id": company_id, "code": "4900"},
                     {"$inc": {"balance": amount}}  # Increase income
                 )
                 
