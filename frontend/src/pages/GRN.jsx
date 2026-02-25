@@ -990,11 +990,50 @@ export default function GRN() {
                           <SelectContent>
                             <SelectItem value="new">Create New Product</SelectItem>
                             {products.map(p => (
-                              <SelectItem key={p.id} value={p.id}>{p.sku} - {p.name}</SelectItem>
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.sku} - {p.name} {p.product_type === 'variable' && <span className="text-purple-500 ml-1">(Variable)</span>}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Variation Selector (for variable products) */}
+                      {item.product_id && products.find(p => p.id === item.product_id)?.product_type === 'variable' && (
+                        <div className="pl-2 border-l-2 border-purple-200">
+                          <Label className="text-sm text-purple-600">Select Variation *</Label>
+                          {loadingVariations[idx] ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Loading variations...
+                            </div>
+                          ) : (productVariations[idx] || []).length > 0 ? (
+                            <Select
+                              value={item.variation_id || ""}
+                              onValueChange={(value) => handleItemChange(idx, 'variation_id', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select variation (Color, Size...)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(productVariations[idx] || []).map(v => (
+                                  <SelectItem key={v.id} value={v.id}>
+                                    <div className="flex items-center gap-2">
+                                      <span>{v.variation_name}</span>
+                                      <span className="text-xs text-slate-400">({v.sku})</span>
+                                      <span className="text-xs text-green-600">Stock: {v.stock_quantity}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <p className="text-sm text-amber-600 py-2">
+                              No variations found. Sync variations from WooCommerce in Products page first.
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Product Details Row 1 */}
                       <div className="grid grid-cols-3 gap-4">
