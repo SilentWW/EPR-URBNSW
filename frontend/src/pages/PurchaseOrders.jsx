@@ -176,15 +176,81 @@ export const PurchaseOrders = () => {
     fetchData();
   }, [statusFilter]);
 
+  // Fetch variations when a variable product is selected
+  const fetchProductVariations = async (productId) => {
+    setLoadingVariations(true);
+    try {
+      const response = await api.get(`/variations/product/${productId}`);
+      setProductVariations(response.data.variations || []);
+    } catch (error) {
+      console.error('Failed to fetch variations:', error);
+      setProductVariations([]);
+    } finally {
+      setLoadingVariations(false);
+    }
+  };
+
+  const handleProductSelect = (productId) => {
+    const product = products.find(p => p.id === productId);
+    if (product?.product_type === 'variable') {
+      // Fetch variations for this product
+      fetchProductVariations(productId);
+      setNewItem({ 
+        ...newItem, 
+        product_id: productId, 
+        variation_id: '',
+        unit_price: '' 
+      });
+    } else {
+      setProductVariations([]);
+      setNewItem({ 
+        ...newItem, 
+        product_id: productId, 
+        variation_id: '',
+        unit_price: product?.cost_price?.toString() || '' 
+      });
+    }
+  };
+
+  const handleVariationSelect = (variationId) => {
+    const variation = productVariations.find(v => v.id === variationId);
+    setNewItem({ 
+      ...newItem, 
+      variation_id: variationId,
+      unit_price: variation?.cost_price?.toString() || '' 
+    });
+  };
+
   const handleAddItem = () => {
     const product = products.find((p) => p.id === newItem.product_id);
     if (!product) return;
 
-    const unitPrice = parseFloat(newItem.unit_price) || product.cost_price;
+    // For variable products, variation must be selected
+    if (product.product_type === 'variable' && !newItem.variation_id) {
+      toast.error('Please select a variation for this variable product');
+      return;
+    }
+
+    let itemName = product.name;
+    let itemSku = product.sku;
+    let costPrice = product.cost_price;
+
+    // If variation selected, use variation details
+    if (newItem.variation_id) {
+      const variation = productVariations.find(v => v.id === newItem.variation_id);
+      if (variation) {
+        itemName = variation.variation_name;
+        itemSku = variation.sku;
+        costPrice = variation.cost_price;
+      }
+    }
+
+    const unitPrice = parseFloat(newItem.unit_price) || costPrice;
     const item = {
       product_id: product.id,
-      product_name: product.name,
-      sku: product.sku,
+      variation_id: newItem.variation_id || null,
+      product_name: itemName,
+      sku: itemSku,
       quantity: parseInt(newItem.quantity),
       unit_price: unitPrice,
       total: unitPrice * parseInt(newItem.quantity),
@@ -195,7 +261,8 @@ export const PurchaseOrders = () => {
       items: [...formData.items, item],
     });
 
-    setNewItem({ product_id: '', quantity: 1, unit_price: '' });
+    setNewItem({ product_id: '', variation_id: '', quantity: 1, unit_price: '' });
+    setProductVariations([]);
   };
 
   const handleRemoveItem = (index) => {
