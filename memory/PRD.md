@@ -352,26 +352,46 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Full Return: Return all items in GRN
   - [x] Partial Return: Select specific items and quantities to return
   - [x] Return reasons: "Return to Supplier" or "Damaged/Written Off"
+- [x] **GRN Return - Settlement Options (for Return to Supplier)**
+  - [x] **Supplier Returns Money (Refund)**: 
+    - Select bank/cash account to receive refund
+    - Journal entry: Debit Bank/Cash, Credit Inventory
+    - Bank account balance increased
+  - [x] **Supplier Sends More Qty (Credit)**:
+    - Creates supplier credit record for future orders
+    - Journal entry: Debit AP, Credit Inventory
+    - Supplier credit balance tracked
 - [x] **GRN Return - Financial Impact**
-  - [x] Return to Supplier: Debit AP (reduce payable), Credit Inventory
+  - [x] Return to Supplier (Refund): Debit Bank, Credit Inventory
+  - [x] Return to Supplier (Credit): Debit AP, Credit Inventory + Create Supplier Credit
   - [x] Damaged/Written Off: Debit Operating Expenses (loss), Credit Inventory
   - [x] Journal entries created with GRNRET- prefix
-  - [x] Inventory quantities reduced
+- [x] **GRN Return - Inventory & WooCommerce Sync**
+  - [x] Inventory quantities reduced automatically
   - [x] Inventory movements recorded
+  - [x] Stock auto-synced to WooCommerce after return
+- [x] **PO Payment Status Display**
+  - [x] Shows linked PO payment status in return dialog
+  - [x] Displays PO number, total, paid amount, "Fully Paid" badge
 - [x] **Role-Based Access Control**
   - [x] Only Admin and Manager can process GRN returns
   - [x] All users can view GRN details
 - [x] **Backend Implementation**
-  - [x] `GRNReturn` and `GRNReturnItem` Pydantic models
-  - [x] `POST /api/grn/{id}/return` endpoint
-  - [x] Role check for admin/manager
-  - [x] Updates GRN status (returned/partial_return)
+  - [x] `GRNReturn` model with `settlement_type` and `refund_account_id`
+  - [x] `POST /api/grn/{id}/return` endpoint with all settlement logic
+  - [x] Creates `supplier_credits` collection for credit tracking
+  - [x] WooCommerce stock sync on return
 - [x] **Frontend Implementation**
   - [x] Actions dropdown with View Details and Return GRN options
   - [x] View Details dialog with comprehensive GRN info
-  - [x] Return GRN dialog with return type, reason, item selection
-  - [x] Warning message about irreversible action
-  - [x] Status badges for returned/partial return GRNs
+  - [x] Return GRN dialog with:
+    - PO payment status display
+    - Return type (full/partial)
+    - Return reason dropdown
+    - Settlement options (Refund/Credit) with descriptions
+    - Bank account selector for refunds
+    - Item selection for partial returns
+    - Warning about irreversible action
 
 ### Bug Fixes (Session - Feb 18, 2026)
 - [x] **Sales Order Payment Not Updating Bank Balance** - FIXED
