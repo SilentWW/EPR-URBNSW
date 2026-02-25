@@ -442,12 +442,12 @@ class TestManufacturingWorkflow:
 
     def test_19_verify_journal_entries_created(self):
         """Verify manufacturing journal entries were created"""
-        response = self.session.get(f"{BASE_URL}/api/simple-finance/journal-entries")
+        response = self.session.get(f"{BASE_URL}/api/finance/journal-entries")
         assert response.status_code == 200, f"Get journal entries failed: {response.text}"
         
         entries = response.json()
         
-        # Look for manufacturing-related entries
+        # Look for manufacturing-related entries (MFG- prefix)
         mfg_entries = [e for e in entries if e.get("entry_number", "").startswith("MFG-")]
         
         print(f"✓ Found {len(mfg_entries)} manufacturing journal entries")
