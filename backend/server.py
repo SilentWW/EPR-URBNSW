@@ -734,7 +734,22 @@ async def update_product(product_id: str, data: ProductUpdate, current_user: dic
     
     await db.products.update_one({"id": product_id}, {"$set": update_data})
     
-    return await db.products.find_one({"id": product_id}, {"_id": 0})
+    # Get updated product
+    updated_product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    
+    # Sync to WooCommerce if product is linked (two-way sync)
+    if existing.get("woo_product_id"):
+        try:
+            await sync_product_to_woocommerce(
+                current_user["company_id"],
+                updated_product,
+                existing["woo_product_id"]
+            )
+        except Exception as e:
+            # Log error but don't fail the update
+            logging.error(f"Failed to sync product to WooCommerce: {str(e)}")
+    
+    return updated_product
 
 @api_router.delete("/products/{product_id}")
 async def delete_product(product_id: str, current_user: dict = Depends(get_current_user)):
