@@ -378,6 +378,12 @@ export default function QuickTransactions() {
       case 'grn_return': return <RotateCcw className="w-4 h-4 text-amber-600" />;
       case 'additional_charge': return <Truck className="w-4 h-4 text-slate-600" />;
       case 'discount_received': return <Tag className="w-4 h-4 text-teal-600" />;
+      case 'mfg_material_issue': return <Boxes className="w-4 h-4 text-blue-600" />;
+      case 'mfg_labor': return <Users className="w-4 h-4 text-amber-600" />;
+      case 'mfg_production': return <Factory className="w-4 h-4 text-green-600" />;
+      case 'mfg_scrap': return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      case 'mfg_reversal': return <RotateCcw className="w-4 h-4 text-slate-600" />;
+      case 'manufacturing': return <Hammer className="w-4 h-4 text-indigo-600" />;
       default: return <FileText className="w-4 h-4 text-gray-600" />;
     }
   };
