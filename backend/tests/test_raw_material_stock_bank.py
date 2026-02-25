@@ -8,7 +8,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://prod-kpis.preview.emergentagent.com"
+    BASE_URL = "https://cloud-erp-dev.preview.emergentagent.com"
 
 TEST_EMAIL = "lahiruraja97@gmail.com"
 TEST_PASSWORD = "password123"
