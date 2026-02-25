@@ -228,6 +228,99 @@ export const PurchaseOrders = () => {
     }
   };
 
+  // Edit handlers
+  const [editItem, setEditItem] = useState({
+    product_id: '',
+    quantity: 1,
+    unit_price: '',
+  });
+
+  const handleOpenEditDialog = async (order) => {
+    try {
+      const response = await purchaseOrdersAPI.getOne(order.id);
+      const orderData = response.data;
+      setSelectedOrder(orderData);
+      setEditFormData({
+        supplier_id: orderData.supplier_id,
+        items: orderData.items || [],
+        notes: orderData.notes || '',
+      });
+      setEditDialogOpen(true);
+    } catch (error) {
+      toast.error('Failed to load order details');
+    }
+  };
+
+  const handleAddEditItem = () => {
+    const product = products.find((p) => p.id === editItem.product_id);
+    if (!product) return;
+
+    const unitPrice = parseFloat(editItem.unit_price) || product.cost_price;
+    const item = {
+      product_id: product.id,
+      product_name: product.name,
+      sku: product.sku,
+      quantity: parseInt(editItem.quantity),
+      unit_price: unitPrice,
+      total: unitPrice * parseInt(editItem.quantity),
+    };
+
+    setEditFormData({
+      ...editFormData,
+      items: [...editFormData.items, item],
+    });
+
+    setEditItem({ product_id: '', quantity: 1, unit_price: '' });
+  };
+
+  const handleRemoveEditItem = (index) => {
+    setEditFormData({
+      ...editFormData,
+      items: editFormData.items.filter((_, i) => i !== index),
+    });
+  };
+
+  const calculateEditTotal = () => {
+    return editFormData.items.reduce((sum, item) => sum + item.total, 0);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (editFormData.items.length === 0) {
+      toast.error('Please add at least one item');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await purchaseOrdersAPI.update(selectedOrder.id, editFormData);
+      toast.success('Purchase order updated successfully');
+      setEditDialogOpen(false);
+      setEditFormData({ supplier_id: '', items: [], notes: '' });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update order');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Delete handler
+  const handleDeleteOrder = async () => {
+    setSubmitting(true);
+    try {
+      await purchaseOrdersAPI.delete(selectedOrder.id);
+      toast.success('Purchase order deleted successfully');
+      setDeleteDialogOpen(false);
+      setSelectedOrder(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete order');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="purchase-orders-page">
       {/* Header */}
