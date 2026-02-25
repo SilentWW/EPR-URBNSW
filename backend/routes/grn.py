@@ -595,3 +595,222 @@ async def delete_grn(grn_id: str, current_user: dict = Depends(get_current_user)
     await db.grns.delete_one({"id": grn_id})
     return {"message": "GRN deleted"}
 
+
+@router.post("/{grn_id}/return")
+async def return_grn(
+    grn_id: str, 
+    data: GRNReturn, 
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Process a GRN return - reverses inventory and creates financial entries.
+    Only Admin and Manager roles can perform this action.
+    """
+    import uuid
+    
+    # Role check - only admin and manager can return
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin and manager can process GRN returns")
+    
+    # Get the GRN
+    grn = await db.grns.find_one({
+        "id": grn_id,
+        "company_id": current_user["company_id"]
+    })
+    if not grn:
+        raise HTTPException(status_code=404, detail="GRN not found")
+    
+    if grn.get("status") == "returned":
+        raise HTTPException(status_code=400, detail="This GRN has already been fully returned")
+    
+    company_id = current_user["company_id"]
+    return_date = datetime.now(timezone.utc).isoformat()
+    total_return_value = 0
+    
+    # Process each return item
+    for item in data.items:
+        # Reduce inventory
+        product = await db.products.find_one({
+            "company_id": company_id,
+            "$or": [
+                {"id": item.product_id},
+                {"sku": item.sku}
+            ]
+        }) if item.product_id or item.sku else None
+        
+        if product:
+            new_stock = max(0, product["stock_quantity"] - item.quantity)
+            await db.products.update_one(
+                {"id": product["id"]},
+                {"$set": {
+                    "stock_quantity": new_stock,
+                    "updated_at": return_date
+                }}
+            )
+            
+            # Create inventory movement record
+            await db.inventory_movements.insert_one({
+                "id": str(uuid.uuid4()),
+                "company_id": company_id,
+                "product_id": product["id"],
+                "product_name": item.product_name,
+                "movement_type": "out",
+                "quantity": item.quantity,
+                "previous_stock": product["stock_quantity"],
+                "new_stock": new_stock,
+                "reason": f"GRN Return - {grn['grn_number']} ({data.return_reason})",
+                "reference_type": "grn_return",
+                "reference_id": grn_id,
+                "created_by": current_user["user_id"],
+                "created_at": return_date
+            })
+        
+        total_return_value += item.quantity * item.cost_price
+    
+    # Create journal entries based on return reason
+    entry_id = str(uuid.uuid4())
+    entry_number = f"GRNRET-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+    
+    if data.return_reason == "supplier":
+        # Return to Supplier: Debit AP (reduce what we owe), Credit Inventory
+        ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})
+        inventory_account = await db.accounts.find_one({"company_id": company_id, "code": "1400"})
+        
+        if ap_account and inventory_account:
+            journal_entry = {
+                "id": entry_id,
+                "company_id": company_id,
+                "entry_number": entry_number,
+                "date": return_date,
+                "description": f"GRN Return to Supplier - {grn['grn_number']}",
+                "reference_type": "grn_return",
+                "reference_id": grn_id,
+                "lines": [
+                    {
+                        "account_code": "2100",
+                        "account_name": ap_account["name"],
+                        "debit": total_return_value,
+                        "credit": 0,
+                        "description": "Reduce payable - goods returned to supplier"
+                    },
+                    {
+                        "account_code": "1400",
+                        "account_name": inventory_account["name"],
+                        "debit": 0,
+                        "credit": total_return_value,
+                        "description": "Reduce inventory - goods returned"
+                    }
+                ],
+                "total_debit": total_return_value,
+                "total_credit": total_return_value,
+                "status": "posted",
+                "created_by": current_user["user_id"],
+                "created_at": return_date
+            }
+            await db.journal_entries.insert_one(journal_entry)
+            
+            # Update account balances
+            await db.accounts.update_one(
+                {"company_id": company_id, "code": "2100"},
+                {"$inc": {"balance": -total_return_value}}  # Reduce liability
+            )
+            await db.accounts.update_one(
+                {"company_id": company_id, "code": "1400"},
+                {"$inc": {"balance": -total_return_value}}  # Reduce asset
+            )
+    else:
+        # Damaged/Written Off: Debit Loss/Write-off Expense, Credit Inventory
+        # Use Operating Expenses for write-off
+        expense_account = await db.accounts.find_one({"company_id": company_id, "code": "6000"})
+        inventory_account = await db.accounts.find_one({"company_id": company_id, "code": "1400"})
+        
+        if expense_account and inventory_account:
+            journal_entry = {
+                "id": entry_id,
+                "company_id": company_id,
+                "entry_number": entry_number,
+                "date": return_date,
+                "description": f"GRN Write-off (Damaged) - {grn['grn_number']}",
+                "reference_type": "grn_return",
+                "reference_id": grn_id,
+                "lines": [
+                    {
+                        "account_code": "6000",
+                        "account_name": expense_account["name"],
+                        "debit": total_return_value,
+                        "credit": 0,
+                        "description": "Write-off expense - damaged goods"
+                    },
+                    {
+                        "account_code": "1400",
+                        "account_name": inventory_account["name"],
+                        "debit": 0,
+                        "credit": total_return_value,
+                        "description": "Reduce inventory - damaged goods"
+                    }
+                ],
+                "total_debit": total_return_value,
+                "total_credit": total_return_value,
+                "status": "posted",
+                "created_by": current_user["user_id"],
+                "created_at": return_date
+            }
+            await db.journal_entries.insert_one(journal_entry)
+            
+            # Update account balances
+            await db.accounts.update_one(
+                {"company_id": company_id, "code": "6000"},
+                {"$inc": {"balance": total_return_value}}  # Increase expense
+            )
+            await db.accounts.update_one(
+                {"company_id": company_id, "code": "1400"},
+                {"$inc": {"balance": -total_return_value}}  # Reduce asset
+            )
+    
+    # Create return record
+    return_record = {
+        "return_date": return_date,
+        "return_type": data.return_type,
+        "return_reason": data.return_reason,
+        "notes": data.notes,
+        "items": [item.model_dump() for item in data.items],
+        "total_value": total_return_value,
+        "journal_entry_number": entry_number,
+        "created_by": current_user["user_id"]
+    }
+    
+    # Determine new status
+    original_total = sum(item["quantity"] for item in grn["items"])
+    returned_total = sum(item.quantity for item in data.items)
+    new_status = "returned" if returned_total >= original_total else "partial_return"
+    
+    # Update GRN with return info
+    await db.grns.update_one(
+        {"id": grn_id},
+        {
+            "$set": {
+                "status": new_status,
+                "updated_at": return_date
+            },
+            "$push": {
+                "returns": return_record
+            }
+        }
+    )
+    
+    # If linked to a PO, update PO as well
+    if grn.get("po_id"):
+        await db.purchase_orders.update_one(
+            {"id": grn["po_id"]},
+            {"$set": {
+                "has_returns": True,
+                "updated_at": return_date
+            }}
+        )
+    
+    return {
+        "message": "GRN return processed successfully",
+        "return_value": total_return_value,
+        "journal_entry": entry_number,
+        "new_status": new_status
+    }
