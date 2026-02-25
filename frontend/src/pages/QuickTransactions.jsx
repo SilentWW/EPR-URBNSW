@@ -369,6 +369,12 @@ export default function QuickTransactions() {
       case 'revenue_receipt': return <DollarSign className="w-4 h-4 text-green-600" />;
       case 'loan_received': return <Banknote className="w-4 h-4 text-purple-600" />;
       case 'loan_repayment': return <CreditCard className="w-4 h-4 text-orange-600" />;
+      case 'po_payment': return <Package className="w-4 h-4 text-indigo-600" />;
+      case 'so_payment': 
+      case 'sales_payment': return <DollarSign className="w-4 h-4 text-emerald-600" />;
+      case 'grn_return': return <RotateCcw className="w-4 h-4 text-amber-600" />;
+      case 'additional_charge': return <Truck className="w-4 h-4 text-slate-600" />;
+      case 'discount_received': return <Tag className="w-4 h-4 text-teal-600" />;
       default: return <FileText className="w-4 h-4 text-gray-600" />;
     }
   };
@@ -377,14 +383,41 @@ export default function QuickTransactions() {
     switch (type) {
       case 'capital_investment': 
       case 'revenue_receipt':
+      case 'so_payment':
+      case 'sales_payment':
+      case 'discount_received':
         return 'bg-green-50 border-green-200';
+      case 'grn_return':
+        return 'bg-amber-50 border-amber-200';
       case 'capital_withdrawal':
       case 'expense_payment':
       case 'salary_payment':
       case 'loan_repayment':
+      case 'po_payment':
         return 'bg-red-50 border-red-200';
+      case 'additional_charge':
+        return 'bg-slate-100 border-slate-300';
       default:
         return 'bg-slate-50 border-slate-200';
+    }
+  };
+
+  const getTransactionLabel = (type) => {
+    switch (type) {
+      case 'capital_investment': return 'Capital Investment';
+      case 'capital_withdrawal': return 'Capital Withdrawal';
+      case 'expense_payment': return 'Expense';
+      case 'salary_payment': return 'Salary';
+      case 'revenue_receipt': return 'Revenue';
+      case 'loan_received': return 'Loan Received';
+      case 'loan_repayment': return 'Loan Repayment';
+      case 'po_payment': return 'PO Payment';
+      case 'so_payment': 
+      case 'sales_payment': return 'Sales Payment';
+      case 'grn_return': return 'GRN Return';
+      case 'additional_charge': return 'Charge';
+      case 'discount_received': return 'Discount';
+      default: return 'Transaction';
     }
   };
 
