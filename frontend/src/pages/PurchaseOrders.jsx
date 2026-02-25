@@ -123,16 +123,18 @@ export const PurchaseOrders = () => {
       const params = {};
       if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
 
-      const [ordersRes, suppliersRes, productsRes, bankAccountsRes] = await Promise.all([
+      const [ordersRes, suppliersRes, productsRes, bankAccountsRes, chargeTypesRes] = await Promise.all([
         purchaseOrdersAPI.getAll(params),
         suppliersAPI.getAll(),
         productsAPI.getAll(),
         api.get('/bank-accounts'),
+        api.get('/grn/charge-types').catch(() => ({ data: [] })),
       ]);
       setOrders(ordersRes.data);
       setSuppliers(suppliersRes.data);
       setProducts(productsRes.data);
       setBankAccounts(bankAccountsRes.data);
+      setChargeTypes(chargeTypesRes.data || []);
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
