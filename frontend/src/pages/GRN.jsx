@@ -66,6 +66,7 @@ import { Checkbox } from '../components/ui/checkbox';
 export default function GRN() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [grns, setGrns] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -78,6 +79,20 @@ export default function GRN() {
   const [expandedGrn, setExpandedGrn] = useState(null);
   const [nextSku, setNextSku] = useState('');
   const [fromPO, setFromPO] = useState(null); // Track if GRN is being created from a PO
+  
+  // Check if user can return (admin or manager)
+  const canReturn = user?.role === 'admin' || user?.role === 'manager';
+  
+  // View dialog state
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedGrn, setSelectedGrn] = useState(null);
+  
+  // Return dialog state
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [returnType, setReturnType] = useState('full'); // 'full' or 'partial'
+  const [returnReason, setReturnReason] = useState('supplier'); // 'supplier' or 'damaged'
+  const [returnNotes, setReturnNotes] = useState('');
+  const [returnItems, setReturnItems] = useState([]); // For partial returns
   
   // Additional charges state
   const [chargesDialogOpen, setChargesDialogOpen] = useState(false);
