@@ -37,7 +37,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Eye, Loader2, ClipboardList, CreditCard, PackageCheck, Trash2, FileInput, Pencil, AlertTriangle } from 'lucide-react';
+import { Switch } from '../components/ui/switch';
+import { Plus, MoreHorizontal, Eye, Loader2, ClipboardList, CreditCard, PackageCheck, Trash2, FileInput, Pencil, AlertTriangle, Receipt, TruckIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
