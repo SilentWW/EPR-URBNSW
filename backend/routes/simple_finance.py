@@ -1375,8 +1375,8 @@ async def get_all_transactions(
     # Filter by transaction type if specified
     if transaction_type and transaction_type != "all":
         if transaction_type == "manufacturing":
-            # Filter for all manufacturing-related transaction types
-            unique_transactions = [tx for tx in unique_transactions if tx["transaction_type"].startswith("mfg_") or tx["transaction_type"] == "manufacturing"]
+            # Filter for all manufacturing-related transaction types including raw material purchases
+            unique_transactions = [tx for tx in unique_transactions if tx["transaction_type"].startswith("mfg_") or tx["transaction_type"] in ("manufacturing", "raw_material_purchase")]
         else:
             unique_transactions = [tx for tx in unique_transactions if tx["transaction_type"] == transaction_type]
     
