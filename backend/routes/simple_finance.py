@@ -1300,6 +1300,44 @@ async def get_all_transactions(
             "created_at": sp["created_at"]
         })
     
+    # 7. Get Manufacturing Transactions (from journal entries with MFG- prefix)
+    manufacturing_txns = await db.journal_entries.find(
+        {
+            "company_id": company_id,
+            "entry_number": {"$regex": "^MFG-"},
+            "is_reversed": {"$ne": True}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    for mfg in manufacturing_txns:
+        # Determine manufacturing transaction subtype from description
+        desc = mfg.get("description", "").lower()
+        if "materials issued" in desc:
+            mfg_type = "mfg_material_issue"
+        elif "labor cost" in desc:
+            mfg_type = "mfg_labor"
+        elif "production completed" in desc or "production complete" in desc:
+            mfg_type = "mfg_production"
+        elif "rejection" in desc or "scrap" in desc:
+            mfg_type = "mfg_scrap"
+        elif "cancelled" in desc or "returned" in desc:
+            mfg_type = "mfg_reversal"
+        else:
+            mfg_type = "manufacturing"
+        
+        all_transactions.append({
+            "id": mfg["id"],
+            "date": mfg.get("date") or mfg["created_at"],
+            "description": mfg.get("description", "Manufacturing Transaction"),
+            "amount": mfg.get("total_debit", 0),
+            "transaction_type": mfg_type,
+            "category": "manufacturing",
+            "reference": mfg.get("entry_number", ""),
+            "source": "Manufacturing",
+            "created_at": mfg["created_at"]
+        })
+    
     # Remove duplicates based on id
     seen_ids = set()
     unique_transactions = []
