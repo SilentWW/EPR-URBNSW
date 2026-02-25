@@ -178,6 +178,7 @@ export const Products = () => {
 
   useEffect(() => {
     fetchWooCategories();
+    fetchWooAttributes();
   }, []);
 
   const handleOpenDialog = async (product = null) => {
