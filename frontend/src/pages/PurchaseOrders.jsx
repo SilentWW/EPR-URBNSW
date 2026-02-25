@@ -694,36 +694,70 @@ export const PurchaseOrders = () => {
               </div>
 
               {/* Add Item */}
-              <div className="flex gap-2">
-                <Select value={newItem.product_id} onValueChange={(v) => {
-                  const product = products.find(p => p.id === v);
-                  setNewItem({ ...newItem, product_id: v, unit_price: product?.cost_price.toString() || '' });
-                }}>
-                  <SelectTrigger className="flex-1" data-testid="select-po-product">
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  value={newItem.unit_price}
-                  onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
-                  className="w-28"
-                  placeholder="Price"
-                />
-                <Input
-                  type="number"
-                  min="1"
-                  value={newItem.quantity}
-                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                  className="w-20"
-                  placeholder="Qty"
-                />
-                <Button type="button" onClick={handleAddItem} variant="outline">Add</Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Select value={newItem.product_id} onValueChange={handleProductSelect}>
+                    <SelectTrigger className="flex-1" data-testid="select-po-product">
+                      <SelectValue placeholder="Select product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} {p.product_type === 'variable' && <span className="text-purple-500 ml-1">(Variable)</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    value={newItem.unit_price}
+                    onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
+                    className="w-28"
+                    placeholder="Price"
+                  />
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                    className="w-20"
+                    placeholder="Qty"
+                  />
+                  <Button type="button" onClick={handleAddItem} variant="outline">Add</Button>
+                </div>
+                
+                {/* Variation Selector (for variable products) */}
+                {newItem.product_id && products.find(p => p.id === newItem.product_id)?.product_type === 'variable' && (
+                  <div className="pl-2 border-l-2 border-purple-200">
+                    {loadingVariations ? (
+                      <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading variations...
+                      </div>
+                    ) : productVariations.length > 0 ? (
+                      <Select value={newItem.variation_id} onValueChange={handleVariationSelect}>
+                        <SelectTrigger className="w-full" data-testid="select-po-variation">
+                          <SelectValue placeholder="Select variation (Color, Size...)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productVariations.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{v.variation_name}</span>
+                                <span className="text-xs text-slate-400">({v.sku})</span>
+                                <span className="text-xs text-green-600">Stock: {v.stock_quantity}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-amber-600 py-2">
+                        No variations found. Sync variations from WooCommerce first.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Items List */}
@@ -742,7 +776,15 @@ export const PurchaseOrders = () => {
                     <TableBody>
                       {formData.items.map((item, index) => (
                         <TableRow key={index}>
-                          <TableCell>{item.product_name}</TableCell>
+                          <TableCell>
+                            <div>
+                              {item.product_name}
+                              {item.variation_id && (
+                                <span className="text-xs text-purple-500 ml-1">(Variation)</span>
+                              )}
+                            </div>
+                            <span className="text-xs text-slate-400">{item.sku}</span>
+                          </TableCell>
                           <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
