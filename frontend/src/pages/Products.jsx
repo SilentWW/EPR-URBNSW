@@ -50,6 +50,8 @@ const initialFormData = {
   sku: '',
   name: '',
   category: '',
+  categories: [],
+  category_names: [],
 };
 
 export const Products = () => {
@@ -64,6 +66,7 @@ export const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   const fetchProducts = async () => {
     try {
