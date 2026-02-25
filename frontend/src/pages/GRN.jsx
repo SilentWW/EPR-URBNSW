@@ -1755,8 +1755,14 @@ export default function GRN() {
                   <p className="font-medium">This action will:</p>
                   <ul className="list-disc list-inside mt-1">
                     <li>Reduce inventory quantities</li>
+                    <li>Sync reduced stock to WooCommerce</li>
                     <li>Create reversal journal entries</li>
-                    {returnReason === 'supplier' && <li>Reduce Accounts Payable to supplier</li>}
+                    {returnReason === 'supplier' && returnSettlement === 'refund' && (
+                      <li>Add refund amount to your selected bank/cash account</li>
+                    )}
+                    {returnReason === 'supplier' && returnSettlement === 'credit' && (
+                      <li>Create supplier credit for future orders</li>
+                    )}
                     {returnReason === 'damaged' && <li>Record a loss/write-off expense</li>}
                     <li>This action cannot be undone</li>
                   </ul>
@@ -1770,7 +1776,7 @@ export default function GRN() {
             <Button 
               variant="destructive"
               onClick={handleSubmitReturn}
-              disabled={submitting || calculateReturnTotal() === 0}
+              disabled={submitting || calculateReturnTotal() === 0 || (returnReason === 'supplier' && returnSettlement === 'refund' && !refundAccountId)}
               data-testid="confirm-return-btn"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
