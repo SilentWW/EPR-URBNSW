@@ -1328,6 +1328,348 @@ export default function GRN() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View GRN Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-3xl" data-testid="view-grn-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <FileText className="w-5 h-5" />
+              GRN Details - {selectedGrn?.grn_number}
+            </DialogTitle>
+            <DialogDescription>
+              Received on {selectedGrn?.received_date} from {selectedGrn?.supplier_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedGrn && (
+            <div className="space-y-4 py-4">
+              {/* Status badges */}
+              <div className="flex gap-2">
+                {getSyncStatusBadge(selectedGrn.woo_sync_status)}
+                {selectedGrn.status === 'returned' && (
+                  <Badge variant="destructive" className="bg-red-100 text-red-800">Returned</Badge>
+                )}
+                {selectedGrn.status === 'partial_return' && (
+                  <Badge variant="warning" className="bg-amber-100 text-amber-800">Partial Return</Badge>
+                )}
+                {selectedGrn.po_id && (
+                  <Badge variant="outline">From PO</Badge>
+                )}
+              </div>
+
+              {/* GRN Info */}
+              <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-slate-500">GRN Number</p>
+                  <p className="font-semibold">{selectedGrn.grn_number}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Supplier</p>
+                  <p className="font-semibold">{selectedGrn.supplier_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Received Date</p>
+                  <p className="font-semibold">{selectedGrn.received_date}</p>
+                </div>
+                {selectedGrn.po_id && (
+                  <div>
+                    <p className="text-sm text-slate-500">Purchase Order</p>
+                    <p className="font-semibold">
+                      {allPurchaseOrders.find(po => po.id === selectedGrn.po_id)?.order_number || 'N/A'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Items Table */}
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Cost Price</TableHead>
+                      <TableHead className="text-right">Regular Price</TableHead>
+                      <TableHead className="text-right">Line Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedGrn.items.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-mono text-sm">{item.sku}</TableCell>
+                        <TableCell>{item.product_name}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.cost_price)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.regular_price)}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(item.quantity * item.cost_price)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Total */}
+              <div className="flex justify-end">
+                <div className="bg-indigo-50 p-4 rounded-lg text-right">
+                  <p className="text-sm text-slate-500">Total Cost (COGS)</p>
+                  <p className="text-2xl font-bold text-indigo-600">{formatCurrency(selectedGrn.total_cost)}</p>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedGrn.notes && (
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-sm text-slate-500 mb-1">Notes</p>
+                  <p className="text-sm">{selectedGrn.notes}</p>
+                </div>
+              )}
+
+              {/* Return History */}
+              {selectedGrn.returns && selectedGrn.returns.length > 0 && (
+                <div className="border-t pt-4">
+                  <p className="font-semibold mb-2 text-red-600">Return History</p>
+                  {selectedGrn.returns.map((ret, idx) => (
+                    <div key={idx} className="p-3 bg-red-50 rounded-lg mb-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">
+                          {ret.return_reason === 'supplier' ? 'Returned to Supplier' : 'Written Off (Damaged)'}
+                        </span>
+                        <span className="text-sm text-slate-500">{ret.return_date}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1">
+                        {ret.items.length} items, Total: {formatCurrency(ret.total_value)}
+                      </p>
+                      {ret.notes && <p className="text-xs text-slate-500 mt-1">{ret.notes}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button>
+            {canReturn && selectedGrn?.status !== 'returned' && (
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  setViewDialogOpen(false);
+                  handleOpenReturnDialog(selectedGrn);
+                }}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Return GRN
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Return GRN Dialog */}
+      <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+        <DialogContent className="max-w-2xl" data-testid="return-grn-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <RotateCcw className="w-5 h-5" />
+              Return GRN - {selectedGrn?.grn_number}
+            </DialogTitle>
+            <DialogDescription>
+              Process a return for goods received. This will reverse inventory and financial entries.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedGrn && (
+            <div className="space-y-4 py-4">
+              {/* Return Type */}
+              <div className="space-y-2">
+                <Label>Return Type</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="returnType"
+                      value="full"
+                      checked={returnType === 'full'}
+                      onChange={() => setReturnType('full')}
+                      className="w-4 h-4"
+                    />
+                    <span>Full Return (All Items)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="returnType"
+                      value="partial"
+                      checked={returnType === 'partial'}
+                      onChange={() => setReturnType('partial')}
+                      className="w-4 h-4"
+                    />
+                    <span>Partial Return (Select Items)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Return Reason */}
+              <div className="space-y-2">
+                <Label>Return Reason</Label>
+                <Select value={returnReason} onValueChange={setReturnReason}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="supplier">Return to Supplier</SelectItem>
+                    <SelectItem value="damaged">Damaged / Written Off</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  {returnReason === 'supplier' 
+                    ? 'Goods will be sent back to supplier. Inventory reduced, AP adjusted.'
+                    : 'Goods will be written off as a loss. Inventory reduced, Loss recorded.'}
+                </p>
+              </div>
+
+              {/* Items Selection (for partial return) */}
+              {returnType === 'partial' && (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10"></TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Received</TableHead>
+                        <TableHead className="text-right">Return Qty</TableHead>
+                        <TableHead className="text-right">Value</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {returnItems.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Checkbox
+                              checked={item.selected}
+                              onCheckedChange={(checked) => handleReturnItemChange(index, 'selected', checked)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{item.product_name}</p>
+                              <p className="text-xs text-slate-500">{item.sku}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            <Input
+                              type="number"
+                              min="0"
+                              max={item.quantity}
+                              value={item.return_quantity}
+                              onChange={(e) => handleReturnItemChange(index, 'return_quantity', e.target.value)}
+                              disabled={!item.selected}
+                              className="w-20 text-right"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {item.selected ? formatCurrency(item.return_quantity * item.cost_price) : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Full Return Summary */}
+              {returnType === 'full' && (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Value</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedGrn.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{item.product_name}</p>
+                              <p className="text-xs text-slate-500">{item.sku}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(item.quantity * item.cost_price)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label>Return Notes</Label>
+                <Textarea
+                  value={returnNotes}
+                  onChange={(e) => setReturnNotes(e.target.value)}
+                  placeholder="Optional notes about this return..."
+                  rows={2}
+                />
+              </div>
+
+              {/* Return Summary */}
+              <div className="bg-red-50 p-4 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-red-800 font-medium">Total Return Value</p>
+                    <p className="text-xs text-red-600">
+                      {returnReason === 'supplier' 
+                        ? 'Will reduce Accounts Payable'
+                        : 'Will record as Loss/Write-off'}
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold text-red-600">{formatCurrency(calculateReturnTotal())}</p>
+                </div>
+              </div>
+
+              {/* Warning */}
+              <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800">
+                  <p className="font-medium">This action will:</p>
+                  <ul className="list-disc list-inside mt-1">
+                    <li>Reduce inventory quantities</li>
+                    <li>Create reversal journal entries</li>
+                    {returnReason === 'supplier' && <li>Reduce Accounts Payable to supplier</li>}
+                    {returnReason === 'damaged' && <li>Record a loss/write-off expense</li>}
+                    <li>This action cannot be undone</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>Cancel</Button>
+            <Button 
+              variant="destructive"
+              onClick={handleSubmitReturn}
+              disabled={submitting || calculateReturnTotal() === 0}
+              data-testid="confirm-return-btn"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Process Return
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
