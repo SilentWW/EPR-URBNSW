@@ -560,6 +560,7 @@ export default function QuickTransactions() {
                   <SelectItem value="discount_received">Discounts</SelectItem>
                   <SelectItem value="loan_received">Loans</SelectItem>
                   <SelectItem value="capital_investment">Capital</SelectItem>
+                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
                 </SelectContent>
               </Select>
             </div>
