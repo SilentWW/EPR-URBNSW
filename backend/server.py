@@ -4469,6 +4469,10 @@ app.include_router(variations.router, prefix="/api")
 manufacturing.set_db(db)
 app.include_router(manufacturing.router, prefix="/api")
 
+# Set database for RM procurement router
+rm_procurement.set_db(db)
+app.include_router(rm_procurement.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
