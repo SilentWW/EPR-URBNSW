@@ -155,6 +155,37 @@ export const reportsAPI = {
   getSales: (params) => api.get('/reports/sales', { params }),
 };
 
+// RM Procurement API
+export const rmProcurementAPI = {
+  // RM Suppliers
+  getSuppliers: (search) => api.get('/rm-procurement/suppliers', { params: { search } }),
+  getSupplier: (id) => api.get(`/rm-procurement/suppliers/${id}`),
+  createSupplier: (data) => api.post('/rm-procurement/suppliers', data),
+  updateSupplier: (id, data) => api.put(`/rm-procurement/suppliers/${id}`, data),
+  deleteSupplier: (id) => api.delete(`/rm-procurement/suppliers/${id}`),
+  
+  // RM Purchase Orders
+  getPurchaseOrders: (params) => api.get('/rm-procurement/purchase-orders', { params }),
+  getPurchaseOrder: (id) => api.get(`/rm-procurement/purchase-orders/${id}`),
+  createPurchaseOrder: (data) => api.post('/rm-procurement/purchase-orders', data),
+  updatePurchaseOrder: (id, data) => api.put(`/rm-procurement/purchase-orders/${id}`, data),
+  approvePurchaseOrder: (id) => api.post(`/rm-procurement/purchase-orders/${id}/approve`),
+  deletePurchaseOrder: (id) => api.delete(`/rm-procurement/purchase-orders/${id}`),
+  recordPayment: (id, data) => api.post(`/rm-procurement/purchase-orders/${id}/record-payment`, null, { params: data }),
+  
+  // RM GRN
+  getGRNs: (params) => api.get('/rm-procurement/grn', { params }),
+  getGRN: (id) => api.get(`/rm-procurement/grn/${id}`),
+  createGRN: (data) => api.post('/rm-procurement/grn', data),
+  
+  // RM GRN Returns
+  getGRNReturns: (params) => api.get('/rm-procurement/grn-returns', { params }),
+  createGRNReturn: (data) => api.post('/rm-procurement/grn-returns', data),
+  
+  // Accounts Payable
+  getAccountsPayable: (params) => api.get('/rm-procurement/accounts-payable', { params }),
+};
+
 // Seed Demo Data
 export const seedDemoData = () => api.post('/seed-demo-data');
 
