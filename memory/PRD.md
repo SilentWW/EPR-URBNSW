@@ -578,9 +578,59 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Reference type: raw_material_receipt
   - [x] Appears in Quick Transactions with "RM Purchase" label
 
+### Phase 19 - Raw Material Procurement Module (COMPLETED ✅) - March 7, 2026
+- [x] **RM Suppliers** (`/rm-suppliers`)
+  - [x] Separate supplier list for raw materials (not shared with product suppliers)
+  - [x] Fields: Name, Contact Person, Email, Phone, Address, Default Payment Terms, Notes
+  - [x] CRUD operations with search functionality
+  - [x] Supplier stats: Total orders, total amount, outstanding balance
+- [x] **RM Purchase Orders** (`/rm-purchase-orders`)
+  - [x] Create PO linked to RM Supplier with line items (raw materials)
+  - [x] Fields: Priority (low/normal/high/urgent), Expected Delivery Date, Expiry Date, Notes
+  - [x] Payment Terms: Immediate or Credit (Net 30/60/90 days)
+  - [x] Status flow: Draft → Approved → Partially Received → Completed
+  - [x] PO Number auto-generated: RMPO-YYYYMM-0001
+  - [x] Role-based approval (admin/manager only)
+- [x] **RM GRN (Goods Received Note)** (`/rm-grn`)
+  - [x] Receive goods against approved RM Purchase Orders
+  - [x] Partial receiving support (receive part now, rest later)
+  - [x] Auto-update raw material stock on receive
+  - [x] GRN Number auto-generated: RMGRN-YYYYMM-0001
+  - [x] Financial integration:
+    - Immediate payment: Bank account selector, creates journal entry (Dr: Inventory, Cr: Bank)
+    - Credit terms: Creates Accounts Payable entry
+- [x] **RM GRN Returns** (`/rm-grn-returns`)
+  - [x] Return defective materials to supplier
+  - [x] Return Number auto-generated: RMRET-YYYYMM-0001
+  - [x] Settlement options: Refund (credit to bank) or Supplier Credit Note
+  - [x] Reason field required for each returned item
+  - [x] Auto-deduct stock and reverse financial entries
+- [x] **Navigation Integration**
+  - [x] All 4 pages under Manufacturing section in sidebar
+  - [x] Menu order: Manufacturing → Raw Materials → RM Suppliers → RM Purchase Orders → RM GRN → RM GRN Returns → BOM → Work Orders
+
+#### RM Procurement API Endpoints (/api/rm-procurement)
+- `GET /suppliers` - List RM suppliers
+- `GET /suppliers/{id}` - Get supplier with stats
+- `POST /suppliers` - Create RM supplier
+- `PUT /suppliers/{id}` - Update supplier
+- `DELETE /suppliers/{id}` - Delete supplier
+- `GET /purchase-orders` - List RM POs with status filter
+- `GET /purchase-orders/{id}` - Get PO with items and GRN history
+- `POST /purchase-orders` - Create RM PO
+- `PUT /purchase-orders/{id}` - Update draft PO
+- `POST /purchase-orders/{id}/approve` - Approve PO
+- `DELETE /purchase-orders/{id}` - Delete draft PO
+- `POST /purchase-orders/{id}/record-payment` - Record payment for credit PO
+- `GET /grn` - List RM GRNs
+- `GET /grn/{id}` - Get GRN with returns
+- `POST /grn` - Receive goods against PO
+- `GET /grn-returns` - List RM GRN returns
+- `POST /grn-returns` - Create return with refund/credit
+- `GET /accounts-payable` - RM accounts payable summary
+
 ## Future/Backlog (P2)
 - [ ] Payroll Module
-- [ ] Manufacturing Module
 - [ ] SaaS Subscription Billing
 - [ ] Multi-Warehouse Support
 - [ ] Mobile App
@@ -589,7 +639,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - [ ] Multi-Currency Support
 - [ ] Bank Reconciliation
 - [ ] WooCommerce End-to-End Testing
-- [ ] Credit-based payment schemes (30, 60, 90 days) for purchase orders
+- [ ] Credit-based payment schemes (30, 60, 90 days) for regular purchase orders
 - [ ] WooCommerce conflict resolution & batch import
 
 ## Test Credentials
@@ -609,6 +659,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │   │   ├── variations.py  # Product variations management (NEW)
 │   │   ├── grn.py         # Goods Received Note routes
 │   │   ├── purchasing.py  # Purchase Order routes
+│   │   ├── manufacturing.py # Manufacturing module routes
+│   │   ├── rm_procurement.py # Raw Material Procurement routes (NEW)
 │   │   └── transactions.py # Consolidated transactions
 │   ├── models/
 │   │   ├── finance.py     # Finance data models
@@ -628,6 +680,10 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │       │   ├── FinancialReports.jsx
 │       │   ├── Investors.jsx      # Investor management
 │       │   ├── QuickTransactions.jsx # Simplified accounting
+│       │   ├── RMSuppliers.jsx    # RM Suppliers (NEW)
+│       │   ├── RMPurchaseOrders.jsx # RM Purchase Orders (NEW)
+│       │   ├── RMGRN.jsx          # RM Goods Received (NEW)
+│       │   ├── RMGRNReturns.jsx   # RM GRN Returns (NEW)
 │       │   └── SystemAdmin.jsx
 │       └── components/
 │           └── Layout.jsx # Main navigation
@@ -636,5 +692,5 @@ Build a cloud-based ERP system for business operations with the intention of sel
 ```
 
 ---
-*Last Updated: February 25, 2026*
-*Version: 3.3.0*
+*Last Updated: March 7, 2026*
+*Version: 3.4.0*
