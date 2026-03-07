@@ -102,7 +102,7 @@ export const Advances = () => {
         type: formData.type,
         monthly_deduction: parseFloat(formData.monthly_deduction),
         reason: formData.reason || null,
-        bank_account_id: formData.bank_account_id || null,
+        bank_account_id: formData.bank_account_id === 'none' ? null : (formData.bank_account_id || null),
       });
       toast.success(`Advance ${response.data.advance_number} issued successfully`);
       setDialogOpen(false);
@@ -341,7 +341,7 @@ export const Advances = () => {
                   <SelectValue placeholder="Select account (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No payment now</SelectItem>
+                  <SelectItem value="none">No payment now</SelectItem>
                   {bankAccounts.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
                       {acc.account_name} - {formatCurrency(acc.current_balance)}
