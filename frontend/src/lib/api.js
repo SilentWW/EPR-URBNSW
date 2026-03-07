@@ -186,6 +186,61 @@ export const rmProcurementAPI = {
   getAccountsPayable: (params) => api.get('/rm-procurement/accounts-payable', { params }),
 };
 
+// Payroll API
+export const payrollAPI = {
+  // Departments
+  getDepartments: () => api.get('/payroll/departments'),
+  createDepartment: (data) => api.post('/payroll/departments', data),
+  updateDepartment: (id, data) => api.put(`/payroll/departments/${id}`, data),
+  deleteDepartment: (id) => api.delete(`/payroll/departments/${id}`),
+  
+  // Employees
+  getEmployees: (params) => api.get('/payroll/employees', { params }),
+  getEmployee: (id) => api.get(`/payroll/employees/${id}`),
+  getNextEmployeeId: () => api.get('/payroll/employees/next-id/generate'),
+  createEmployee: (data) => api.post('/payroll/employees', data),
+  updateEmployee: (id, data) => api.put(`/payroll/employees/${id}`, data),
+  terminateEmployee: (id) => api.delete(`/payroll/employees/${id}`),
+  
+  // Salary Structure
+  getSalaryStructure: () => api.get('/payroll/salary-structure'),
+  updateSalaryStructure: (data) => api.put('/payroll/salary-structure', data),
+  addAllowance: (data) => api.post('/payroll/salary-structure/allowances', data),
+  deleteAllowance: (id) => api.delete(`/payroll/salary-structure/allowances/${id}`),
+  
+  // Leave Management
+  getLeaveBalances: (params) => api.get('/payroll/leave/balances', { params }),
+  updateLeaveBalance: (employeeId, data) => api.put(`/payroll/leave/balances/${employeeId}`, data),
+  getLeaveRequests: (params) => api.get('/payroll/leave/requests', { params }),
+  createLeaveRequest: (data) => api.post('/payroll/leave/requests', data),
+  approveLeave: (id) => api.post(`/payroll/leave/requests/${id}/approve`),
+  rejectLeave: (id, reason) => api.post(`/payroll/leave/requests/${id}/reject`, null, { params: { reason } }),
+  
+  // Advances & Loans
+  getAdvances: (params) => api.get('/payroll/advances', { params }),
+  createAdvance: (data) => api.post('/payroll/advances', data),
+  
+  // Payroll Processing
+  getPayrolls: (params) => api.get('/payroll/payrolls', { params }),
+  getPayroll: (id) => api.get(`/payroll/payrolls/${id}`),
+  createPayroll: (data) => api.post('/payroll/payrolls', data),
+  updatePayrollItem: (payrollId, itemId, data) => api.put(`/payroll/payrolls/${payrollId}/items/${itemId}`, data),
+  submitPayroll: (id) => api.post(`/payroll/payrolls/${id}/submit`),
+  approvePayroll: (id) => api.post(`/payroll/payrolls/${id}/approve`),
+  processPayroll: (id, bankAccountId) => api.post(`/payroll/payrolls/${id}/process`, null, { params: { bank_account_id: bankAccountId } }),
+  deletePayroll: (id) => api.delete(`/payroll/payrolls/${id}`),
+  
+  // Task Payments
+  getTaskPayments: (params) => api.get('/payroll/task-payments', { params }),
+  createTaskPayment: (data) => api.post('/payroll/task-payments', data),
+  
+  // Reports
+  getPayslip: (payrollId, employeeId) => api.get(`/payroll/reports/payslip/${payrollId}/${employeeId}`),
+  getPayrollSummary: (params) => api.get('/payroll/reports/summary', { params }),
+  getEpfEtfReport: (params) => api.get('/payroll/reports/epf-etf', { params }),
+  getDepartmentReport: (params) => api.get('/payroll/reports/department', { params }),
+};
+
 // Seed Demo Data
 export const seedDemoData = () => api.post('/seed-demo-data');
 

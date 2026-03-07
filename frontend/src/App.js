@@ -48,6 +48,15 @@ import RMPurchaseOrders from './pages/RMPurchaseOrders';
 import RMGRN from './pages/RMGRN';
 import RMGRNReturns from './pages/RMGRNReturns';
 
+// Payroll Pages
+import Departments from './pages/payroll/Departments';
+import Employees from './pages/payroll/Employees';
+import SalaryStructure from './pages/payroll/SalaryStructure';
+import LeaveManagement from './pages/payroll/LeaveManagement';
+import Advances from './pages/payroll/Advances';
+import Payroll from './pages/payroll/Payroll';
+import PayrollReports from './pages/payroll/PayrollReports';
+
 // Layout
 import Layout from './components/Layout';
 
@@ -137,6 +146,15 @@ function AppRoutes() {
       <Route path="/rm-purchase-orders" element={<ProtectedRoute><RMPurchaseOrders /></ProtectedRoute>} />
       <Route path="/rm-grn" element={<ProtectedRoute><RMGRN /></ProtectedRoute>} />
       <Route path="/rm-grn-returns" element={<ProtectedRoute><RMGRNReturns /></ProtectedRoute>} />
+
+      {/* Payroll Routes */}
+      <Route path="/departments" element={<ProtectedRoute><Departments /></ProtectedRoute>} />
+      <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+      <Route path="/salary-structure" element={<ProtectedRoute><SalaryStructure /></ProtectedRoute>} />
+      <Route path="/leave-management" element={<ProtectedRoute><LeaveManagement /></ProtectedRoute>} />
+      <Route path="/advances" element={<ProtectedRoute><Advances /></ProtectedRoute>} />
+      <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
+      <Route path="/payroll-reports" element={<ProtectedRoute><PayrollReports /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
