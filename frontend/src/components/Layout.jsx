@@ -66,6 +66,10 @@ const menuItems = [
 const manufacturingMenuItems = [
   { icon: LayoutDashboard, label: 'Manufacturing', path: '/manufacturing' },
   { icon: Hammer, label: 'Raw Materials', path: '/raw-materials' },
+  { icon: Truck, label: 'RM Suppliers', path: '/rm-suppliers' },
+  { icon: ClipboardList, label: 'RM Purchase Orders', path: '/rm-purchase-orders' },
+  { icon: PackageCheck, label: 'RM GRN', path: '/rm-grn' },
+  { icon: Receipt, label: 'RM GRN Returns', path: '/rm-grn-returns' },
   { icon: ScrollText, label: 'Bill of Materials', path: '/bom' },
   { icon: Factory, label: 'Work Orders', path: '/work-orders' },
 ];

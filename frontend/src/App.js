@@ -42,6 +42,12 @@ import BillOfMaterials from './pages/BillOfMaterials';
 import WorkOrders from './pages/WorkOrders';
 import ManufacturingDashboard from './pages/ManufacturingDashboard';
 
+// RM Procurement Pages
+import RMSuppliers from './pages/RMSuppliers';
+import RMPurchaseOrders from './pages/RMPurchaseOrders';
+import RMGRN from './pages/RMGRN';
+import RMGRNReturns from './pages/RMGRNReturns';
+
 // Layout
 import Layout from './components/Layout';
 
@@ -125,6 +131,12 @@ function AppRoutes() {
       <Route path="/raw-materials" element={<ProtectedRoute><RawMaterials /></ProtectedRoute>} />
       <Route path="/bom" element={<ProtectedRoute><BillOfMaterials /></ProtectedRoute>} />
       <Route path="/work-orders" element={<ProtectedRoute><WorkOrders /></ProtectedRoute>} />
+
+      {/* RM Procurement Routes */}
+      <Route path="/rm-suppliers" element={<ProtectedRoute><RMSuppliers /></ProtectedRoute>} />
+      <Route path="/rm-purchase-orders" element={<ProtectedRoute><RMPurchaseOrders /></ProtectedRoute>} />
+      <Route path="/rm-grn" element={<ProtectedRoute><RMGRN /></ProtectedRoute>} />
+      <Route path="/rm-grn-returns" element={<ProtectedRoute><RMGRNReturns /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
