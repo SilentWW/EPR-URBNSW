@@ -460,8 +460,9 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - **Manufacturing Financial Integration Tests**: 100% passed (iteration_13 - Feb 25, 2026)
 - **Raw Material Stock Financial Integration**: 100% passed (iteration_14 - Feb 25, 2026)
 - **Consolidated Transaction List Tests**: 100% passed - 58 total transactions including 13 manufacturing
-- **Last Test Run**: iteration_18.json (March 8, 2026)
+- **Last Test Run**: iteration_19.json (March 8, 2026)
 - **Task-Based Payments Tests**: 100% passed (22/22 backend tests, all UI flows verified)
+- **Attendance Tracking Tests**: 100% passed (17/17 backend tests, all UI flows verified)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
 - **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
@@ -761,6 +762,43 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] `POST /payroll/tasks/{id}/cancel` - Cancel task
   - [x] `GET /payroll/tasks/employee/{id}/summary` - Employee task summary
 
+### Phase 22 - Attendance Tracking (COMPLETED ✅) - March 8, 2026
+- [x] **Attendance Recording**
+  - [x] Full day = 9 hours (8 hrs work + 1 hr break)
+  - [x] Half day = 5 hours (with break)
+  - [x] Standard work hours = 8 hours (for overtime calculation)
+  - [x] Status types: Present, Absent, Half Day, Late, On Leave
+- [x] **Daily Entry Tab**
+  - [x] Date navigation (Previous/Next/Date picker)
+  - [x] Weekend detection with "1.5x OT rate" indicator
+  - [x] Stats cards: Total, Present, Absent, Half Day, Late, On Leave, Not Marked
+  - [x] Employee table with Status dropdown, Check In/Out times
+  - [x] Auto-fill times based on status (Present: 08:00-17:00, Half Day: 08:00-13:00)
+  - [x] Auto-calculate hours worked and overtime
+  - [x] Bulk save with "Save All" button
+  - [x] Shows approved leave status from Leave Management
+- [x] **Monthly Report Tab**
+  - [x] Month picker and department filter
+  - [x] Employee attendance summary table
+  - [x] Columns: Present, Half Day, Absent, Late, Leave, Work Days, Total Hours, OT Hours
+  - [x] Totals row at bottom
+- [x] **Overtime Calculation**
+  - [x] Regular OT for weekdays (hours > 8)
+  - [x] Weekend OT for Saturdays/Sundays
+  - [x] Separate tracking for regular and weekend overtime
+- [x] **API Endpoints**
+  - [x] `GET /payroll/attendance/settings` - Get attendance constants
+  - [x] `GET /payroll/attendance/daily/{date}` - Get daily attendance for all employees
+  - [x] `POST /payroll/attendance` - Create/update single record
+  - [x] `POST /payroll/attendance/bulk` - Bulk save multiple employees
+  - [x] `PUT /payroll/attendance/{id}` - Update record
+  - [x] `DELETE /payroll/attendance/{id}` - Delete record
+  - [x] `GET /payroll/attendance/summary/{employee_id}` - Individual monthly summary
+  - [x] `GET /payroll/attendance/monthly-report` - All employees monthly summary
+- [x] **UI Page** (`/attendance`)
+  - [x] Navigation link under Payroll section (Clock icon)
+  - [x] Tabs: Daily Entry, Monthly Report
+
 ## Future/Backlog (P2)
 - [ ] SaaS Subscription Billing
 - [ ] Multi-Warehouse Support
@@ -833,4 +871,4 @@ Build a cloud-based ERP system for business operations with the intention of sel
 
 ---
 *Last Updated: March 7, 2026*
-*Version: 3.6.0*
+*Version: 3.7.0*
