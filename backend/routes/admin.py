@@ -2,7 +2,7 @@
 Admin Router - System Administration
 Data Reset, Backup, Restore, System Maintenance
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import FileResponse
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -372,6 +372,97 @@ async def download_backup(backup_id: str, current_user: dict = Depends(get_curre
         media_type="application/gzip",
         filename=f"{backup['name']}.json.gz"
     )
+
+@router.post("/backups/upload")
+async def upload_backup(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload a backup file for later restore"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    company_id = current_user["company_id"]
+    
+    # Validate file type
+    if not file.filename.endswith(('.json', '.json.gz', '.gz')):
+        raise HTTPException(status_code=400, detail="Invalid file type. Must be .json or .json.gz")
+    
+    # Create backup directory if needed
+    company_backup_dir = os.path.join(BACKUP_DIR, company_id)
+    os.makedirs(company_backup_dir, exist_ok=True)
+    
+    backup_id = generate_id()
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
+    
+    # Determine if file is gzipped
+    is_gzipped = file.filename.endswith('.gz')
+    
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # Validate JSON structure
+        if is_gzipped:
+            import io
+            with gzip.open(io.BytesIO(content), 'rt', encoding='utf-8') as f:
+                backup_data = json.load(f)
+        else:
+            backup_data = json.loads(content.decode('utf-8'))
+        
+        # Validate backup structure
+        if "collections" not in backup_data:
+            raise HTTPException(status_code=400, detail="Invalid backup format: missing 'collections' key")
+        
+        if "metadata" not in backup_data:
+            raise HTTPException(status_code=400, detail="Invalid backup format: missing 'metadata' key")
+        
+        # Save file
+        file_name = f"uploaded-{timestamp}.json.gz"
+        file_path = os.path.join(company_backup_dir, file_name)
+        
+        # Save as gzipped
+        with gzip.open(file_path, 'wt', encoding='utf-8') as f:
+            json.dump(backup_data, f)
+        
+        file_size = os.path.getsize(file_path)
+        
+        # Calculate statistics from backup data
+        collections_backed_up = list(backup_data["collections"].keys())
+        total_records = sum(len(docs) for docs in backup_data["collections"].values())
+        
+        # Create backup record
+        backup_record = {
+            "id": backup_id,
+            "company_id": company_id,
+            "name": f"Uploaded-{timestamp}",
+            "description": f"Uploaded from file: {file.filename}",
+            "backup_type": "full",
+            "status": BackupStatus.COMPLETED.value,
+            "file_path": file_path,
+            "file_size": file_size,
+            "collections_backed_up": collections_backed_up,
+            "total_records": total_records,
+            "created_by": current_user["user_id"],
+            "created_at": get_current_timestamp(),
+            "original_backup_date": backup_data["metadata"].get("created_at", "Unknown"),
+            "is_uploaded": True
+        }
+        
+        await db.backups.insert_one(backup_record)
+        
+        return {
+            "message": "Backup uploaded successfully",
+            "backup_id": backup_id,
+            "collections": collections_backed_up,
+            "total_records": total_records,
+            "file_size": file_size
+        }
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format in backup file")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process backup file: {str(e)}")
 
 @router.delete("/backups/{backup_id}")
 async def delete_backup(backup_id: str, current_user: dict = Depends(get_current_user)):

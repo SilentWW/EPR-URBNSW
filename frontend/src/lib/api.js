@@ -269,4 +269,31 @@ export const payrollAPI = {
 // Seed Demo Data
 export const seedDemoData = () => api.post('/seed-demo-data');
 
+// Admin API
+export const adminAPI = {
+  // System Info
+  getSystemInfo: () => api.get('/admin/system-info'),
+  
+  // Backups
+  getBackups: () => api.get('/admin/backups'),
+  getBackup: (id) => api.get(`/admin/backups/${id}`),
+  createBackup: (data) => api.post('/admin/backups', data),
+  deleteBackup: (id) => api.delete(`/admin/backups/${id}`),
+  uploadBackup: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/admin/backups/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  
+  // Restore
+  getRestorePreview: (backupId) => api.get(`/admin/restore/preview/${backupId}`),
+  restore: (data) => api.post('/admin/restore', data),
+  
+  // Data Reset
+  getResetPreview: (resetType) => api.get('/admin/data-reset/preview', { params: { reset_type: resetType } }),
+  resetData: (data) => api.post('/admin/data-reset', data),
+};
+
 export default api;

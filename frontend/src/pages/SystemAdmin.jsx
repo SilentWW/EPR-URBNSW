@@ -63,6 +63,7 @@ export default function SystemAdmin() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState(null);
   
   // Form states
@@ -71,6 +72,8 @@ export default function SystemAdmin() {
   const [restoreConfirmation, setRestoreConfirmation] = useState('');
   const [backupName, setBackupName] = useState('');
   const [backupDescription, setBackupDescription] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -200,6 +203,34 @@ export default function SystemAdmin() {
     }
   };
 
+  const handleUploadBackup = async () => {
+    if (!uploadFile) {
+      toast.error('Please select a backup file');
+      return;
+    }
+
+    try {
+      setUploadLoading(true);
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      
+      const response = await api.post('/admin/backups/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      toast.success(`Backup uploaded successfully! ${response.data.total_records} records in ${response.data.collections.length} collections.`);
+      setShowUploadModal(false);
+      setUploadFile(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to upload backup');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   const formatBytes = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -309,6 +340,10 @@ export default function SystemAdmin() {
                 <HardDrive className="w-4 h-4 mr-2" />
                 Create Backup
               </Button>
+              <Button variant="outline" onClick={() => setShowUploadModal(true)} data-testid="upload-backup-btn">
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Backup
+              </Button>
             </div>
 
             {/* Backup List */}
@@ -330,7 +365,14 @@ export default function SystemAdmin() {
                         <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />
                       )}
                       <div>
-                        <p className="font-medium text-sm">{backup.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{backup.name}</p>
+                          {backup.is_uploaded && (
+                            <span className="px-1.5 py-0.5 text-xs bg-purple-100 text-purple-700 rounded">
+                              Uploaded
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-500">
                           {formatDate(backup.created_at)} • {formatBytes(backup.file_size || 0)}
                         </p>
@@ -607,6 +649,82 @@ export default function SystemAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Upload Backup Modal */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-600" />
+              Upload Backup File
+            </DialogTitle>
+            <DialogDescription>
+              Upload a previously downloaded backup file (.json or .json.gz)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
+              <input
+                type="file"
+                accept=".json,.gz"
+                onChange={(e) => setUploadFile(e.target.files[0])}
+                className="hidden"
+                id="backup-file-input"
+                data-testid="backup-file-input"
+              />
+              <label htmlFor="backup-file-input" className="cursor-pointer">
+                <FileArchive className="w-10 h-10 mx-auto text-slate-400 mb-2" />
+                {uploadFile ? (
+                  <div>
+                    <p className="font-medium text-slate-900">{uploadFile.name}</p>
+                    <p className="text-sm text-slate-500">{formatBytes(uploadFile.size)}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-slate-600">Click to select a backup file</p>
+                    <p className="text-sm text-slate-400 mt-1">Supported formats: .json, .json.gz</p>
+                  </div>
+                )}
+              </label>
+            </div>
+            {uploadFile && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700">
+                  After uploading, the backup will appear in your backup list and can be used to restore data.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowUploadModal(false);
+                setUploadFile(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUploadBackup} 
+              disabled={!uploadFile || uploadLoading}
+              data-testid="confirm-upload-btn"
+            >
+              {uploadLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Backup
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
