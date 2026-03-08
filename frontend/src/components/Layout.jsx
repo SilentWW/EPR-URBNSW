@@ -99,6 +99,7 @@ const payrollMenuItems = [
 const adminMenuItems = [
   { icon: Settings, label: 'Settings', path: '/settings' },
   { icon: Shield, label: 'System Admin', path: '/system-admin' },
+  { icon: BookOpen, label: 'Documentation', path: '/documentation' },
 ];
 
 export const Layout = ({ children }) => {

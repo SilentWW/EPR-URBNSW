@@ -30,6 +30,9 @@ import FinancialReports from './pages/FinancialReports';
 // Admin Pages
 import SystemAdmin from './pages/SystemAdmin';
 
+// Documentation
+import Documentation from './pages/Documentation';
+
 // Simple Finance Pages
 import Investors from './pages/Investors';
 import QuickTransactions from './pages/QuickTransactions';
@@ -159,6 +162,7 @@ function AppRoutes() {
       <Route path="/payroll-reports" element={<ProtectedRoute><PayrollReports /></ProtectedRoute>} />
       <Route path="/task-assignments" element={<ProtectedRoute><TaskAssignments /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute><AttendanceTracking /></ProtectedRoute>} />
+      <Route path="/documentation" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
