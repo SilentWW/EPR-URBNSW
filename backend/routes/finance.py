@@ -73,18 +73,32 @@ DEFAULT_CHART_OF_ACCOUNTS = [
 
 @router.post("/chart-of-accounts/initialize")
 async def initialize_chart_of_accounts(current_user: dict = Depends(get_current_user)):
-    """Initialize default chart of accounts for the company"""
+    """Initialize default chart of accounts for the company (adds missing accounts)"""
     company_id = current_user["company_id"]
     
-    # Check if already initialized
-    existing = await db.accounts.count_documents({"company_id": company_id})
-    if existing > 0:
-        return {"message": "Chart of accounts already initialized", "count": existing}
+    # Get existing account codes
+    existing_accounts = await db.accounts.find(
+        {"company_id": company_id},
+        {"_id": 0, "code": 1}
+    ).to_list(500)
+    existing_codes = set(a["code"] for a in existing_accounts)
     
     # Create account ID mapping for parent references
     account_ids = {}
     
+    # First, get IDs of existing accounts for parent references
+    existing_with_ids = await db.accounts.find(
+        {"company_id": company_id},
+        {"_id": 0, "id": 1, "code": 1}
+    ).to_list(500)
+    for acc in existing_with_ids:
+        account_ids[acc["code"]] = acc["id"]
+    
+    added_count = 0
     for account in DEFAULT_CHART_OF_ACCOUNTS:
+        if account["code"] in existing_codes:
+            continue  # Skip existing accounts
+            
         account_id = generate_id()
         account_ids[account["code"]] = account_id
         
@@ -107,8 +121,12 @@ async def initialize_chart_of_accounts(current_user: dict = Depends(get_current_
             "created_at": get_current_timestamp(),
             "updated_at": get_current_timestamp()
         })
+        added_count += 1
     
-    return {"message": "Chart of accounts initialized", "count": len(DEFAULT_CHART_OF_ACCOUNTS)}
+    if added_count == 0:
+        return {"message": "All default accounts already exist", "added": 0}
+    
+    return {"message": f"Added {added_count} missing accounts", "added": added_count}
 
 @router.get("/chart-of-accounts")
 async def get_chart_of_accounts(

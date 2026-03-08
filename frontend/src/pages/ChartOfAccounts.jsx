@@ -124,6 +124,18 @@ export default function ChartOfAccounts() {
       setLoading(true);
       const response = await api.get('/finance/chart-of-accounts');
       setAccounts(response.data);
+      
+      // Check if accounts are missing and show helpful message
+      const accountTypes = new Set(response.data.map(a => a.account_type));
+      const requiredTypes = ['asset', 'liability', 'equity', 'income', 'expense'];
+      const missingTypes = requiredTypes.filter(t => !accountTypes.has(t));
+      
+      if (missingTypes.length > 0 && response.data.length > 0) {
+        toast.info(
+          `Missing account types: ${missingTypes.join(', ')}. Click "Add Missing Accounts" to add them.`,
+          { duration: 6000 }
+        );
+      }
     } catch (error) {
       if (error.response?.status === 404 || (Array.isArray(error.response?.data) && error.response?.data.length === 0)) {
         setAccounts([]);
@@ -137,8 +149,12 @@ export default function ChartOfAccounts() {
 
   const initializeAccounts = async () => {
     try {
-      await api.post('/finance/chart-of-accounts/initialize');
-      toast.success('Chart of accounts initialized');
+      const response = await api.post('/finance/chart-of-accounts/initialize');
+      if (response.data.added > 0) {
+        toast.success(`Added ${response.data.added} missing accounts`);
+      } else {
+        toast.info('All default accounts already exist');
+      }
       fetchAccounts();
     } catch (error) {
       toast.error('Failed to initialize accounts');
@@ -240,6 +256,11 @@ export default function ChartOfAccounts() {
     );
   }
 
+  // Check if accounts are missing (should have all 5 types)
+  const hasAllAccountTypes = ['asset', 'liability', 'equity', 'income', 'expense'].every(
+    type => (groupedAccounts[type]?.length || 0) > 0
+  );
+
   return (
     <div className="space-y-6" data-testid="chart-of-accounts-page">
       <div className="flex justify-between items-center">
@@ -248,10 +269,10 @@ export default function ChartOfAccounts() {
           <p className="text-slate-500 mt-1">Manage your accounting structure</p>
         </div>
         <div className="flex gap-2">
-          {accounts.length === 0 && (
+          {!hasAllAccountTypes && (
             <Button onClick={initializeAccounts} variant="outline" data-testid="init-accounts-btn">
               <RefreshCw className="w-4 h-4 mr-2" />
-              Initialize Default Accounts
+              Add Missing Accounts
             </Button>
           )}
           <Button onClick={openAddModal} data-testid="add-account-btn">
