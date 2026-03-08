@@ -527,7 +527,7 @@ async def sync_grn_products_to_woo(company_id: str, grn_id: str, products: list,
                                 "name": product["category"]
                             })
                             woo_data["categories"] = [{"id": new_cat["id"]}]
-                    except:
+                    except Exception:
                         pass  # Skip category if can't sync
                 
                 # Add sale price if set

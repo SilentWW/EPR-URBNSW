@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status as http_status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -2183,7 +2183,6 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
         
         collection = db.sales_orders
         entry_type = "income"
-        category = "Sales Payment"
     elif data.reference_type == "purchase_order":
         order = await db.purchase_orders.find_one({
             "id": data.reference_id,
@@ -2194,7 +2193,6 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
         
         collection = db.purchase_orders
         entry_type = "expense"
-        category = "Purchase Payment"
     else:
         raise HTTPException(status_code=400, detail="Invalid reference type")
     

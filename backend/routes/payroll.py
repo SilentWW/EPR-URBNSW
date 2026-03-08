@@ -200,7 +200,7 @@ class TaskPaymentCreate(BaseModel):
     employee_id: str
     description: str
     amount: float
-    date: Optional[str] = None
+    payment_date: Optional[str] = None
     bank_account_id: Optional[str] = None
 
 # Task Assignment Models
@@ -435,7 +435,7 @@ async def get_next_employee_id(current_user: dict = Depends(get_current_user)):
         try:
             num = int(last_emp["employee_id"].replace("EMP", ""))
             next_num = num + 1
-        except:
+        except (ValueError, AttributeError):
             next_num = 1
     else:
         next_num = 1
@@ -2297,7 +2297,7 @@ def calculate_hours_worked(check_in: str, check_out: str) -> float:
         
         diff = (cout - cin).total_seconds() / 3600
         return round(diff, 2)
-    except:
+    except (ValueError, AttributeError):
         return 0.0
 
 def calculate_overtime(hours_worked: float, is_weekend: bool = False) -> dict:
@@ -2364,9 +2364,9 @@ async def get_attendance(
     
     return records
 
-@router.get("/attendance/daily/{date}")
+@router.get("/attendance/daily/{att_date}")
 async def get_daily_attendance(
-    date: str,
+    att_date: str,
     current_user: dict = Depends(get_current_user)
 ):
     """Get attendance for all employees for a specific date"""
@@ -2380,7 +2380,7 @@ async def get_daily_attendance(
     
     # Get attendance records for this date
     records = await db.attendance.find(
-        {"company_id": company_id, "date": date},
+        {"company_id": company_id, "date": att_date},
         {"_id": 0}
     ).to_list(500)
     
@@ -2397,8 +2397,8 @@ async def get_daily_attendance(
     leave_requests = await db.leave_requests.find({
         "company_id": company_id,
         "status": "approved",
-        "start_date": {"$lte": date},
-        "end_date": {"$gte": date}
+        "start_date": {"$lte": att_date},
+        "end_date": {"$gte": att_date}
     }, {"_id": 0, "employee_id": 1}).to_list(500)
     on_leave_ids = set(lr["employee_id"] for lr in leave_requests)
     
@@ -2416,7 +2416,7 @@ async def get_daily_attendance(
             "employee_name": f"{emp['first_name']} {emp['last_name']}",
             "department_id": emp.get("department_id"),
             "department_name": dept_map.get(emp.get("department_id"), "-"),
-            "date": date,
+            "date": att_date,
             "check_in": record.get("check_in") if record else None,
             "check_out": record.get("check_out") if record else None,
             "hours_worked": record.get("hours_worked", 0) if record else 0,
