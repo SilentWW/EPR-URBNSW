@@ -460,9 +460,10 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - **Manufacturing Financial Integration Tests**: 100% passed (iteration_13 - Feb 25, 2026)
 - **Raw Material Stock Financial Integration**: 100% passed (iteration_14 - Feb 25, 2026)
 - **Consolidated Transaction List Tests**: 100% passed - 58 total transactions including 13 manufacturing
-- **Last Test Run**: iteration_19.json (March 8, 2026)
+- **Last Test Run**: iteration_20.json (March 8, 2026)
 - **Task-Based Payments Tests**: 100% passed (22/22 backend tests, all UI flows verified)
 - **Attendance Tracking Tests**: 100% passed (17/17 backend tests, all UI flows verified)
+- **OT Payroll Integration Tests**: 100% passed (11/11 backend tests, formula verified)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
 - **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
@@ -764,10 +765,24 @@ Build a cloud-based ERP system for business operations with the intention of sel
 
 ### Phase 22 - Attendance Tracking (COMPLETED ✅) - March 8, 2026
 - [x] **Attendance Recording**
-  - [x] Full day = 9 hours (8 hrs work + 1 hr break)
+  - [x] Full day = 9 hours (8 hrs work + 1 hr break) - normal duty
   - [x] Half day = 5 hours (with break)
-  - [x] Standard work hours = 8 hours (for overtime calculation)
+  - [x] Standard work hours = 9 hours (OT only for hours > 9)
   - [x] Status types: Present, Absent, Half Day, Late, On Leave
+- [x] **Overtime Calculation**
+  - [x] OT calculated only for hours > 9 (normal duty)
+  - [x] 9 hours = no OT, 10 hours = 1 hr OT, 11 hours = 2 hrs OT
+  - [x] Regular OT (weekday): 1.25x rate
+  - [x] Weekend OT (Sat/Sun): 1.5x rate
+  - [x] Separate tracking for regular and weekend overtime
+- [x] **Payroll Integration** ✅
+  - [x] Payroll automatically fetches attendance data for period
+  - [x] Calculates overtime hours from attendance records
+  - [x] Calculates OT pay using hourly rate and OT rates
+  - [x] OT Pay column in payroll details table
+  - [x] Earnings Summary shows OT breakdown (X.Xh reg + X.Xh wknd)
+  - [x] Gross = Basic + Allowances + Task Pay + OT Pay
+  - [x] Hourly rate = basic_salary / 198 (22 days × 9 hours)
 - [x] **Daily Entry Tab**
   - [x] Date navigation (Previous/Next/Date picker)
   - [x] Weekend detection with "1.5x OT rate" indicator
@@ -871,4 +886,4 @@ Build a cloud-based ERP system for business operations with the intention of sel
 
 ---
 *Last Updated: March 7, 2026*
-*Version: 3.7.0*
+*Version: 3.8.0*
