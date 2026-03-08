@@ -32,6 +32,17 @@ JWT_EXPIRATION_HOURS = 24
 # Create the main app
 app = FastAPI(title="E1 ERP System", version="1.0.0")
 
+# Health check endpoint (for Railway/deployment)
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for deployment platforms"""
+    try:
+        # Test MongoDB connection
+        await db.command("ping")
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 

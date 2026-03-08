@@ -1,0 +1,10 @@
+[build]
+  builder = "nixpacks"
+
+[build.env]
+  NIXPACKS_PYTHON_VERSION = "3.11"
+  NIXPACKS_NODE_VERSION = "18"
+
+[deploy]
+  healthcheckPath = "/api/health"
+  healthcheckTimeout = 100
