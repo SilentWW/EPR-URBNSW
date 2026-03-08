@@ -460,7 +460,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - **Manufacturing Financial Integration Tests**: 100% passed (iteration_13 - Feb 25, 2026)
 - **Raw Material Stock Financial Integration**: 100% passed (iteration_14 - Feb 25, 2026)
 - **Consolidated Transaction List Tests**: 100% passed - 58 total transactions including 13 manufacturing
-- **Last Test Run**: iteration_17.json (March 7, 2026)
+- **Last Test Run**: iteration_18.json (March 8, 2026)
+- **Task-Based Payments Tests**: 100% passed (22/22 backend tests, all UI flows verified)
 - **Finance Module**: Fully tested - Chart of Accounts, Auto-generate Codes, Journal Entries, P&L, Balance Sheet, Cash Flow
 - **Simple Finance Module**: Fully tested - Investors, Capital Investment, Quick Transactions, Financial Reports
 - **Bank Account Integration**: Fully tested - All transaction forms have bank account selectors, balance updates verified
@@ -722,6 +723,44 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `GET /reports/epf-etf` - EPF/ETF report
 - `GET /reports/department` - Department salary breakdown
 
+### Phase 21 - Task-Based Payments (COMPLETED ✅) - March 8, 2026
+- [x] **Task Assignment System**
+  - [x] Assign tasks to any employee with payment amount
+  - [x] Task categories: Design, Development, Marketing, Production, Admin, Other
+  - [x] Due dates for tasks
+  - [x] Admin/Manager only can assign and verify tasks
+- [x] **Task Status Workflow**
+  - [x] Assigned → In Progress (employee starts)
+  - [x] In Progress → Completed (employee marks complete)
+  - [x] Completed → Verified (manager approves)
+  - [x] Reject option to send back for revision
+  - [x] Cancel task option
+- [x] **Payroll Integration**
+  - [x] Verified tasks automatically included in next payroll run
+  - [x] Task payments added to gross salary
+  - [x] Task Pay column in payroll details
+  - [x] Tasks marked as paid after payroll processing
+- [x] **Task Assignments UI Page** (`/task-assignments`)
+  - [x] Stats cards: Total, Assigned, In Progress, Awaiting Verification, Verified (Unpaid), Pending Payment Amount
+  - [x] Filters by status, category, employee
+  - [x] Task table with all details
+  - [x] Action buttons: Start, Complete, Verify, Reject, Cancel
+  - [x] View task details dialog
+  - [x] Create/Edit task dialog
+- [x] **API Endpoints**
+  - [x] `GET /payroll/tasks` - List tasks with filters
+  - [x] `GET /payroll/tasks/pending-payment` - Verified unpaid tasks
+  - [x] `GET /payroll/tasks/categories` - Task categories
+  - [x] `GET /payroll/tasks/{id}` - Task details
+  - [x] `POST /payroll/tasks` - Create task
+  - [x] `PUT /payroll/tasks/{id}` - Update task
+  - [x] `POST /payroll/tasks/{id}/start` - Start task
+  - [x] `POST /payroll/tasks/{id}/complete` - Mark complete
+  - [x] `POST /payroll/tasks/{id}/verify` - Verify task
+  - [x] `POST /payroll/tasks/{id}/reject` - Reject task
+  - [x] `POST /payroll/tasks/{id}/cancel` - Cancel task
+  - [x] `GET /payroll/tasks/employee/{id}/summary` - Employee task summary
+
 ## Future/Backlog (P2)
 - [ ] SaaS Subscription Billing
 - [ ] Multi-Warehouse Support
@@ -794,4 +833,4 @@ Build a cloud-based ERP system for business operations with the intention of sel
 
 ---
 *Last Updated: March 7, 2026*
-*Version: 3.5.0*
+*Version: 3.6.0*
