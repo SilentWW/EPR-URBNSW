@@ -517,6 +517,7 @@ export const Payroll = () => {
                       <TableHead className="text-right">Gross</TableHead>
                       <TableHead className="text-right">EPF</TableHead>
                       <TableHead className="text-right">Tax</TableHead>
+                      <TableHead className="text-right">Advances</TableHead>
                       <TableHead className="text-right">Net Pay</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -539,11 +540,37 @@ export const Payroll = () => {
                         <TableCell className="text-right">{formatCurrency(item.gross_salary)}</TableCell>
                         <TableCell className="text-right text-amber-600">{formatCurrency(item.epf_employee)}</TableCell>
                         <TableCell className="text-right text-amber-600">{formatCurrency(item.tax)}</TableCell>
+                        <TableCell className="text-right text-red-600">
+                          {item.advance_deduction > 0 ? formatCurrency(item.advance_deduction) : '-'}
+                        </TableCell>
                         <TableCell className="text-right font-medium text-green-600">{formatCurrency(item.net_salary)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Deductions Summary */}
+              <div className="p-4 bg-red-50 rounded-lg">
+                <h4 className="font-medium text-red-900 mb-2">Deductions Summary</h4>
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-red-600">EPF (8%)</p>
+                    <p className="font-medium">{formatCurrency(payrollDetails.items?.reduce((sum, i) => sum + (i.epf_employee || 0), 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-red-600">PAYE Tax</p>
+                    <p className="font-medium">{formatCurrency(payrollDetails.items?.reduce((sum, i) => sum + (i.tax || 0), 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-red-600">Advance Deductions</p>
+                    <p className="font-medium">{formatCurrency(payrollDetails.items?.reduce((sum, i) => sum + (i.advance_deduction || 0), 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-red-600">Total Deductions</p>
+                    <p className="font-bold">{formatCurrency(payrollDetails.total_deductions)}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Employer Costs */}
