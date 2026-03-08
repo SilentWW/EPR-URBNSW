@@ -234,6 +234,20 @@ export const payrollAPI = {
   getTaskPayments: (params) => api.get('/payroll/task-payments', { params }),
   createTaskPayment: (data) => api.post('/payroll/task-payments', data),
   
+  // Task Assignments
+  getTasks: (params) => api.get('/payroll/tasks', { params }),
+  getTask: (id) => api.get(`/payroll/tasks/${id}`),
+  getTaskCategories: () => api.get('/payroll/tasks/categories'),
+  getPendingTaskPayments: () => api.get('/payroll/tasks/pending-payment'),
+  createTask: (data) => api.post('/payroll/tasks', data),
+  updateTask: (id, data) => api.put(`/payroll/tasks/${id}`, data),
+  startTask: (id) => api.post(`/payroll/tasks/${id}/start`),
+  completeTask: (id, notes) => api.post(`/payroll/tasks/${id}/complete`, null, { params: { notes } }),
+  verifyTask: (id) => api.post(`/payroll/tasks/${id}/verify`),
+  rejectTask: (id, reason) => api.post(`/payroll/tasks/${id}/reject`, null, { params: { reason } }),
+  cancelTask: (id, reason) => api.post(`/payroll/tasks/${id}/cancel`, null, { params: { reason } }),
+  getEmployeeTaskSummary: (employeeId) => api.get(`/payroll/tasks/employee/${employeeId}/summary`),
+  
   // Reports
   getPayslip: (payrollId, employeeId) => api.get(`/payroll/reports/payslip/${payrollId}/${employeeId}`),
   getPayrollSummary: (params) => api.get('/payroll/reports/summary', { params }),

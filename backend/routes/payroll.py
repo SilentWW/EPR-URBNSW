@@ -63,6 +63,21 @@ class AdvanceStatus(str, Enum):
     ACTIVE = "active"
     FULLY_PAID = "fully_paid"
 
+class TaskStatus(str, Enum):
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    VERIFIED = "verified"
+    CANCELLED = "cancelled"
+
+class TaskCategory(str, Enum):
+    DESIGN = "design"
+    DEVELOPMENT = "development"
+    MARKETING = "marketing"
+    PRODUCTION = "production"
+    ADMIN = "admin"
+    OTHER = "other"
+
 # ============== MODELS ==============
 
 # Department Models
@@ -180,6 +195,24 @@ class TaskPaymentCreate(BaseModel):
     amount: float
     date: Optional[str] = None
     bank_account_id: Optional[str] = None
+
+# Task Assignment Models
+class TaskAssignmentCreate(BaseModel):
+    employee_id: str
+    title: str
+    description: Optional[str] = None
+    category: TaskCategory
+    amount: float
+    due_date: Optional[str] = None
+    notes: Optional[str] = None
+
+class TaskAssignmentUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[TaskCategory] = None
+    amount: Optional[float] = None
+    due_date: Optional[str] = None
+    notes: Optional[str] = None
 
 
 # ============== DEPARTMENTS ENDPOINTS ==============
@@ -1308,6 +1341,20 @@ async def process_payroll(
         }}
     )
     
+    # Mark task payments as paid (associate with this payroll)
+    for item in items:
+        if item.get("task_payments"):
+            task_ids = [t["task_id"] for t in item["task_payments"]]
+            if task_ids:
+                await db.employee_tasks.update_many(
+                    {"id": {"$in": task_ids}},
+                    {"$set": {
+                        "payroll_id": payroll_id,
+                        "paid_at": timestamp,
+                        "updated_at": timestamp
+                    }}
+                )
+    
     return {"message": "Payroll processed and paid successfully", "journal_entry_id": entry_id}
 
 @router.delete("/payrolls/{payroll_id}")
@@ -1615,7 +1662,7 @@ async def get_department_salary_report(
 
 # ============== HELPER FUNCTIONS ==============
 
-async def calculate_payroll_item(employee, settings, period_start, period_end, company_id):
+async def calculate_payroll_item(employee, settings, period_start, period_end, company_id, include_task_payments=True):
     """Calculate payroll for a single employee"""
     
     basic = employee.get("basic_salary", 0)
@@ -1639,9 +1686,29 @@ async def calculate_payroll_item(employee, settings, period_start, period_end, c
                 })
                 total_allowances += amount
     
-    gross = basic + total_allowances
+    # Get verified task payments (not yet paid)
+    task_payments_amount = 0
+    task_payments_list = []
+    if include_task_payments:
+        verified_tasks = await db.employee_tasks.find({
+            "employee_id": employee["id"],
+            "company_id": company_id,
+            "status": "verified",
+            "$or": [{"payroll_id": None}, {"payroll_id": {"$exists": False}}]
+        }, {"_id": 0}).to_list(100)
+        
+        for task in verified_tasks:
+            task_payments_amount += task.get("amount", 0)
+            task_payments_list.append({
+                "task_id": task["id"],
+                "task_number": task.get("task_number", ""),
+                "title": task.get("title", ""),
+                "amount": task.get("amount", 0)
+            })
     
-    # EPF/ETF calculations
+    gross = basic + total_allowances + task_payments_amount
+    
+    # EPF/ETF calculations (on basic salary only, not on task payments)
     epf_employee = basic * (settings.get("epf_employee_rate", 8) / 100)
     epf_employer = basic * (settings.get("epf_employer_rate", 12) / 100)
     etf = basic * (settings.get("etf_employer_rate", 3) / 100)
@@ -1683,6 +1750,8 @@ async def calculate_payroll_item(employee, settings, period_start, period_end, c
         "hourly_rate": round(hourly_rate, 2),
         "allowances": allowance_details,
         "total_allowances": round(total_allowances, 2),
+        "task_payments": task_payments_list,
+        "task_payments_amount": round(task_payments_amount, 2),
         "overtime_hours": 0,
         "overtime_weekend_hours": 0,
         "overtime_amount": 0,
@@ -1729,3 +1798,416 @@ def calculate_paye_tax(monthly_income, tax_slabs):
             remaining -= taxable_in_slab
     
     return max(0, tax)
+
+
+
+# ============== TASK ASSIGNMENTS ENDPOINTS ==============
+
+@router.get("/tasks")
+async def get_tasks(
+    employee_id: Optional[str] = None,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+    include_paid: bool = False,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all task assignments with filters"""
+    query = {"company_id": current_user["company_id"]}
+    
+    if employee_id:
+        query["employee_id"] = employee_id
+    if status and status != 'all':
+        query["status"] = status
+    if category and category != 'all':
+        query["category"] = category
+    if not include_paid:
+        query["$or"] = [
+            {"payroll_id": None},
+            {"payroll_id": {"$exists": False}}
+        ]
+    
+    tasks = await db.employee_tasks.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    # Get employee names
+    emp_ids = list(set(t["employee_id"] for t in tasks))
+    if emp_ids:
+        emps = await db.employees.find(
+            {"id": {"$in": emp_ids}},
+            {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "employee_id": 1}
+        ).to_list(500)
+        emp_map = {e["id"]: e for e in emps}
+        
+        for task in tasks:
+            emp = emp_map.get(task["employee_id"], {})
+            task["employee_name"] = f"{emp.get('first_name', '')} {emp.get('last_name', '')}"
+            task["employee_code"] = emp.get("employee_id", "")
+    
+    return tasks
+
+@router.get("/tasks/pending-payment")
+async def get_tasks_pending_payment(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get verified tasks that haven't been paid yet"""
+    query = {
+        "company_id": current_user["company_id"],
+        "status": TaskStatus.VERIFIED.value,
+        "$or": [
+            {"payroll_id": None},
+            {"payroll_id": {"$exists": False}}
+        ]
+    }
+    
+    tasks = await db.employee_tasks.find(query, {"_id": 0}).sort("verified_at", 1).to_list(500)
+    
+    # Get employee names
+    emp_ids = list(set(t["employee_id"] for t in tasks))
+    if emp_ids:
+        emps = await db.employees.find(
+            {"id": {"$in": emp_ids}},
+            {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "employee_id": 1}
+        ).to_list(500)
+        emp_map = {e["id"]: e for e in emps}
+        
+        for task in tasks:
+            emp = emp_map.get(task["employee_id"], {})
+            task["employee_name"] = f"{emp.get('first_name', '')} {emp.get('last_name', '')}"
+            task["employee_code"] = emp.get("employee_id", "")
+    
+    return tasks
+
+@router.get("/tasks/categories")
+async def get_task_categories():
+    """Get available task categories"""
+    return [
+        {"value": "design", "label": "Design"},
+        {"value": "development", "label": "Development"},
+        {"value": "marketing", "label": "Marketing"},
+        {"value": "production", "label": "Production"},
+        {"value": "admin", "label": "Administrative"},
+        {"value": "other", "label": "Other"},
+    ]
+
+@router.get("/tasks/{task_id}")
+async def get_task(
+    task_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get single task details"""
+    task = await db.employee_tasks.find_one(
+        {"id": task_id, "company_id": current_user["company_id"]},
+        {"_id": 0}
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Get employee info
+    employee = await db.employees.find_one(
+        {"id": task["employee_id"]},
+        {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "employee_id": 1, "department_id": 1}
+    )
+    if employee:
+        task["employee_name"] = f"{employee['first_name']} {employee['last_name']}"
+        task["employee_code"] = employee["employee_id"]
+        
+        if employee.get("department_id"):
+            dept = await db.departments.find_one({"id": employee["department_id"]}, {"_id": 0, "name": 1})
+            task["department_name"] = dept["name"] if dept else "-"
+    
+    return task
+
+@router.post("/tasks")
+async def create_task(
+    data: TaskAssignmentCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new task assignment (Admin/Manager only)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can assign tasks")
+    
+    company_id = current_user["company_id"]
+    user_id = current_user["user_id"]
+    
+    # Verify employee exists
+    employee = await db.employees.find_one({
+        "id": data.employee_id,
+        "company_id": company_id,
+        "status": "active"
+    })
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found or not active")
+    
+    # Generate task number
+    count = await db.employee_tasks.count_documents({"company_id": company_id})
+    task_number = f"TASK-{datetime.now(timezone.utc).strftime('%Y%m')}-{count + 1:04d}"
+    
+    task_id = generate_id()
+    timestamp = get_current_timestamp()
+    
+    task = {
+        "id": task_id,
+        "task_number": task_number,
+        "company_id": company_id,
+        "employee_id": data.employee_id,
+        "title": data.title,
+        "description": data.description,
+        "category": data.category.value,
+        "amount": data.amount,
+        "due_date": data.due_date,
+        "status": TaskStatus.ASSIGNED.value,
+        "notes": data.notes,
+        "assigned_by": user_id,
+        "assigned_at": timestamp,
+        "started_at": None,
+        "completed_at": None,
+        "verified_by": None,
+        "verified_at": None,
+        "payroll_id": None,
+        "created_at": timestamp
+    }
+    
+    await db.employee_tasks.insert_one(task)
+    
+    return {
+        "id": task_id,
+        "task_number": task_number,
+        "message": "Task assigned successfully"
+    }
+
+@router.put("/tasks/{task_id}")
+async def update_task(
+    task_id: str,
+    data: TaskAssignmentUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update task details (Admin/Manager only, only if not verified/paid)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can update tasks")
+    
+    task = await db.employee_tasks.find_one({
+        "id": task_id,
+        "company_id": current_user["company_id"]
+    })
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if task["status"] in [TaskStatus.VERIFIED.value] and task.get("payroll_id"):
+        raise HTTPException(status_code=400, detail="Cannot update task that has been paid")
+    
+    update_data = {}
+    for k, v in data.model_dump().items():
+        if v is not None:
+            if hasattr(v, 'value'):
+                update_data[k] = v.value
+            else:
+                update_data[k] = v
+    
+    update_data["updated_at"] = get_current_timestamp()
+    
+    await db.employee_tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    return {"message": "Task updated successfully"}
+
+@router.post("/tasks/{task_id}/start")
+async def start_task(
+    task_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark task as in progress (Employee or Admin/Manager)"""
+    task = await db.employee_tasks.find_one({
+        "id": task_id,
+        "company_id": current_user["company_id"]
+    })
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if task["status"] != TaskStatus.ASSIGNED.value:
+        raise HTTPException(status_code=400, detail="Task can only be started from 'assigned' status")
+    
+    await db.employee_tasks.update_one(
+        {"id": task_id},
+        {"$set": {
+            "status": TaskStatus.IN_PROGRESS.value,
+            "started_at": get_current_timestamp()
+        }}
+    )
+    
+    return {"message": "Task started"}
+
+@router.post("/tasks/{task_id}/complete")
+async def complete_task(
+    task_id: str,
+    notes: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark task as completed (Employee submits for verification)"""
+    task = await db.employee_tasks.find_one({
+        "id": task_id,
+        "company_id": current_user["company_id"]
+    })
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if task["status"] not in [TaskStatus.ASSIGNED.value, TaskStatus.IN_PROGRESS.value]:
+        raise HTTPException(status_code=400, detail="Task cannot be completed from current status")
+    
+    update_data = {
+        "status": TaskStatus.COMPLETED.value,
+        "completed_at": get_current_timestamp()
+    }
+    if notes:
+        update_data["completion_notes"] = notes
+    
+    await db.employee_tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    return {"message": "Task marked as completed, pending verification"}
+
+@router.post("/tasks/{task_id}/verify")
+async def verify_task(
+    task_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Verify completed task (Admin/Manager only)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can verify tasks")
+    
+    task = await db.employee_tasks.find_one({
+        "id": task_id,
+        "company_id": current_user["company_id"]
+    })
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if task["status"] != TaskStatus.COMPLETED.value:
+        raise HTTPException(status_code=400, detail="Only completed tasks can be verified")
+    
+    await db.employee_tasks.update_one(
+        {"id": task_id},
+        {"$set": {
+            "status": TaskStatus.VERIFIED.value,
+            "verified_by": current_user["user_id"],
+            "verified_at": get_current_timestamp()
+        }}
+    )
+    
+    return {"message": "Task verified and ready for payment"}
+
+@router.post("/tasks/{task_id}/reject")
+async def reject_task(
+    task_id: str,
+    reason: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Reject completed task back to in-progress (Admin/Manager only)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can reject tasks")
+    
+    task = await db.employee_tasks.find_one({
+        "id": task_id,
+        "company_id": current_user["company_id"]
+    })
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if task["status"] != TaskStatus.COMPLETED.value:
+        raise HTTPException(status_code=400, detail="Only completed tasks can be rejected")
+    
+    update_data = {
+        "status": TaskStatus.IN_PROGRESS.value,
+        "completed_at": None,
+        "rejection_reason": reason,
+        "rejected_by": current_user["user_id"],
+        "rejected_at": get_current_timestamp()
+    }
+    
+    await db.employee_tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    return {"message": "Task rejected and sent back for revision"}
+
+@router.post("/tasks/{task_id}/cancel")
+async def cancel_task(
+    task_id: str,
+    reason: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Cancel a task (Admin/Manager only)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can cancel tasks")
+    
+    task = await db.employee_tasks.find_one({
+        "id": task_id,
+        "company_id": current_user["company_id"]
+    })
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if task.get("payroll_id"):
+        raise HTTPException(status_code=400, detail="Cannot cancel task that has been paid")
+    
+    await db.employee_tasks.update_one(
+        {"id": task_id},
+        {"$set": {
+            "status": TaskStatus.CANCELLED.value,
+            "cancellation_reason": reason,
+            "cancelled_by": current_user["user_id"],
+            "cancelled_at": get_current_timestamp()
+        }}
+    )
+    
+    return {"message": "Task cancelled"}
+
+@router.get("/tasks/employee/{employee_id}/summary")
+async def get_employee_task_summary(
+    employee_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get task summary for an employee"""
+    company_id = current_user["company_id"]
+    
+    # Get counts by status
+    pipeline = [
+        {"$match": {"company_id": company_id, "employee_id": employee_id}},
+        {"$group": {
+            "_id": "$status",
+            "count": {"$sum": 1},
+            "total_amount": {"$sum": "$amount"}
+        }}
+    ]
+    
+    results = await db.employee_tasks.aggregate(pipeline).to_list(10)
+    
+    summary = {
+        "assigned": 0,
+        "in_progress": 0,
+        "completed": 0,
+        "verified": 0,
+        "cancelled": 0,
+        "pending_payment_amount": 0,
+        "total_earned": 0
+    }
+    
+    for r in results:
+        status = r["_id"]
+        summary[status] = r["count"]
+        if status == "verified":
+            # Check which are pending payment
+            pending = await db.employee_tasks.count_documents({
+                "company_id": company_id,
+                "employee_id": employee_id,
+                "status": "verified",
+                "$or": [{"payroll_id": None}, {"payroll_id": {"$exists": False}}]
+            })
+            paid = await db.employee_tasks.aggregate([
+                {"$match": {
+                    "company_id": company_id,
+                    "employee_id": employee_id,
+                    "status": "verified",
+                    "payroll_id": {"$ne": None, "$exists": True}
+                }},
+                {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+            ]).to_list(1)
+            
+            summary["pending_payment_amount"] = r["total_amount"] if pending > 0 else 0
+            summary["total_earned"] = paid[0]["total"] if paid else 0
+    
+    return summary

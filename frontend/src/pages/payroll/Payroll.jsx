@@ -513,6 +513,7 @@ export const Payroll = () => {
                       <TableHead>Employee</TableHead>
                       <TableHead className="text-right">Basic</TableHead>
                       <TableHead className="text-right">Allowances</TableHead>
+                      <TableHead className="text-right">Task Pay</TableHead>
                       <TableHead className="text-right">Gross</TableHead>
                       <TableHead className="text-right">EPF</TableHead>
                       <TableHead className="text-right">Tax</TableHead>
@@ -528,6 +529,13 @@ export const Payroll = () => {
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(item.basic_salary)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(item.total_allowances)}</TableCell>
+                        <TableCell className="text-right">
+                          {item.task_payments_amount > 0 ? (
+                            <span className="text-purple-600" title={item.task_payments?.map(t => t.title).join(', ')}>
+                              {formatCurrency(item.task_payments_amount)}
+                            </span>
+                          ) : '-'}
+                        </TableCell>
                         <TableCell className="text-right">{formatCurrency(item.gross_salary)}</TableCell>
                         <TableCell className="text-right text-amber-600">{formatCurrency(item.epf_employee)}</TableCell>
                         <TableCell className="text-right text-amber-600">{formatCurrency(item.tax)}</TableCell>

@@ -56,6 +56,7 @@ import LeaveManagement from './pages/payroll/LeaveManagement';
 import Advances from './pages/payroll/Advances';
 import Payroll from './pages/payroll/Payroll';
 import PayrollReports from './pages/payroll/PayrollReports';
+import TaskAssignments from './pages/payroll/TaskAssignments';
 
 // Layout
 import Layout from './components/Layout';
@@ -155,6 +156,7 @@ function AppRoutes() {
       <Route path="/advances" element={<ProtectedRoute><Advances /></ProtectedRoute>} />
       <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
       <Route path="/payroll-reports" element={<ProtectedRoute><PayrollReports /></ProtectedRoute>} />
+      <Route path="/task-assignments" element={<ProtectedRoute><TaskAssignments /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

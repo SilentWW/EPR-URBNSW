@@ -89,6 +89,7 @@ const payrollMenuItems = [
   { icon: Calculator, label: 'Salary Structure', path: '/salary-structure' },
   { icon: Receipt, label: 'Leave Management', path: '/leave-management' },
   { icon: Wallet, label: 'Advances & Loans', path: '/advances' },
+  { icon: ClipboardList, label: 'Task Assignments', path: '/task-assignments' },
   { icon: CreditCard, label: 'Payroll', path: '/payroll' },
   { icon: BarChart3, label: 'Payroll Reports', path: '/payroll-reports' },
 ];
