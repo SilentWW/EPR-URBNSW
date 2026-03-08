@@ -516,55 +516,57 @@ export default function SystemAdmin() {
               <AlertTriangle className="w-5 h-5" />
               Data Reset Confirmation
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Reset Type</label>
-                <Select value={resetType} onValueChange={handleResetTypeChange}>
-                  <SelectTrigger data-testid="reset-type-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="transactional">Transactional Reset</SelectItem>
-                    <SelectItem value="full">Full Reset</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {resetPreview && (
-                <div className="bg-slate-50 rounded-lg p-3">
-                  <p className="font-medium text-sm mb-2">Data to be cleared:</p>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {Object.entries(resetPreview.collections).map(([name, count]) => (
-                      <div key={name} className="flex justify-between">
-                        <span className="capitalize">{name.replace(/_/g, ' ')}</span>
-                        <span className="font-medium">{count}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {resetPreview.warnings?.length > 0 && (
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="font-medium text-sm text-orange-600">Warnings:</p>
-                      <ul className="text-sm text-orange-600 mt-1">
-                        {resetPreview.warnings.map((w, i) => (
-                          <li key={i}>• {w}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Reset Type</label>
+                  <Select value={resetType} onValueChange={handleResetTypeChange}>
+                    <SelectTrigger data-testid="reset-type-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="transactional">Transactional Reset</SelectItem>
+                      <SelectItem value="full">Full Reset</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
 
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-700 font-medium">
-                  Type <strong>RESET</strong> to confirm:
-                </p>
-                <Input
-                  value={resetConfirmation}
-                  onChange={(e) => setResetConfirmation(e.target.value)}
-                  className="mt-2"
-                  placeholder="Type RESET"
-                  data-testid="reset-confirmation-input"
-                />
+                {resetPreview && (
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <span className="font-medium text-sm mb-2 block">Data to be cleared:</span>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {Object.entries(resetPreview.collections).map(([name, count]) => (
+                        <div key={name} className="flex justify-between">
+                          <span className="capitalize">{name.replace(/_/g, ' ')}</span>
+                          <span className="font-medium">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {resetPreview.warnings?.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <span className="font-medium text-sm text-orange-600 block">Warnings:</span>
+                        <ul className="text-sm text-orange-600 mt-1">
+                          {resetPreview.warnings.map((w, i) => (
+                            <li key={i}>• {w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <span className="text-sm text-red-700 font-medium block">
+                    Type <strong>RESET</strong> to confirm:
+                  </span>
+                  <Input
+                    value={resetConfirmation}
+                    onChange={(e) => setResetConfirmation(e.target.value)}
+                    className="mt-2"
+                    placeholder="Type RESET"
+                    data-testid="reset-confirmation-input"
+                  />
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -587,48 +589,50 @@ export default function SystemAdmin() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Restore from Backup</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              {selectedBackup && (
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <p className="font-medium">{selectedBackup.name}</p>
-                  <p className="text-sm text-slate-600">
-                    Created: {formatDate(selectedBackup.created_at)}
-                  </p>
-                </div>
-              )}
-
-              {restorePreview && (
-                <div className="bg-slate-50 rounded-lg p-3">
-                  <p className="font-medium text-sm mb-2">Data to be restored:</p>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {Object.entries(restorePreview.collections).map(([name, count]) => (
-                      <div key={name} className="flex justify-between">
-                        <span className="capitalize">{name.replace(/_/g, ' ')}</span>
-                        <span className="font-medium">{count}</span>
-                      </div>
-                    ))}
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                {selectedBackup && (
+                  <div className="bg-blue-50 rounded-lg p-3">
+                    <span className="font-medium block">{selectedBackup.name}</span>
+                    <span className="text-sm text-slate-600 block">
+                      Created: {formatDate(selectedBackup.created_at)}
+                    </span>
                   </div>
+                )}
+
+                {restorePreview && (
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <span className="font-medium text-sm mb-2 block">Data to be restored:</span>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {Object.entries(restorePreview.collections).map(([name, count]) => (
+                        <div key={name} className="flex justify-between">
+                          <span className="capitalize">{name.replace(/_/g, ' ')}</span>
+                          <span className="font-medium">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <span className="text-sm text-orange-700">
+                    <strong>Warning:</strong> This will replace your current data with the backup data.
+                    A backup of your current data will be created automatically.
+                  </span>
                 </div>
-              )}
 
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p className="text-sm text-orange-700">
-                  <strong>Warning:</strong> This will replace your current data with the backup data.
-                  A backup of your current data will be created automatically.
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium">
-                  Type <strong>RESTORE</strong> to confirm:
-                </p>
-                <Input
-                  value={restoreConfirmation}
-                  onChange={(e) => setRestoreConfirmation(e.target.value)}
-                  className="mt-2"
-                  placeholder="Type RESTORE"
-                  data-testid="restore-confirmation-input"
-                />
+                <div>
+                  <span className="text-sm font-medium block">
+                    Type <strong>RESTORE</strong> to confirm:
+                  </span>
+                  <Input
+                    value={restoreConfirmation}
+                    onChange={(e) => setRestoreConfirmation(e.target.value)}
+                    className="mt-2"
+                    placeholder="Type RESTORE"
+                    data-testid="restore-confirmation-input"
+                  />
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>

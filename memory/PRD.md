@@ -221,6 +221,7 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - `POST /data-reset` - Execute data reset
 - `GET /restore/preview/{id}` - Preview restore
 - `POST /restore` - Execute restore
+- `POST /backups/upload` - Upload backup file from local machine
 
 ### GRN Module (/api/grn)
 - `GET /next-sku` - Get next available SKU (URBN0001...)
@@ -460,7 +461,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 - **Manufacturing Financial Integration Tests**: 100% passed (iteration_13 - Feb 25, 2026)
 - **Raw Material Stock Financial Integration**: 100% passed (iteration_14 - Feb 25, 2026)
 - **Consolidated Transaction List Tests**: 100% passed - 58 total transactions including 13 manufacturing
-- **Last Test Run**: iteration_20.json (March 8, 2026)
+- **Last Test Run**: iteration_21.json (March 8, 2026)
+- **Backup & Restore Tests**: 95% backend (18/19), 100% frontend - Upload, Download, Restore verified
 - **Task-Based Payments Tests**: 100% passed (22/22 backend tests, all UI flows verified)
 - **Attendance Tracking Tests**: 100% passed (17/17 backend tests, all UI flows verified)
 - **OT Payroll Integration Tests**: 100% passed (11/11 backend tests, formula verified)
@@ -847,6 +849,28 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Search with text highlighting
   - [x] Navigation link in Admin menu
 
+### Phase 25 - Backup & Restore Enhancement (COMPLETED ✅) - March 8, 2026
+- [x] **Backup Upload Feature**
+  - [x] Upload previously downloaded backup files (.json or .json.gz)
+  - [x] Validate backup file structure (metadata, collections)
+  - [x] Show "Uploaded" badge on uploaded backups
+  - [x] Upload modal with file picker and format guidance
+- [x] **Backend Enhancements**
+  - [x] `POST /api/admin/backups/upload` - Upload backup file endpoint
+  - [x] Proper error handling (400 for malformed files, not 500)
+  - [x] Extract and display backup statistics (collections, total records)
+  - [x] Re-raises HTTPException properly instead of converting to 500
+- [x] **Frontend Enhancements**
+  - [x] "Upload Backup" button in System Admin page
+  - [x] Upload backup modal with drag-and-drop style file picker
+  - [x] Purple "Uploaded" badge for uploaded backups
+  - [x] Fixed HTML nesting warnings in AlertDialogDescription (asChild prop)
+  - [x] AdminAPI functions added to api.js
+- [x] **Testing**
+  - [x] Backend tests: 95% pass (18/19)
+  - [x] Frontend tests: 100% pass
+  - [x] Manual API testing verified
+
 ## Future/Backlog (P2)
 - [ ] SaaS Subscription Billing
 - [ ] Multi-Warehouse Support
@@ -918,5 +942,5 @@ Build a cloud-based ERP system for business operations with the intention of sel
 ```
 
 ---
-*Last Updated: March 7, 2026*
-*Version: 4.0.0*
+*Last Updated: March 8, 2026*
+*Version: 4.1.0*

@@ -461,6 +461,8 @@ async def upload_backup(
         
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON format in backup file")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions (400, 403, etc.) as-is
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process backup file: {str(e)}")
 
