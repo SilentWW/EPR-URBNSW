@@ -248,6 +248,17 @@ export const payrollAPI = {
   cancelTask: (id, reason) => api.post(`/payroll/tasks/${id}/cancel`, null, { params: { reason } }),
   getEmployeeTaskSummary: (employeeId) => api.get(`/payroll/tasks/employee/${employeeId}/summary`),
   
+  // Attendance Tracking
+  getAttendance: (params) => api.get('/payroll/attendance', { params }),
+  getDailyAttendance: (date) => api.get(`/payroll/attendance/daily/${date}`),
+  createAttendance: (data) => api.post('/payroll/attendance', data),
+  createBulkAttendance: (data) => api.post('/payroll/attendance/bulk', data),
+  updateAttendance: (id, data) => api.put(`/payroll/attendance/${id}`, data),
+  deleteAttendance: (id) => api.delete(`/payroll/attendance/${id}`),
+  getEmployeeAttendanceSummary: (employeeId, month) => api.get(`/payroll/attendance/summary/${employeeId}`, { params: { month } }),
+  getMonthlyAttendanceReport: (params) => api.get('/payroll/attendance/monthly-report', { params }),
+  getAttendanceSettings: () => api.get('/payroll/attendance/settings'),
+  
   // Reports
   getPayslip: (payrollId, employeeId) => api.get(`/payroll/reports/payslip/${payrollId}/${employeeId}`),
   getPayrollSummary: (params) => api.get('/payroll/reports/summary', { params }),

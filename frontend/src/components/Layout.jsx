@@ -33,7 +33,8 @@ import {
   PackageOpen,
   Factory,
   Hammer,
-  ScrollText
+  ScrollText,
+  Clock
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -86,6 +87,7 @@ const financeMenuItems = [
 const payrollMenuItems = [
   { icon: Building2, label: 'Departments', path: '/departments' },
   { icon: Users, label: 'Employees', path: '/employees' },
+  { icon: Clock, label: 'Attendance', path: '/attendance' },
   { icon: Calculator, label: 'Salary Structure', path: '/salary-structure' },
   { icon: Receipt, label: 'Leave Management', path: '/leave-management' },
   { icon: Wallet, label: 'Advances & Loans', path: '/advances' },

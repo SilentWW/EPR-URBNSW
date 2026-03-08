@@ -78,6 +78,13 @@ class TaskCategory(str, Enum):
     ADMIN = "admin"
     OTHER = "other"
 
+class AttendanceStatus(str, Enum):
+    PRESENT = "present"
+    ABSENT = "absent"
+    HALF_DAY = "half_day"
+    LATE = "late"
+    ON_LEAVE = "on_leave"
+
 # ============== MODELS ==============
 
 # Department Models
@@ -213,6 +220,25 @@ class TaskAssignmentUpdate(BaseModel):
     amount: Optional[float] = None
     due_date: Optional[str] = None
     notes: Optional[str] = None
+
+# Attendance Models
+class AttendanceCreate(BaseModel):
+    employee_id: str
+    date: str  # YYYY-MM-DD
+    check_in: Optional[str] = None  # HH:MM
+    check_out: Optional[str] = None  # HH:MM
+    status: AttendanceStatus
+    notes: Optional[str] = None
+
+class AttendanceUpdate(BaseModel):
+    check_in: Optional[str] = None
+    check_out: Optional[str] = None
+    status: Optional[AttendanceStatus] = None
+    notes: Optional[str] = None
+
+class BulkAttendanceCreate(BaseModel):
+    date: str  # YYYY-MM-DD
+    records: List[dict]  # [{employee_id, status, check_in, check_out, notes}]
 
 
 # ============== DEPARTMENTS ENDPOINTS ==============
@@ -2211,3 +2237,511 @@ async def get_employee_task_summary(
             summary["total_earned"] = paid[0]["total"] if paid else 0
     
     return summary
+
+
+# ============== ATTENDANCE TRACKING ENDPOINTS ==============
+
+# Constants for attendance
+FULL_DAY_HOURS = 9.0  # 8 hrs work + 1 hr break
+HALF_DAY_HOURS = 5.0  # with break
+STANDARD_WORK_HOURS = 8.0  # for overtime calculation
+
+def calculate_hours_worked(check_in: str, check_out: str) -> float:
+    """Calculate hours worked from check-in and check-out times"""
+    if not check_in or not check_out:
+        return 0.0
+    
+    try:
+        from datetime import datetime as dt
+        cin = dt.strptime(check_in, "%H:%M")
+        cout = dt.strptime(check_out, "%H:%M")
+        
+        # Handle overnight shifts
+        if cout < cin:
+            cout = cout.replace(day=2)
+            cin = cin.replace(day=1)
+        
+        diff = (cout - cin).total_seconds() / 3600
+        return round(diff, 2)
+    except:
+        return 0.0
+
+def calculate_overtime(hours_worked: float, is_weekend: bool = False) -> dict:
+    """Calculate overtime hours based on standard work hours"""
+    overtime_regular = 0.0
+    overtime_weekend = 0.0
+    
+    if hours_worked > STANDARD_WORK_HOURS:
+        extra_hours = hours_worked - STANDARD_WORK_HOURS
+        if is_weekend:
+            overtime_weekend = extra_hours
+        else:
+            overtime_regular = extra_hours
+    
+    return {
+        "overtime_regular": round(overtime_regular, 2),
+        "overtime_weekend": round(overtime_weekend, 2)
+    }
+
+@router.get("/attendance")
+async def get_attendance(
+    month: Optional[str] = None,  # YYYY-MM
+    employee_id: Optional[str] = None,
+    department_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get attendance records with filters"""
+    company_id = current_user["company_id"]
+    
+    query = {"company_id": company_id}
+    
+    if month:
+        # Filter by month (date starts with YYYY-MM)
+        query["date"] = {"$regex": f"^{month}"}
+    
+    if employee_id:
+        query["employee_id"] = employee_id
+    
+    # If filtering by department, get employee IDs first
+    if department_id:
+        emps = await db.employees.find(
+            {"company_id": company_id, "department_id": department_id},
+            {"_id": 0, "id": 1}
+        ).to_list(500)
+        emp_ids = [e["id"] for e in emps]
+        query["employee_id"] = {"$in": emp_ids}
+    
+    records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
+    
+    # Enrich with employee names
+    emp_ids = list(set(r["employee_id"] for r in records))
+    if emp_ids:
+        emps = await db.employees.find(
+            {"id": {"$in": emp_ids}},
+            {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "employee_id": 1, "department_id": 1}
+        ).to_list(500)
+        emp_map = {e["id"]: e for e in emps}
+        
+        for rec in records:
+            emp = emp_map.get(rec["employee_id"], {})
+            rec["employee_name"] = f"{emp.get('first_name', '')} {emp.get('last_name', '')}"
+            rec["employee_code"] = emp.get("employee_id", "")
+    
+    return records
+
+@router.get("/attendance/daily/{date}")
+async def get_daily_attendance(
+    date: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get attendance for all employees for a specific date"""
+    company_id = current_user["company_id"]
+    
+    # Get all active employees
+    employees = await db.employees.find(
+        {"company_id": company_id, "status": "active"},
+        {"_id": 0}
+    ).sort("employee_id", 1).to_list(500)
+    
+    # Get attendance records for this date
+    records = await db.attendance.find(
+        {"company_id": company_id, "date": date},
+        {"_id": 0}
+    ).to_list(500)
+    
+    record_map = {r["employee_id"]: r for r in records}
+    
+    # Get departments
+    depts = await db.departments.find(
+        {"company_id": company_id},
+        {"_id": 0, "id": 1, "name": 1}
+    ).to_list(100)
+    dept_map = {d["id"]: d["name"] for d in depts}
+    
+    # Check for leave requests on this date
+    leave_requests = await db.leave_requests.find({
+        "company_id": company_id,
+        "status": "approved",
+        "start_date": {"$lte": date},
+        "end_date": {"$gte": date}
+    }, {"_id": 0, "employee_id": 1}).to_list(500)
+    on_leave_ids = set(lr["employee_id"] for lr in leave_requests)
+    
+    result = []
+    for emp in employees:
+        emp_id = emp["id"]
+        record = record_map.get(emp_id)
+        
+        # Determine default status
+        default_status = "on_leave" if emp_id in on_leave_ids else None
+        
+        result.append({
+            "employee_id": emp_id,
+            "employee_code": emp["employee_id"],
+            "employee_name": f"{emp['first_name']} {emp['last_name']}",
+            "department_id": emp.get("department_id"),
+            "department_name": dept_map.get(emp.get("department_id"), "-"),
+            "date": date,
+            "check_in": record.get("check_in") if record else None,
+            "check_out": record.get("check_out") if record else None,
+            "hours_worked": record.get("hours_worked", 0) if record else 0,
+            "status": record.get("status") if record else default_status,
+            "overtime_regular": record.get("overtime_regular", 0) if record else 0,
+            "overtime_weekend": record.get("overtime_weekend", 0) if record else 0,
+            "notes": record.get("notes") if record else None,
+            "has_record": record is not None,
+            "is_on_approved_leave": emp_id in on_leave_ids
+        })
+    
+    return result
+
+@router.post("/attendance")
+async def create_attendance(
+    data: AttendanceCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create or update attendance record for an employee"""
+    company_id = current_user["company_id"]
+    user_id = current_user["user_id"]
+    
+    # Check if employee exists
+    employee = await db.employees.find_one({
+        "id": data.employee_id,
+        "company_id": company_id
+    })
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Calculate hours worked
+    hours_worked = calculate_hours_worked(data.check_in, data.check_out)
+    
+    # Determine if weekend
+    from datetime import datetime as dt
+    date_obj = dt.strptime(data.date, "%Y-%m-%d")
+    is_weekend = date_obj.weekday() >= 5  # Saturday=5, Sunday=6
+    
+    # Calculate overtime
+    overtime = calculate_overtime(hours_worked, is_weekend)
+    
+    # Check if record already exists
+    existing = await db.attendance.find_one({
+        "company_id": company_id,
+        "employee_id": data.employee_id,
+        "date": data.date
+    })
+    
+    timestamp = get_current_timestamp()
+    
+    if existing:
+        # Update existing record
+        await db.attendance.update_one(
+            {"id": existing["id"]},
+            {"$set": {
+                "check_in": data.check_in,
+                "check_out": data.check_out,
+                "hours_worked": hours_worked,
+                "status": data.status.value,
+                "overtime_regular": overtime["overtime_regular"],
+                "overtime_weekend": overtime["overtime_weekend"],
+                "notes": data.notes,
+                "updated_by": user_id,
+                "updated_at": timestamp
+            }}
+        )
+        return {"message": "Attendance updated", "id": existing["id"]}
+    else:
+        # Create new record
+        record_id = generate_id()
+        record = {
+            "id": record_id,
+            "company_id": company_id,
+            "employee_id": data.employee_id,
+            "date": data.date,
+            "check_in": data.check_in,
+            "check_out": data.check_out,
+            "hours_worked": hours_worked,
+            "status": data.status.value,
+            "overtime_regular": overtime["overtime_regular"],
+            "overtime_weekend": overtime["overtime_weekend"],
+            "notes": data.notes,
+            "created_by": user_id,
+            "created_at": timestamp
+        }
+        await db.attendance.insert_one(record)
+        return {"message": "Attendance recorded", "id": record_id}
+
+@router.post("/attendance/bulk")
+async def create_bulk_attendance(
+    data: BulkAttendanceCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create or update attendance for multiple employees at once"""
+    company_id = current_user["company_id"]
+    user_id = current_user["user_id"]
+    timestamp = get_current_timestamp()
+    
+    # Determine if weekend
+    from datetime import datetime as dt
+    date_obj = dt.strptime(data.date, "%Y-%m-%d")
+    is_weekend = date_obj.weekday() >= 5
+    
+    created = 0
+    updated = 0
+    
+    for rec in data.records:
+        employee_id = rec.get("employee_id")
+        if not employee_id:
+            continue
+        
+        check_in = rec.get("check_in")
+        check_out = rec.get("check_out")
+        status = rec.get("status", "present")
+        notes = rec.get("notes")
+        
+        # Calculate hours
+        hours_worked = calculate_hours_worked(check_in, check_out)
+        overtime = calculate_overtime(hours_worked, is_weekend)
+        
+        # Check existing
+        existing = await db.attendance.find_one({
+            "company_id": company_id,
+            "employee_id": employee_id,
+            "date": data.date
+        })
+        
+        if existing:
+            await db.attendance.update_one(
+                {"id": existing["id"]},
+                {"$set": {
+                    "check_in": check_in,
+                    "check_out": check_out,
+                    "hours_worked": hours_worked,
+                    "status": status,
+                    "overtime_regular": overtime["overtime_regular"],
+                    "overtime_weekend": overtime["overtime_weekend"],
+                    "notes": notes,
+                    "updated_by": user_id,
+                    "updated_at": timestamp
+                }}
+            )
+            updated += 1
+        else:
+            record_id = generate_id()
+            record = {
+                "id": record_id,
+                "company_id": company_id,
+                "employee_id": employee_id,
+                "date": data.date,
+                "check_in": check_in,
+                "check_out": check_out,
+                "hours_worked": hours_worked,
+                "status": status,
+                "overtime_regular": overtime["overtime_regular"],
+                "overtime_weekend": overtime["overtime_weekend"],
+                "notes": notes,
+                "created_by": user_id,
+                "created_at": timestamp
+            }
+            await db.attendance.insert_one(record)
+            created += 1
+    
+    return {"message": f"Attendance saved: {created} created, {updated} updated"}
+
+@router.put("/attendance/{record_id}")
+async def update_attendance(
+    record_id: str,
+    data: AttendanceUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update an attendance record"""
+    company_id = current_user["company_id"]
+    
+    record = await db.attendance.find_one({
+        "id": record_id,
+        "company_id": company_id
+    })
+    if not record:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+    
+    update_data = {}
+    
+    check_in = data.check_in if data.check_in is not None else record.get("check_in")
+    check_out = data.check_out if data.check_out is not None else record.get("check_out")
+    
+    if data.check_in is not None:
+        update_data["check_in"] = data.check_in
+    if data.check_out is not None:
+        update_data["check_out"] = data.check_out
+    if data.status is not None:
+        update_data["status"] = data.status.value
+    if data.notes is not None:
+        update_data["notes"] = data.notes
+    
+    # Recalculate hours
+    hours_worked = calculate_hours_worked(check_in, check_out)
+    update_data["hours_worked"] = hours_worked
+    
+    # Recalculate overtime
+    from datetime import datetime as dt
+    date_obj = dt.strptime(record["date"], "%Y-%m-%d")
+    is_weekend = date_obj.weekday() >= 5
+    overtime = calculate_overtime(hours_worked, is_weekend)
+    update_data["overtime_regular"] = overtime["overtime_regular"]
+    update_data["overtime_weekend"] = overtime["overtime_weekend"]
+    
+    update_data["updated_by"] = current_user["user_id"]
+    update_data["updated_at"] = get_current_timestamp()
+    
+    await db.attendance.update_one({"id": record_id}, {"$set": update_data})
+    
+    return {"message": "Attendance updated"}
+
+@router.delete("/attendance/{record_id}")
+async def delete_attendance(
+    record_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete an attendance record"""
+    company_id = current_user["company_id"]
+    
+    result = await db.attendance.delete_one({
+        "id": record_id,
+        "company_id": company_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+    
+    return {"message": "Attendance deleted"}
+
+@router.get("/attendance/summary/{employee_id}")
+async def get_employee_attendance_summary(
+    employee_id: str,
+    month: str,  # YYYY-MM
+    current_user: dict = Depends(get_current_user)
+):
+    """Get attendance summary for an employee for a month"""
+    company_id = current_user["company_id"]
+    
+    records = await db.attendance.find({
+        "company_id": company_id,
+        "employee_id": employee_id,
+        "date": {"$regex": f"^{month}"}
+    }, {"_id": 0}).to_list(31)
+    
+    # Calculate summary
+    present_days = sum(1 for r in records if r["status"] == "present")
+    half_days = sum(1 for r in records if r["status"] == "half_day")
+    absent_days = sum(1 for r in records if r["status"] == "absent")
+    late_days = sum(1 for r in records if r["status"] == "late")
+    leave_days = sum(1 for r in records if r["status"] == "on_leave")
+    
+    total_hours = sum(r.get("hours_worked", 0) for r in records)
+    overtime_regular = sum(r.get("overtime_regular", 0) for r in records)
+    overtime_weekend = sum(r.get("overtime_weekend", 0) for r in records)
+    
+    # Calculate working days equivalent
+    working_days = present_days + late_days + (half_days * 0.5)
+    
+    return {
+        "employee_id": employee_id,
+        "month": month,
+        "present_days": present_days,
+        "half_days": half_days,
+        "absent_days": absent_days,
+        "late_days": late_days,
+        "leave_days": leave_days,
+        "total_records": len(records),
+        "working_days_equivalent": working_days,
+        "total_hours_worked": round(total_hours, 2),
+        "overtime_regular_hours": round(overtime_regular, 2),
+        "overtime_weekend_hours": round(overtime_weekend, 2),
+        "total_overtime_hours": round(overtime_regular + overtime_weekend, 2)
+    }
+
+@router.get("/attendance/monthly-report")
+async def get_monthly_attendance_report(
+    month: str,  # YYYY-MM
+    department_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get monthly attendance report for all employees"""
+    company_id = current_user["company_id"]
+    
+    # Get employees
+    emp_query = {"company_id": company_id, "status": "active"}
+    if department_id:
+        emp_query["department_id"] = department_id
+    
+    employees = await db.employees.find(emp_query, {"_id": 0}).to_list(500)
+    
+    # Get departments
+    depts = await db.departments.find(
+        {"company_id": company_id},
+        {"_id": 0, "id": 1, "name": 1}
+    ).to_list(100)
+    dept_map = {d["id"]: d["name"] for d in depts}
+    
+    # Get all attendance for the month
+    records = await db.attendance.find({
+        "company_id": company_id,
+        "date": {"$regex": f"^{month}"}
+    }, {"_id": 0}).to_list(5000)
+    
+    # Group records by employee
+    from collections import defaultdict
+    emp_records = defaultdict(list)
+    for r in records:
+        emp_records[r["employee_id"]].append(r)
+    
+    report = []
+    for emp in employees:
+        emp_id = emp["id"]
+        recs = emp_records.get(emp_id, [])
+        
+        present = sum(1 for r in recs if r["status"] == "present")
+        half_days = sum(1 for r in recs if r["status"] == "half_day")
+        absent = sum(1 for r in recs if r["status"] == "absent")
+        late = sum(1 for r in recs if r["status"] == "late")
+        leave = sum(1 for r in recs if r["status"] == "on_leave")
+        
+        total_hours = sum(r.get("hours_worked", 0) for r in recs)
+        ot_regular = sum(r.get("overtime_regular", 0) for r in recs)
+        ot_weekend = sum(r.get("overtime_weekend", 0) for r in recs)
+        
+        report.append({
+            "employee_id": emp_id,
+            "employee_code": emp["employee_id"],
+            "employee_name": f"{emp['first_name']} {emp['last_name']}",
+            "department_name": dept_map.get(emp.get("department_id"), "-"),
+            "present_days": present,
+            "half_days": half_days,
+            "absent_days": absent,
+            "late_days": late,
+            "leave_days": leave,
+            "working_days": present + late + (half_days * 0.5),
+            "total_hours": round(total_hours, 2),
+            "overtime_regular": round(ot_regular, 2),
+            "overtime_weekend": round(ot_weekend, 2),
+            "total_overtime": round(ot_regular + ot_weekend, 2)
+        })
+    
+    return report
+
+@router.get("/attendance/settings")
+async def get_attendance_settings(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get attendance settings"""
+    return {
+        "full_day_hours": FULL_DAY_HOURS,
+        "half_day_hours": HALF_DAY_HOURS,
+        "standard_work_hours": STANDARD_WORK_HOURS,
+        "statuses": [
+            {"value": "present", "label": "Present", "color": "green"},
+            {"value": "absent", "label": "Absent", "color": "red"},
+            {"value": "half_day", "label": "Half Day", "color": "yellow"},
+            {"value": "late", "label": "Late", "color": "orange"},
+            {"value": "on_leave", "label": "On Leave", "color": "blue"}
+        ]
+    }
