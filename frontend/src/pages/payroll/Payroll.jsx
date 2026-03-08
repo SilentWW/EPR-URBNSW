@@ -514,6 +514,7 @@ export const Payroll = () => {
                       <TableHead className="text-right">Basic</TableHead>
                       <TableHead className="text-right">Allowances</TableHead>
                       <TableHead className="text-right">Task Pay</TableHead>
+                      <TableHead className="text-right">OT Pay</TableHead>
                       <TableHead className="text-right">Gross</TableHead>
                       <TableHead className="text-right">EPF</TableHead>
                       <TableHead className="text-right">Tax</TableHead>
@@ -527,6 +528,9 @@ export const Payroll = () => {
                         <TableCell>
                           <div>{item.employee_name}</div>
                           <span className="text-xs text-slate-400">{item.employee_code}</span>
+                          {item.attendance_days > 0 && (
+                            <span className="text-xs text-blue-500 block">{item.attendance_days} days</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(item.basic_salary)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(item.total_allowances)}</TableCell>
@@ -534,6 +538,13 @@ export const Payroll = () => {
                           {item.task_payments_amount > 0 ? (
                             <span className="text-purple-600" title={item.task_payments?.map(t => t.title).join(', ')}>
                               {formatCurrency(item.task_payments_amount)}
+                            </span>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.overtime_amount > 0 ? (
+                            <span className="text-orange-600" title={`${item.overtime_hours || 0}h regular + ${item.overtime_weekend_hours || 0}h weekend`}>
+                              {formatCurrency(item.overtime_amount)}
                             </span>
                           ) : '-'}
                         </TableCell>
@@ -548,6 +559,36 @@ export const Payroll = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Earnings Summary */}
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h4 className="font-medium text-green-900 mb-2">Earnings Summary</h4>
+                <div className="grid grid-cols-5 gap-4 text-sm">
+                  <div>
+                    <p className="text-green-600">Basic Salary</p>
+                    <p className="font-medium">{formatCurrency(payrollDetails.items?.reduce((sum, i) => sum + (i.basic_salary || 0), 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-green-600">Allowances</p>
+                    <p className="font-medium">{formatCurrency(payrollDetails.items?.reduce((sum, i) => sum + (i.total_allowances || 0), 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-green-600">Task Payments</p>
+                    <p className="font-medium">{formatCurrency(payrollDetails.items?.reduce((sum, i) => sum + (i.task_payments_amount || 0), 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-orange-600">Overtime Pay</p>
+                    <p className="font-medium">{formatCurrency(payrollDetails.items?.reduce((sum, i) => sum + (i.overtime_amount || 0), 0))}</p>
+                    <p className="text-xs text-gray-500">
+                      {payrollDetails.items?.reduce((sum, i) => sum + (i.overtime_hours || 0), 0).toFixed(1)}h reg + {payrollDetails.items?.reduce((sum, i) => sum + (i.overtime_weekend_hours || 0), 0).toFixed(1)}h wknd
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-green-600">Total Gross</p>
+                    <p className="font-bold">{formatCurrency(payrollDetails.total_gross)}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Deductions Summary */}

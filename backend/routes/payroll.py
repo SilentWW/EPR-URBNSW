@@ -1692,7 +1692,7 @@ async def calculate_payroll_item(employee, settings, period_start, period_end, c
     """Calculate payroll for a single employee"""
     
     basic = employee.get("basic_salary", 0)
-    hourly_rate = employee.get("hourly_rate", 0) or (basic / 176 if basic else 0)  # 176 = 22 days * 8 hours
+    hourly_rate = employee.get("hourly_rate", 0) or (basic / 198 if basic else 0)  # 198 = 22 days * 9 hours
     
     # Get employee allowances
     total_allowances = 0
@@ -1732,9 +1732,41 @@ async def calculate_payroll_item(employee, settings, period_start, period_end, c
                 "amount": task.get("amount", 0)
             })
     
-    gross = basic + total_allowances + task_payments_amount
+    # Get attendance data for the payroll period
+    attendance_records = await db.attendance.find({
+        "employee_id": employee["id"],
+        "company_id": company_id,
+        "date": {"$gte": period_start, "$lte": period_end}
+    }, {"_id": 0}).to_list(31)
     
-    # EPF/ETF calculations (on basic salary only, not on task payments)
+    # Calculate overtime from attendance (OT only for hours > 9)
+    overtime_hours = 0.0
+    overtime_weekend_hours = 0.0
+    total_working_days = 0
+    total_hours_worked = 0.0
+    
+    for att in attendance_records:
+        if att.get("status") in ["present", "late"]:
+            total_working_days += 1
+        elif att.get("status") == "half_day":
+            total_working_days += 0.5
+        
+        total_hours_worked += att.get("hours_worked", 0)
+        overtime_hours += att.get("overtime_regular", 0)
+        overtime_weekend_hours += att.get("overtime_weekend", 0)
+    
+    # Calculate overtime pay
+    # Regular OT rate (e.g., 1.25x) and Weekend OT rate (e.g., 1.5x)
+    ot_regular_rate = settings.get("overtime_rate_weekday", 1.25)
+    ot_weekend_rate = settings.get("overtime_rate_weekend", 1.5)
+    
+    overtime_regular_pay = overtime_hours * hourly_rate * ot_regular_rate
+    overtime_weekend_pay = overtime_weekend_hours * hourly_rate * ot_weekend_rate
+    overtime_amount = overtime_regular_pay + overtime_weekend_pay
+    
+    gross = basic + total_allowances + task_payments_amount + overtime_amount
+    
+    # EPF/ETF calculations (on basic salary only, not on task payments or overtime)
     epf_employee = basic * (settings.get("epf_employee_rate", 8) / 100)
     epf_employer = basic * (settings.get("epf_employer_rate", 12) / 100)
     etf = basic * (settings.get("etf_employer_rate", 3) / 100)
@@ -1778,9 +1810,11 @@ async def calculate_payroll_item(employee, settings, period_start, period_end, c
         "total_allowances": round(total_allowances, 2),
         "task_payments": task_payments_list,
         "task_payments_amount": round(task_payments_amount, 2),
-        "overtime_hours": 0,
-        "overtime_weekend_hours": 0,
-        "overtime_amount": 0,
+        "overtime_hours": round(overtime_hours, 2),
+        "overtime_weekend_hours": round(overtime_weekend_hours, 2),
+        "overtime_amount": round(overtime_amount, 2),
+        "attendance_days": total_working_days,
+        "attendance_hours": round(total_hours_worked, 2),
         "bonus": 0,
         "other_allowances": 0,
         "gross_salary": round(gross, 2),
@@ -2242,9 +2276,9 @@ async def get_employee_task_summary(
 # ============== ATTENDANCE TRACKING ENDPOINTS ==============
 
 # Constants for attendance
-FULL_DAY_HOURS = 9.0  # 8 hrs work + 1 hr break
+FULL_DAY_HOURS = 9.0  # 8 hrs work + 1 hr break - normal duty
 HALF_DAY_HOURS = 5.0  # with break
-STANDARD_WORK_HOURS = 8.0  # for overtime calculation
+STANDARD_WORK_HOURS = 9.0  # OT calculated only for hours > 9
 
 def calculate_hours_worked(check_in: str, check_out: str) -> float:
     """Calculate hours worked from check-in and check-out times"""
@@ -2267,10 +2301,11 @@ def calculate_hours_worked(check_in: str, check_out: str) -> float:
         return 0.0
 
 def calculate_overtime(hours_worked: float, is_weekend: bool = False) -> dict:
-    """Calculate overtime hours based on standard work hours"""
+    """Calculate overtime hours - OT only for hours > 9 (normal duty)"""
     overtime_regular = 0.0
     overtime_weekend = 0.0
     
+    # Only count overtime if worked more than 9 hours (normal duty)
     if hours_worked > STANDARD_WORK_HOURS:
         extra_hours = hours_worked - STANDARD_WORK_HOURS
         if is_weekend:

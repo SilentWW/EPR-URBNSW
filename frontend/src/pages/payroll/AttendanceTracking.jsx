@@ -344,7 +344,7 @@ const AttendanceTracking = () => {
                     <tbody className="divide-y">
                       {dailyRecords.map(record => {
                         const hours = calculateHours(record.check_in, record.check_out);
-                        const overtime = hours > 8 ? (hours - 8).toFixed(1) : 0;
+                        const overtime = hours > 9 ? (hours - 9).toFixed(1) : 0;  // OT only for hours > 9
                         
                         return (
                           <tr 
