@@ -51,11 +51,21 @@ export default function AuditLogs() {
     return new Date(dateString).toLocaleString();
   };
 
+  const formatDetails = (details) => {
+    if (!details) return '-';
+    if (typeof details === 'string') return details;
+    if (typeof details === 'object') {
+      return JSON.stringify(details, null, 0).slice(0, 100) + (JSON.stringify(details).length > 100 ? '...' : '');
+    }
+    return String(details);
+  };
+
   const filteredLogs = logs.filter(log => {
+    const detailsStr = typeof log.details === 'object' ? JSON.stringify(log.details) : (log.details || '');
     const matchesSearch = 
       log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.details?.toLowerCase().includes(searchTerm.toLowerCase());
+      detailsStr.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesFilter = filterAction === 'all' || log.action?.includes(filterAction);
     
@@ -71,7 +81,7 @@ export default function AuditLogs() {
         log.timestamp,
         log.action,
         log.user_email || 'System',
-        `"${(log.details || '').replace(/"/g, '""')}"`
+        `"${formatDetails(log.details).replace(/"/g, '""')}"`
       ].join(','))
     ].join('\n');
 
@@ -216,7 +226,7 @@ export default function AuditLogs() {
                       </td>
                       <td className="p-3">
                         <span className="text-slate-600 text-xs">
-                          {log.details || '-'}
+                          {formatDetails(log.details)}
                         </span>
                       </td>
                     </tr>
