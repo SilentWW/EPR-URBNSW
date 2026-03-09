@@ -11,6 +11,9 @@ import os
 import json
 import shutil
 import gzip
+import logging
+
+logger = logging.getLogger(__name__)
 
 from models.admin import (
     DataResetRequest, DataResetResponse, ResetType,
@@ -25,7 +28,9 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 # Database will be injected from main app
 db = None
-BACKUP_DIR = "/app/backend/backups"
+import tempfile
+
+BACKUP_DIR = os.environ.get("BACKUP_DIR", tempfile.gettempdir() + "/erp_backups")
 
 def set_db(database):
     global db
@@ -63,9 +68,13 @@ async def reset_data(request: DataResetRequest, current_user: dict = Depends(get
     collections_cleared = []
     
     try:
-        # Create backup before reset
+        # Create backup before reset (skip if backup fails on restricted environments)
         backup_name = f"pre-reset-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-        await _create_backup_internal(company_id, backup_name, current_user["user_id"], "Pre-reset automatic backup")
+        try:
+            await _create_backup_internal(company_id, backup_name, current_user["user_id"], "Pre-reset automatic backup")
+        except (PermissionError, OSError) as e:
+            # Skip backup on environments with no write access (e.g., Render)
+            logger.warning(f"Could not create pre-reset backup (permission denied), proceeding without backup: {e}")
         
         if request.reset_type == ResetType.TRANSACTIONAL:
             # Reset only transactional data
@@ -520,9 +529,12 @@ async def restore_backup(
         raise HTTPException(status_code=404, detail="Backup file not found")
     
     try:
-        # Create pre-restore backup
+        # Create pre-restore backup (skip if backup fails on restricted environments)
         pre_restore_name = f"pre-restore-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-        await _create_backup_internal(company_id, pre_restore_name, current_user["user_id"], "Pre-restore automatic backup")
+        try:
+            await _create_backup_internal(company_id, pre_restore_name, current_user["user_id"], "Pre-restore automatic backup")
+        except (PermissionError, OSError) as e:
+            logger.warning(f"Could not create pre-restore backup (permission denied), proceeding: {e}")
         
         # Read backup file
         with gzip.open(backup["file_path"], 'rt', encoding='utf-8') as f:
