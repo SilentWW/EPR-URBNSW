@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -110,6 +110,12 @@ export const Layout = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications] = useState(3);
+
+  // Dynamic page title based on company name
+  useEffect(() => {
+    const companyName = user?.company_name || 'Business';
+    document.title = `${companyName} ERP`;
+  }, [user?.company_name]);
 
   const handleLogout = () => {
     logout();
