@@ -29,6 +29,7 @@ import FinancialReports from './pages/FinancialReports';
 
 // Admin Pages
 import SystemAdmin from './pages/SystemAdmin';
+import AuditLogs from './pages/AuditLogs';
 
 // Documentation
 import Documentation from './pages/Documentation';
@@ -163,6 +164,7 @@ function AppRoutes() {
       <Route path="/task-assignments" element={<ProtectedRoute><TaskAssignments /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute><AttendanceTracking /></ProtectedRoute>} />
       <Route path="/documentation" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
+      <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

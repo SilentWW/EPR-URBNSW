@@ -45,7 +45,9 @@ MASTER_COLLECTIONS = ["users", "accounts", "tax_rates", "products", "customers",
 TRANSACTIONAL_COLLECTIONS = [
     "sales_orders", "purchase_orders", "payments", "inventory_movements",
     "journal_entries", "accounting_entries", "bank_transactions",
-    "audit_logs", "notifications"
+    "audit_logs", "notifications", "grn", "grn_items", "invoices",
+    "payroll", "payroll_items", "attendance", "employee_tasks", "leaves",
+    "advances", "work_orders", "bom", "raw_material_requirements"
 ]
 ALL_COLLECTIONS = MASTER_COLLECTIONS + TRANSACTIONAL_COLLECTIONS
 

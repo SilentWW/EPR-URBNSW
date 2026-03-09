@@ -34,7 +34,8 @@ import {
   Factory,
   Hammer,
   ScrollText,
-  Clock
+  Clock,
+  FileSearch
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -99,6 +100,7 @@ const payrollMenuItems = [
 const adminMenuItems = [
   { icon: Settings, label: 'Settings', path: '/settings' },
   { icon: Shield, label: 'System Admin', path: '/system-admin' },
+  { icon: FileSearch, label: 'Audit Logs', path: '/audit-logs', adminOnly: true },
   { icon: BookOpen, label: 'Documentation', path: '/documentation' },
 ];
 
