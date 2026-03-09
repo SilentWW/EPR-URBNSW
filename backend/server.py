@@ -479,6 +479,7 @@ async def register(user_data: UserCreate):
         "password": hash_password(user_data.password),
         "full_name": user_data.full_name,
         "role": "admin",
+        "status": "approved",  # Company owner is auto-approved
         "company_id": company_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -511,6 +512,49 @@ async def register(user_data: UserCreate):
             created_at=user["created_at"]
         )
     )
+
+@api_router.post("/auth/join-company")
+async def join_company(user_data: UserCreate, company_code: str):
+    """Request to join an existing company"""
+    # Check if user exists
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Find company by code (company_id or special invite code)
+    company = await db.companies.find_one({"id": company_code})
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found. Please check the company code.")
+    
+    # Create user with pending status
+    user_id = str(uuid.uuid4())
+    user = {
+        "id": user_id,
+        "email": user_data.email,
+        "password": hash_password(user_data.password),
+        "full_name": user_data.full_name,
+        "role": "staff",
+        "status": "pending",  # Needs admin approval
+        "company_id": company_code,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+    
+    # Log activity
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "company_id": company_code,
+        "user_id": user_id,
+        "action": "user_join_request",
+        "details": {"email": user_data.email, "full_name": user_data.full_name},
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "message": "Registration successful! Your account is pending approval. Please wait for the administrator to approve your account.",
+        "status": "pending"
+    }
 
 async def seed_default_accounts(company_id: str):
     """Seed default Chart of Accounts for a new company"""
@@ -590,6 +634,13 @@ async def login(credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Check user status
+    user_status = user.get("status", "approved")  # Default to approved for existing users
+    if user_status == "pending":
+        raise HTTPException(status_code=403, detail="Your account is pending approval. Please wait for admin to approve your account.")
+    if user_status == "rejected":
+        raise HTTPException(status_code=403, detail="Your account has been rejected. Please contact the administrator.")
     
     token = create_token(user["id"], user["email"], user["role"], user["company_id"])
     
@@ -693,6 +744,7 @@ async def create_user(user_data: UserCreate, current_user: dict = Depends(get_cu
         "password": hash_password(user_data.password),
         "full_name": user_data.full_name,
         "role": "staff",
+        "status": "approved",  # Admin-created users are auto-approved
         "company_id": current_user["company_id"],
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -734,6 +786,94 @@ async def delete_user(user_id: str, current_user: dict = Depends(get_current_use
         raise HTTPException(status_code=404, detail="User not found")
     
     return {"message": "User deleted successfully"}
+
+@api_router.get("/users/pending")
+async def get_pending_users(current_user: dict = Depends(get_current_user)):
+    """Get all users with pending status for admin approval"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    users = await db.users.find(
+        {"company_id": current_user["company_id"], "status": "pending"},
+        {"_id": 0, "password": 0}
+    ).to_list(100)
+    return users
+
+@api_router.put("/users/{user_id}/approve")
+async def approve_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Approve a pending user"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = await db.users.update_one(
+        {"id": user_id, "company_id": current_user["company_id"]},
+        {"$set": {"status": "approved", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Log the action
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "company_id": current_user["company_id"],
+        "user_id": current_user["user_id"],
+        "user_email": current_user.get("email"),
+        "action": "user_approved",
+        "details": {"approved_user_id": user_id},
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "User approved successfully"}
+
+@api_router.put("/users/{user_id}/reject")
+async def reject_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Reject a pending user"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = await db.users.update_one(
+        {"id": user_id, "company_id": current_user["company_id"]},
+        {"$set": {"status": "rejected", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Log the action
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "company_id": current_user["company_id"],
+        "user_id": current_user["user_id"],
+        "user_email": current_user.get("email"),
+        "action": "user_rejected",
+        "details": {"rejected_user_id": user_id},
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "User rejected successfully"}
+
+@api_router.put("/users/{user_id}/status")
+async def update_user_status(user_id: str, status: str, current_user: dict = Depends(get_current_user)):
+    """Update user status (approved, pending, rejected)"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    if status not in ["approved", "pending", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status. Use: approved, pending, rejected")
+    
+    if user_id == current_user["user_id"]:
+        raise HTTPException(status_code=400, detail="Cannot change your own status")
+    
+    result = await db.users.update_one(
+        {"id": user_id, "company_id": current_user["company_id"]},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": f"User status updated to {status}"}
 
 # ============== PRODUCT ROUTES ==============
 

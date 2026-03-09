@@ -37,6 +37,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (data) => api.post('/auth/register', data),
+  joinCompany: (data, companyCode) => api.post(`/auth/join-company?company_code=${companyCode}`, data),
   getMe: () => api.get('/auth/me'),
 };
 
@@ -51,8 +52,12 @@ export const companyAPI = {
 // Users API
 export const usersAPI = {
   getAll: () => api.get('/users'),
+  getPending: () => api.get('/users/pending'),
   create: (data) => api.post('/users', data),
   updateRole: (userId, role) => api.put(`/users/${userId}/role?role=${role}`),
+  updateStatus: (userId, status) => api.put(`/users/${userId}/status?status=${status}`),
+  approve: (userId) => api.put(`/users/${userId}/approve`),
+  reject: (userId) => api.put(`/users/${userId}/reject`),
   delete: (userId) => api.delete(`/users/${userId}`),
 };
 

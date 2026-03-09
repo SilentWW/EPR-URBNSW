@@ -99,6 +99,7 @@ const payrollMenuItems = [
 
 const adminMenuItems = [
   { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Users, label: 'User Management', path: '/user-management', adminOnly: true },
   { icon: Shield, label: 'System Admin', path: '/system-admin' },
   { icon: FileSearch, label: 'Audit Logs', path: '/audit-logs', adminOnly: true },
   { icon: BookOpen, label: 'Documentation', path: '/documentation' },

@@ -1,23 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { Building2, Mail, Lock, User, Building, AlertCircle, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Building2, Mail, Lock, User, Building, AlertCircle, Loader2, Users, CheckCircle } from 'lucide-react';
 
 export const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const [activeTab, setActiveTab] = useState('new-company');
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     password: '',
     company_name: '',
   });
+  const [companyCode, setCompanyCode] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,7 +33,7 @@ export const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleNewCompanySubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -38,6 +43,27 @@ export const Register = () => {
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinCompanySubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const response = await authAPI.joinCompany({
+        full_name: formData.full_name,
+        email: formData.email,
+        password: formData.password,
+        company_name: ''
+      }, companyCode);
+      setSuccess(response.data.message);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to join company. Please check the company code.');
     } finally {
       setLoading(false);
     }
@@ -56,107 +82,239 @@ export const Register = () => {
                 Create Account
               </CardTitle>
               <CardDescription className="text-slate-500 mt-2">
-                Start managing your business with E1 ERP
+                Start managing your business with ERP
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive" className="bg-red-50 border-red-200">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="new-company" data-testid="new-company-tab">
+                  <Building className="w-4 h-4 mr-2" />
+                  New Company
+                </TabsTrigger>
+                <TabsTrigger value="join-company" data-testid="join-company-tab">
+                  <Users className="w-4 h-4 mr-2" />
+                  Join Company
+                </TabsTrigger>
+              </TabsList>
 
-              <div className="space-y-2">
-                <Label htmlFor="full_name" className="text-slate-700">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    id="full_name"
-                    name="full_name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={formData.full_name}
-                    onChange={handleChange}
-                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
-                    required
-                    data-testid="fullname-input"
-                  />
-                </div>
-              </div>
+              {/* New Company Tab */}
+              <TabsContent value="new-company">
+                <form onSubmit={handleNewCompanySubmit} className="space-y-4">
+                  {error && activeTab === 'new-company' && (
+                    <Alert variant="destructive" className="bg-red-50 border-red-200">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
-                    required
-                    data-testid="email-input"
-                  />
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="full_name"
+                        name="full_name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={formData.full_name}
+                        onChange={handleChange}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                        required
+                        data-testid="fullname-input"
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-700">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Create a strong password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
-                    required
-                    minLength={6}
-                    data-testid="password-input"
-                  />
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                        required
+                        data-testid="email-input"
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="company_name" className="text-slate-700">Company Name</Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    id="company_name"
-                    name="company_name"
-                    type="text"
-                    placeholder="Your Company Ltd"
-                    value={formData.company_name}
-                    onChange={handleChange}
-                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
-                    data-testid="company-input"
-                  />
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="Create a strong password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                        required
+                        minLength={6}
+                        data-testid="password-input"
+                      />
+                    </div>
+                  </div>
 
-              <Button
-                type="submit"
-                className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-medium mt-2"
-                disabled={loading}
-                data-testid="register-btn"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating Account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
-            </form>
+                  <div className="space-y-2">
+                    <Label htmlFor="company_name">Company Name</Label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="company_name"
+                        name="company_name"
+                        type="text"
+                        placeholder="Your Company Ltd"
+                        value={formData.company_name}
+                        onChange={handleChange}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                        data-testid="company-input"
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-medium mt-2"
+                    disabled={loading}
+                    data-testid="register-btn"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      'Create Company & Account'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              {/* Join Company Tab */}
+              <TabsContent value="join-company">
+                <form onSubmit={handleJoinCompanySubmit} className="space-y-4">
+                  {error && activeTab === 'join-company' && (
+                    <Alert variant="destructive" className="bg-red-50 border-red-200">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  {success && (
+                    <Alert className="bg-green-50 border-green-200">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-700">{success}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                    Ask your company admin for the Company Code to join their organization.
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="join_full_name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="join_full_name"
+                        name="full_name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={formData.full_name}
+                        onChange={handleChange}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                        required
+                        data-testid="join-fullname-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="join_email">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="join_email"
+                        name="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                        required
+                        data-testid="join-email-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="join_password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="join_password"
+                        name="password"
+                        type="password"
+                        placeholder="Create a strong password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                        required
+                        minLength={6}
+                        data-testid="join-password-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="company_code">Company Code</Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        id="company_code"
+                        type="text"
+                        placeholder="Enter company code from admin"
+                        value={companyCode}
+                        onChange={(e) => setCompanyCode(e.target.value)}
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white font-mono"
+                        required
+                        data-testid="company-code-input"
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-medium mt-2"
+                    disabled={loading || success}
+                    data-testid="join-btn"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Requesting Access...
+                      </>
+                    ) : success ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Request Sent
+                      </>
+                    ) : (
+                      'Request to Join'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-slate-500">
@@ -170,7 +328,7 @@ export const Register = () => {
         </Card>
 
         <p className="text-center text-sm text-slate-400 mt-6">
-          E1 ERP System · Cloud Business Management
+          ERP System · Cloud Business Management
         </p>
       </div>
     </div>
