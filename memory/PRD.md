@@ -271,12 +271,19 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] If required Chart of Accounts entries missing (AR 1300, Cash 1100), system auto-creates them
   - [x] Prevents silent failures in payment processing
 
-### Packaging Items Management (COMPLETED ✅) - Feb 2026
-- [x] **Packaging Items Module** (`/packaging-items`)
-  - [x] Designate products as packaging items (bags, tags, cards)
-  - [x] On sale: Automatically reduce packaging inventory (1 set per product sold)
+### Packaging Rules Management (REFACTORED ✅) - March 2026
+- [x] **Packaging Rules Module** (`/packaging-rules`)
+  - [x] Define rules linking main products to their packaging materials
+  - [x] Packaging materials are regular products (purchased via PO → GRN)
+  - [x] On sale: Automatically reduce packaging product inventory based on rules
   - [x] On sale: Add packaging cost to COGS journal entry
-  - [x] Backend API: `/api/packaging-items` (GET, POST, DELETE)
+  - [x] Backend API: `/api/packaging/rules` (GET, POST, PUT, DELETE)
+- [x] **Refactoring Changes (March 10, 2026)**
+  - [x] Removed separate `/api/packaging-items` endpoint
+  - [x] Removed `PackagingItems.jsx` page and route
+  - [x] Packaging materials now managed as regular products
+  - [x] Rules link products to packaging using product IDs
+  - [x] Fixed `packaging_cost` undefined bug in sales order creation
 
 ### Phase 10 - Two-Way WooCommerce Product Sync (COMPLETED ✅) - Feb 2026
 - [x] **ERP to WooCommerce Product Sync**
@@ -942,5 +949,5 @@ Build a cloud-based ERP system for business operations with the intention of sel
 ```
 
 ---
-*Last Updated: March 8, 2026*
-*Version: 4.1.0*
+*Last Updated: March 10, 2026*
+*Version: 4.2.0*
