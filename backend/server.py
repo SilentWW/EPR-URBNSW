@@ -4525,6 +4525,11 @@ from routes import packaging
 packaging.db = db
 app.include_router(packaging.router, prefix="/api")
 
+# Import and include employee portal router
+from routes import employee_portal
+employee_portal.set_db(db)
+app.include_router(employee_portal.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

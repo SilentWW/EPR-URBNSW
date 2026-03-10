@@ -35,7 +35,8 @@ import {
   Hammer,
   ScrollText,
   Clock,
-  FileSearch
+  FileSearch,
+  Tags
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -95,6 +96,13 @@ const payrollMenuItems = [
   { icon: ClipboardList, label: 'Task Assignments', path: '/task-assignments' },
   { icon: CreditCard, label: 'Payroll', path: '/payroll' },
   { icon: BarChart3, label: 'Payroll Reports', path: '/payroll-reports' },
+  { icon: Tags, label: 'Task Categories', path: '/task-categories', managerOnly: true },
+];
+
+// Employee Portal menu items (visible to all employees)
+const employeePortalItems = [
+  { icon: LayoutDashboard, label: 'My Dashboard', path: '/my-dashboard' },
+  { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks' },
 ];
 
 const adminMenuItems = [
@@ -244,6 +252,33 @@ export const Layout = ({ children }) => {
               </p>
               <ul className="space-y-1">
                 {payrollMenuItems.map((item) => {
+                  // Hide manager-only items from employees
+                  if (item.managerOnly && user?.role === 'employee') return null;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                        onClick={() => setSidebarOpen(false)}
+                        data-testid={`nav-${item.path.slice(1)}`}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            {/* Employee Portal Section */}
+            <div className="mt-6 pt-4 border-t border-slate-100">
+              <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                My Portal
+              </p>
+              <ul className="space-y-1">
+                {employeePortalItems.map((item) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <li key={item.path}>
@@ -324,7 +359,7 @@ export const Layout = ({ children }) => {
               <Menu className="w-5 h-5 text-slate-600" />
             </button>
             <h1 className="text-lg font-semibold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              {[...menuItems, ...manufacturingMenuItems, ...financeMenuItems, ...payrollMenuItems, ...adminMenuItems].find((item) => item.path === location.pathname)?.label || 'Dashboard'}
+              {[...menuItems, ...manufacturingMenuItems, ...financeMenuItems, ...payrollMenuItems, ...employeePortalItems, ...adminMenuItems].find((item) => item.path === location.pathname)?.label || 'Dashboard'}
             </h1>
           </div>
 

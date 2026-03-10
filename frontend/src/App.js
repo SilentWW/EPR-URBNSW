@@ -64,6 +64,11 @@ import PayrollReports from './pages/payroll/PayrollReports';
 import TaskAssignments from './pages/payroll/TaskAssignments';
 import AttendanceTracking from './pages/payroll/AttendanceTracking';
 
+// Employee Portal Pages
+import MyDashboard from './pages/MyDashboard';
+import MyTasks from './pages/MyTasks';
+import TaskCategories from './pages/TaskCategories';
+
 // Layout
 import Layout from './components/Layout';
 
@@ -167,6 +172,11 @@ function AppRoutes() {
       <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
       <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
       <Route path="/packaging-rules" element={<ProtectedRoute><PackagingRules /></ProtectedRoute>} />
+
+      {/* Employee Portal Routes */}
+      <Route path="/my-dashboard" element={<ProtectedRoute><MyDashboard /></ProtectedRoute>} />
+      <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
+      <Route path="/task-categories" element={<ProtectedRoute><TaskCategories /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
