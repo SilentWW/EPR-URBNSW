@@ -147,7 +147,21 @@ export const dashboardAPI = {
 
 // Notifications API
 export const notificationsAPI = {
-  getAll: () => api.get('/notifications'),
+  getAll: (params) => api.get('/notifications', { params }),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllRead: () => api.put('/notifications/mark-all-read'),
+  delete: (id) => api.delete(`/notifications/${id}`),
+  clearAll: () => api.delete('/notifications'),
+  // Preferences
+  getPreferences: () => api.get('/notifications/preferences'),
+  updatePreferences: (data) => api.put('/notifications/preferences', data),
+  // SMTP Settings (Admin)
+  getSmtpSettings: () => api.get('/notifications/smtp-settings'),
+  updateSmtpSettings: (data) => api.put('/notifications/smtp-settings', data),
+  testSmtp: (email) => api.post(`/notifications/smtp-settings/test?test_email=${encodeURIComponent(email)}`),
+  // Send notification (Admin)
+  send: (data) => api.post('/notifications/send', data),
 };
 
 // Audit Logs API

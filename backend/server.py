@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status as http_status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status as http_status, WebSocket
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -3309,41 +3309,6 @@ async def get_sales_report(
         "orders": orders
     }
 
-@api_router.get("/notifications")
-async def get_notifications(current_user: dict = Depends(get_current_user)):
-    company_id = current_user["company_id"]
-    notifications = []
-    
-    # Low stock alerts
-    products = await db.products.find({"company_id": company_id}, {"_id": 0}).to_list(1000)
-    for p in products:
-        if p["stock_quantity"] <= p["low_stock_threshold"]:
-            notifications.append({
-                "id": f"low-stock-{p['id']}",
-                "type": "low_stock",
-                "title": "Low Stock Alert",
-                "message": f"{p['name']} has only {p['stock_quantity']} items left",
-                "severity": "warning",
-                "created_at": datetime.now(timezone.utc).isoformat()
-            })
-    
-    # Pending payments
-    orders = await db.sales_orders.find(
-        {"company_id": company_id, "payment_status": {"$ne": "paid"}},
-        {"_id": 0}
-    ).to_list(100)
-    for o in orders:
-        notifications.append({
-            "id": f"pending-payment-{o['id']}",
-            "type": "pending_payment",
-            "title": "Payment Pending",
-            "message": f"Order {o['order_number']} has pending payment of LKR {o['total'] - o['paid_amount']:.2f}",
-            "severity": "info",
-            "created_at": o["created_at"]
-        })
-    
-    return notifications[:20]
-
 @api_router.get("/audit-logs")
 async def get_audit_logs(
     limit: int = 100,
@@ -4564,6 +4529,17 @@ app.include_router(packaging.router, prefix="/api")
 from routes import employee_portal
 employee_portal.set_db(db)
 app.include_router(employee_portal.router, prefix="/api")
+
+# Import and include notifications router
+from routes import notifications
+notifications.set_db(db)
+notifications.set_jwt_config(JWT_SECRET, JWT_ALGORITHM)
+app.include_router(notifications.router, prefix="/api")
+
+# WebSocket endpoint for real-time notifications
+@app.websocket("/api/notifications/ws/{token}")
+async def websocket_endpoint(websocket: WebSocket, token: str):
+    await notifications.websocket_notifications(websocket, token)
 
 app.add_middleware(
     CORSMiddleware,

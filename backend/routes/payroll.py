@@ -108,6 +108,8 @@ class EmployeeCreate(BaseModel):
     nic: Optional[str] = None  # National ID
     address: Optional[str] = None
     department_id: Optional[str] = None
+    designation_id: Optional[str] = None  # Link to designation
+    designation: Optional[str] = None  # Legacy text field (fallback)
     employee_type: EmployeeType
     payment_frequency: PaymentFrequency = PaymentFrequency.MONTHLY
     basic_salary: float = 0
@@ -129,6 +131,8 @@ class EmployeeUpdate(BaseModel):
     nic: Optional[str] = None
     address: Optional[str] = None
     department_id: Optional[str] = None
+    designation_id: Optional[str] = None  # Link to designation
+    designation: Optional[str] = None  # Legacy text field
     employee_type: Optional[EmployeeType] = None
     payment_frequency: Optional[PaymentFrequency] = None
     basic_salary: Optional[float] = None
@@ -242,6 +246,22 @@ class BulkAttendanceCreate(BaseModel):
     date: str  # YYYY-MM-DD
     records: List[dict]  # [{employee_id, status, check_in, check_out, notes}]
 
+# Designation Models
+class DesignationCreate(BaseModel):
+    name: str
+    department_id: Optional[str] = None
+    role: str = "employee"  # admin, manager, accountant, store, employee
+    description: Optional[str] = None
+    level: int = 1  # Hierarchy level (1=lowest, 10=highest)
+
+class DesignationUpdate(BaseModel):
+    name: Optional[str] = None
+    department_id: Optional[str] = None
+    role: Optional[str] = None
+    description: Optional[str] = None
+    level: Optional[int] = None
+    is_active: Optional[bool] = None
+
 
 # ============== DEPARTMENTS ENDPOINTS ==============
 
@@ -339,6 +359,143 @@ async def delete_department(
     return {"message": "Department deleted successfully"}
 
 
+# ============== DESIGNATIONS ENDPOINTS ==============
+
+@router.get("/designations")
+async def get_designations(
+    department_id: Optional[str] = None,
+    include_inactive: bool = False,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all designations for the company"""
+    query = {"company_id": current_user["company_id"]}
+    if department_id:
+        query["$or"] = [{"department_id": department_id}, {"department_id": None}]
+    if not include_inactive:
+        query["is_active"] = True
+    
+    designations = await db.designations.find(query, {"_id": 0}).sort([("level", -1), ("name", 1)]).to_list(200)
+    
+    # Enrich with department names
+    dept_ids = list(set(d.get("department_id") for d in designations if d.get("department_id")))
+    dept_map = {}
+    if dept_ids:
+        depts = await db.departments.find({"id": {"$in": dept_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(100)
+        dept_map = {d["id"]: d["name"] for d in depts}
+    
+    for d in designations:
+        d["department_name"] = dept_map.get(d.get("department_id"), "All Departments")
+    
+    return designations
+
+@router.post("/designations")
+async def create_designation(
+    data: DesignationCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new designation (Admin/Manager only)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can create designations")
+    
+    company_id = current_user["company_id"]
+    
+    # Check duplicate name
+    existing = await db.designations.find_one({
+        "company_id": company_id,
+        "name": {"$regex": f"^{data.name}$", "$options": "i"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Designation with this name already exists")
+    
+    # Validate role
+    valid_roles = ["admin", "manager", "accountant", "store", "employee"]
+    if data.role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+    
+    designation_id = generate_id()
+    designation = {
+        "id": designation_id,
+        "company_id": company_id,
+        "name": data.name,
+        "department_id": data.department_id,
+        "role": data.role,
+        "description": data.description,
+        "level": data.level,
+        "is_active": True,
+        "created_by": current_user["user_id"],
+        "created_at": get_current_timestamp()
+    }
+    
+    await db.designations.insert_one(designation)
+    designation.pop("_id", None)
+    
+    return designation
+
+@router.put("/designations/{designation_id}")
+async def update_designation(
+    designation_id: str,
+    data: DesignationUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a designation (Admin/Manager only)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can update designations")
+    
+    designation = await db.designations.find_one({
+        "id": designation_id,
+        "company_id": current_user["company_id"]
+    })
+    if not designation:
+        raise HTTPException(status_code=404, detail="Designation not found")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    
+    # Validate role if being updated
+    if "role" in update_data:
+        valid_roles = ["admin", "manager", "accountant", "store", "employee"]
+        if update_data["role"] not in valid_roles:
+            raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+    
+    if update_data:
+        update_data["updated_at"] = get_current_timestamp()
+        await db.designations.update_one({"id": designation_id}, {"$set": update_data})
+    
+    updated = await db.designations.find_one({"id": designation_id}, {"_id": 0})
+    return updated
+
+@router.delete("/designations/{designation_id}")
+async def delete_designation(
+    designation_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a designation (soft delete)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can delete designations")
+    
+    # Check if any employees are using this designation
+    has_employees = await db.employees.find_one({
+        "company_id": current_user["company_id"],
+        "designation_id": designation_id
+    })
+    if has_employees:
+        # Soft delete
+        await db.designations.update_one(
+            {"id": designation_id, "company_id": current_user["company_id"]},
+            {"$set": {"is_active": False, "updated_at": get_current_timestamp()}}
+        )
+        return {"message": "Designation deactivated (has employees assigned)"}
+    
+    result = await db.designations.delete_one({
+        "id": designation_id,
+        "company_id": current_user["company_id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Designation not found")
+    
+    return {"message": "Designation deleted successfully"}
+
+
 # ============== EMPLOYEES ENDPOINTS ==============
 
 @router.get("/employees")
@@ -377,8 +534,22 @@ async def get_employees(
         dept_docs = await db.departments.find({"id": {"$in": dept_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(100)
         depts = {d["id"]: d["name"] for d in dept_docs}
     
+    # Get designation details
+    desig_ids = list(set(e.get("designation_id") for e in employees if e.get("designation_id")))
+    desigs = {}
+    if desig_ids:
+        desig_docs = await db.designations.find({"id": {"$in": desig_ids}}, {"_id": 0, "id": 1, "name": 1, "role": 1}).to_list(100)
+        desigs = {d["id"]: d for d in desig_docs}
+    
     for emp in employees:
         emp["department_name"] = depts.get(emp.get("department_id"), "-")
+        # Get designation name from designation_id or fallback to text field
+        if emp.get("designation_id") and emp["designation_id"] in desigs:
+            emp["designation_name"] = desigs[emp["designation_id"]]["name"]
+            emp["designation_role"] = desigs[emp["designation_id"]].get("role", "employee")
+        else:
+            emp["designation_name"] = emp.get("designation", "-")
+            emp["designation_role"] = "employee"
         emp["full_name"] = f"{emp['first_name']} {emp['last_name']}"
     
     return employees
@@ -400,6 +571,19 @@ async def get_employee(
     if employee.get("department_id"):
         dept = await db.departments.find_one({"id": employee["department_id"]}, {"_id": 0, "name": 1})
         employee["department_name"] = dept["name"] if dept else "-"
+    
+    # Get designation details
+    if employee.get("designation_id"):
+        desig = await db.designations.find_one({"id": employee["designation_id"]}, {"_id": 0, "name": 1, "role": 1})
+        if desig:
+            employee["designation_name"] = desig["name"]
+            employee["designation_role"] = desig.get("role", "employee")
+        else:
+            employee["designation_name"] = employee.get("designation", "-")
+            employee["designation_role"] = "employee"
+    else:
+        employee["designation_name"] = employee.get("designation", "-")
+        employee["designation_role"] = "employee"
     
     # Get leave balances
     leave_balance = await db.leave_balances.find_one(

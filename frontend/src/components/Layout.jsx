@@ -36,7 +36,8 @@ import {
   ScrollText,
   Clock,
   FileSearch,
-  Tags
+  Tags,
+  Briefcase
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -49,6 +50,7 @@ import {
 } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
+import NotificationBell from './NotificationBell';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', module: 'dashboard' },
@@ -88,6 +90,7 @@ const financeMenuItems = [
 
 const payrollMenuItems = [
   { icon: Building2, label: 'Departments', path: '/departments', module: 'departments' },
+  { icon: Briefcase, label: 'Designations', path: '/designations', module: 'designations' },
   { icon: Users, label: 'Employees', path: '/employees', module: 'employees' },
   { icon: Clock, label: 'Attendance', path: '/attendance', module: 'attendance' },
   { icon: Calculator, label: 'Salary Structure', path: '/salary-structure', module: 'salary-structure' },
@@ -108,6 +111,7 @@ const employeePortalItems = [
 
 const adminMenuItems = [
   { icon: Settings, label: 'Settings', path: '/settings', module: 'settings' },
+  { icon: Bell, label: 'Notifications', path: '/notifications', module: 'notifications' },
   { icon: Users, label: 'User Management', path: '/user-management', module: 'user-management' },
   { icon: Shield, label: 'System Admin', path: '/system-admin', module: 'system-admin' },
   { icon: FileSearch, label: 'Audit Logs', path: '/audit-logs', module: 'audit-logs' },
@@ -122,32 +126,32 @@ const ROLE_MODULES = {
     'customers', 'suppliers', 'sales-orders', 'invoices', 'purchase-orders', 'payments',
     'manufacturing', 'raw-materials', 'bill-of-materials', 'work-orders',
     'rm-suppliers', 'rm-purchase-orders', 'rm-grn', 'rm-grn-returns',
-    'departments', 'employees', 'attendance', 'salary-structure',
+    'departments', 'designations', 'employees', 'attendance', 'salary-structure',
     'leave-management', 'advances', 'task-assignments', 'payroll', 'payroll-reports',
     'task-categories', 'reports', 'my-dashboard', 'my-tasks', 'settings',
-    'user-management', 'documentation'
+    'user-management', 'documentation', 'notifications'
   ],
   accountant: [
     'dashboard', 'accounting', 'chart-of-accounts', 'general-ledger', 'financial-reports',
     'invoices', 'payments', 'investors', 'quick-transactions', 'bank-accounts',
-    'reports', 'my-dashboard', 'my-tasks', 'documentation'
+    'reports', 'my-dashboard', 'my-tasks', 'documentation', 'notifications'
   ],
   accounts: [ // Legacy alias
     'dashboard', 'accounting', 'chart-of-accounts', 'general-ledger', 'financial-reports',
     'invoices', 'payments', 'investors', 'quick-transactions', 'bank-accounts',
-    'reports', 'my-dashboard', 'my-tasks', 'documentation'
+    'reports', 'my-dashboard', 'my-tasks', 'documentation', 'notifications'
   ],
   store: [
     'dashboard', 'products', 'inventory', 'grn', 'packaging-rules',
     'suppliers', 'purchase-orders',
     'raw-materials', 'rm-suppliers', 'rm-purchase-orders', 'rm-grn', 'rm-grn-returns',
-    'my-dashboard', 'my-tasks', 'documentation'
+    'my-dashboard', 'my-tasks', 'documentation', 'notifications'
   ],
   employee: [
-    'my-dashboard', 'my-tasks', 'attendance', 'leave-management', 'documentation'
+    'my-dashboard', 'my-tasks', 'attendance', 'leave-management', 'documentation', 'notifications'
   ],
   staff: [ // Legacy alias
-    'my-dashboard', 'my-tasks', 'attendance', 'leave-management', 'documentation'
+    'my-dashboard', 'my-tasks', 'attendance', 'leave-management', 'documentation', 'notifications'
   ]
 };
 
@@ -170,7 +174,6 @@ export const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications] = useState(3);
   
   // Collapsible menu state - stored in localStorage for persistence
   const [expandedSections, setExpandedSections] = useState(() => {
@@ -504,17 +507,8 @@ export const Layout = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Notifications */}
-            <Link to="/notifications" className="relative">
-              <Button variant="ghost" size="icon" className="relative" data-testid="notifications-btn">
-                <Bell className="w-5 h-5 text-slate-600" />
-                {notifications > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-white text-xs">
-                    {notifications}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
+            {/* Notifications Bell with Dropdown */}
+            <NotificationBell />
 
             {/* User Menu */}
             <DropdownMenu>

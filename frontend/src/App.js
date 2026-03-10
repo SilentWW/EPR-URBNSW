@@ -55,6 +55,7 @@ import RMGRNReturns from './pages/RMGRNReturns';
 
 // Payroll Pages
 import Departments from './pages/payroll/Departments';
+import Designations from './pages/payroll/Designations';
 import Employees from './pages/payroll/Employees';
 import SalaryStructure from './pages/payroll/SalaryStructure';
 import LeaveManagement from './pages/payroll/LeaveManagement';
@@ -161,6 +162,7 @@ function AppRoutes() {
 
       {/* Payroll Routes */}
       <Route path="/departments" element={<ProtectedRoute><Departments /></ProtectedRoute>} />
+      <Route path="/designations" element={<ProtectedRoute><Designations /></ProtectedRoute>} />
       <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
       <Route path="/salary-structure" element={<ProtectedRoute><SalaryStructure /></ProtectedRoute>} />
       <Route path="/leave-management" element={<ProtectedRoute><LeaveManagement /></ProtectedRoute>} />

@@ -88,6 +88,7 @@ const initialFormData = {
   nic: '',
   address: '',
   department_id: 'none',
+  designation_id: 'none',  // Link to designation
   employee_type: 'permanent',
   payment_frequency: 'monthly',
   basic_salary: '',
@@ -105,6 +106,7 @@ const initialFormData = {
 export const Employees = () => {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [designations, setDesignations] = useState([]);  // Available designations
   const [users, setUsers] = useState([]);  // Available users for linking
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -120,13 +122,15 @@ export const Employees = () => {
 
   const fetchData = async () => {
     try {
-      const [empRes, deptRes, usersRes] = await Promise.all([
+      const [empRes, deptRes, desigRes, usersRes] = await Promise.all([
         payrollAPI.getEmployees({ search, employee_type: typeFilter, status: statusFilter }),
         payrollAPI.getDepartments(),
+        api.get('/payroll/designations').catch(() => ({ data: [] })),  // Fetch designations
         api.get('/users').catch(() => ({ data: [] })),  // Fetch users for linking
       ]);
       setEmployees(empRes.data);
       setDepartments(deptRes.data);
+      setDesignations(desigRes.data || []);
       setUsers(usersRes.data || []);
     } catch (error) {
       toast.error('Failed to fetch data');
@@ -151,6 +155,7 @@ export const Employees = () => {
         nic: employee.nic || '',
         address: employee.address || '',
         department_id: employee.department_id || 'none',
+        designation_id: employee.designation_id || 'none',
         employee_type: employee.employee_type,
         payment_frequency: employee.payment_frequency,
         basic_salary: employee.basic_salary?.toString() || '',
@@ -198,6 +203,7 @@ export const Employees = () => {
         hourly_rate: parseFloat(formData.hourly_rate) || 0,
         daily_rate: parseFloat(formData.daily_rate) || 0,
         department_id: formData.department_id === 'none' ? null : (formData.department_id || null),
+        designation_id: formData.designation_id === 'none' ? null : (formData.designation_id || null),
         user_id: formData.user_id === 'none' ? null : (formData.user_id || null),
       };
 
@@ -497,6 +503,28 @@ export const Employees = () => {
                     </Select>
                     <p className="text-xs text-slate-500">Link this employee to a user account for portal access</p>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Designation</Label>
+                  <Select 
+                    value={formData.designation_id} 
+                    onValueChange={(v) => setFormData({ ...formData, designation_id: v })}
+                  >
+                    <SelectTrigger data-testid="emp-designation-select">
+                      <SelectValue placeholder="Select designation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Designation</SelectItem>
+                      {designations
+                        .filter(d => !formData.department_id || formData.department_id === 'none' || !d.department_id || d.department_id === formData.department_id)
+                        .map(d => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name} {d.department_name && d.department_name !== 'All Departments' ? `(${d.department_name})` : ''}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">Job title and permission level</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
