@@ -119,6 +119,7 @@ class EmployeeCreate(BaseModel):
     join_date: Optional[str] = None
     contract_end_date: Optional[str] = None
     notes: Optional[str] = None
+    user_id: Optional[str] = None  # Link to user account for portal access
 
 class EmployeeUpdate(BaseModel):
     first_name: Optional[str] = None

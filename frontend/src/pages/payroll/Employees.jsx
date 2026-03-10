@@ -99,11 +99,13 @@ const initialFormData = {
   join_date: '',
   contract_end_date: '',
   notes: '',
+  user_id: 'none',  // Link to user account
 };
 
 export const Employees = () => {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [users, setUsers] = useState([]);  // Available users for linking
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -118,12 +120,14 @@ export const Employees = () => {
 
   const fetchData = async () => {
     try {
-      const [empRes, deptRes] = await Promise.all([
+      const [empRes, deptRes, usersRes] = await Promise.all([
         payrollAPI.getEmployees({ search, employee_type: typeFilter, status: statusFilter }),
         payrollAPI.getDepartments(),
+        api.get('/users').catch(() => ({ data: [] })),  // Fetch users for linking
       ]);
       setEmployees(empRes.data);
       setDepartments(deptRes.data);
+      setUsers(usersRes.data || []);
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
@@ -158,6 +162,7 @@ export const Employees = () => {
         join_date: employee.join_date || '',
         contract_end_date: employee.contract_end_date || '',
         notes: employee.notes || '',
+        user_id: employee.user_id || 'none',
       });
     } else {
       setSelectedEmployee(null);
@@ -193,6 +198,7 @@ export const Employees = () => {
         hourly_rate: parseFloat(formData.hourly_rate) || 0,
         daily_rate: parseFloat(formData.daily_rate) || 0,
         department_id: formData.department_id === 'none' ? null : (formData.department_id || null),
+        user_id: formData.user_id === 'none' ? null : (formData.user_id || null),
       };
 
       if (selectedEmployee) {
@@ -470,6 +476,26 @@ export const Employees = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link to User Account</Label>
+                    <Select 
+                      value={formData.user_id} 
+                      onValueChange={(v) => setFormData({ ...formData, user_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Not Linked</SelectItem>
+                        {users.map(u => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.full_name || u.email} ({u.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-500">Link this employee to a user account for portal access</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
