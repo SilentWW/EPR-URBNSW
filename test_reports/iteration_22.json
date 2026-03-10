@@ -1,0 +1,78 @@
+{
+  "summary": "Packaging Rules Refactoring testing completed. All core features working: /api/packaging-items removed (returns 404), /api/packaging/rules CRUD works correctly, sales orders correctly deduct packaging products, inventory movements recorded. Backend: 14/14 tests pass. Frontend: All UI features verified working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/packaging/rules",
+        "issue": "Fixed during testing - was returning MongoDB ObjectId causing 500 error. Added rule.pop('_id', None) before returning.",
+        "priority": "FIXED"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Packaging Rules Page",
+        "issues": [
+          "One rule shows 'Unknown' product name - the linked product was deleted but the rule persists. Consider adding cascading delete or validation to remove orphaned rules."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_packaging_refactor.py",
+    "/app/test_reports/pytest/pytest_packaging_refactor.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Packaging routes now correctly exclude MongoDB _id from responses",
+    "Sales order creation properly deducts both main product and packaging products",
+    "Inventory movements recorded for all packaging deductions with clear reason text",
+    "Old /packaging-items route correctly redirects to dashboard via catch-all route"
+  ],
+  "updated_files": [
+    "/app/backend/routes/packaging.py",
+    "/app/backend/tests/test_packaging_refactor.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all features working)"
+  },
+  "test_credentials": "test_pkg_refactor@test.com / test123",
+  "seed_data_creation": "Created and cleaned up TEST_ prefixed products, customers, and packaging rules during testing",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Packaging rules refactoring complete. /api/packaging-items endpoint removed. Packaging materials are now regular products in the products collection. Rules link products to their packaging using /api/packaging/rules. Sales orders auto-deduct packaging stock. Test T-Shirt has Courier Bag and Thank You Card as packaging.",
+  "features_tested": {
+    "Packaging Items Endpoint Removed": {
+      "GET /api/packaging-items": "PASS - Returns 404 as expected",
+      "POST /api/packaging-items": "PASS - Returns 404 as expected"
+    },
+    "Packaging Rules CRUD": {
+      "GET /api/packaging/rules": "PASS - Returns all rules with enriched product details",
+      "GET /api/packaging/rules/product/{id}": "PASS - Returns rule for specific product",
+      "POST /api/packaging/rules": "PASS - Creates new packaging rule (after fix)",
+      "PUT /api/packaging/rules/{id}": "PASS - Updates rule items and active status",
+      "DELETE /api/packaging/rules/{id}": "PASS - Deletes rule"
+    },
+    "Sales Order Packaging Deduction": {
+      "stock_deduction": "PASS - Packaging products correctly deducted when sales order created",
+      "inventory_movements": "PASS - Movements recorded with reason 'Packaging for SO-xxx'"
+    },
+    "Frontend UI": {
+      "page_load": "PASS - /packaging-rules loads with correct header",
+      "rules_display": "PASS - Shows 2 rules with product names, SKUs, stock levels",
+      "add_rule_modal": "PASS - Opens with product select and packaging select dropdowns",
+      "old_route_redirect": "PASS - /packaging-items redirects to /dashboard"
+    }
+  },
+  "bug_fix_applied": {
+    "file": "/app/backend/routes/packaging.py",
+    "line": 158,
+    "issue": "MongoDB ObjectId serialization error on POST /api/packaging/rules",
+    "fix": "Added rule.pop('_id', None) before returning the created rule"
+  }
+}

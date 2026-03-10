@@ -40,7 +40,6 @@ import Documentation from './pages/Documentation';
 import Investors from './pages/Investors';
 import QuickTransactions from './pages/QuickTransactions';
 import BankAccounts from './pages/BankAccounts';
-import PackagingItems from './pages/PackagingItems';
 
 // Manufacturing Pages
 import RawMaterials from './pages/RawMaterials';
@@ -141,7 +140,6 @@ function AppRoutes() {
       <Route path="/investors" element={<ProtectedRoute><Investors /></ProtectedRoute>} />
       <Route path="/quick-transactions" element={<ProtectedRoute><QuickTransactions /></ProtectedRoute>} />
       <Route path="/bank-accounts" element={<ProtectedRoute><BankAccounts /></ProtectedRoute>} />
-      <Route path="/packaging-items" element={<ProtectedRoute><PackagingItems /></ProtectedRoute>} />
 
       {/* Manufacturing Routes */}
       <Route path="/manufacturing" element={<ProtectedRoute><ManufacturingDashboard /></ProtectedRoute>} />

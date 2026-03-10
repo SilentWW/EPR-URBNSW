@@ -310,19 +310,6 @@ class BankTransferCreate(BaseModel):
     description: Optional[str] = None
     transaction_date: Optional[str] = None
 
-# Packaging Items Models
-class PackagingItemCreate(BaseModel):
-    product_id: str  # Link to product in inventory
-    name: str
-    description: Optional[str] = None
-    is_active: bool = True
-
-class PackagingItemUpdate(BaseModel):
-    product_id: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    is_active: Optional[bool] = None
-
 # ============== HELPER FUNCTIONS ==============
 
 def hash_password(password: str) -> str:
@@ -1375,7 +1362,8 @@ async def create_sales_order(data: SalesOrderCreate, current_user: dict = Depend
             })
     
     # Deduct packaging materials based on packaging rules
-    packaging_cost = 0
+    # Packaging materials are regular products (same as main products)
+    packaging_cost = 0  # Track total packaging cost for COGS
     for item in data.items:
         # Find packaging rule for this product
         packaging_rule = await db.packaging_rules.find_one({
@@ -1385,33 +1373,41 @@ async def create_sales_order(data: SalesOrderCreate, current_user: dict = Depend
         })
         
         if packaging_rule:
-            # Deduct each packaging item according to the rule
+            # Deduct each packaging product according to the rule
             for pkg_rule_item in packaging_rule.get("items", []):
-                packaging_item = await db.packaging_items.find_one({
-                    "id": pkg_rule_item["packaging_item_id"],
+                pkg_product = await db.products.find_one({
+                    "id": pkg_rule_item["product_id"],
                     "company_id": current_user["company_id"]
                 })
                 
-                if packaging_item:
+                if pkg_product:
                     qty_to_deduct = pkg_rule_item["quantity"] * item.quantity
-                    new_pkg_stock = packaging_item["stock_quantity"] - qty_to_deduct
+                    new_pkg_stock = pkg_product["stock_quantity"] - qty_to_deduct
                     
-                    # Update packaging item stock
-                    await db.packaging_items.update_one(
-                        {"id": packaging_item["id"]},
+                    # Add packaging cost to total
+                    packaging_cost += (pkg_product.get("cost_price", 0) * qty_to_deduct)
+                    
+                    # Update packaging product stock
+                    await db.products.update_one(
+                        {"id": pkg_product["id"]},
                         {"$set": {"stock_quantity": new_pkg_stock, "updated_at": datetime.now(timezone.utc).isoformat()}}
                     )
                     
-                    # Record packaging movement
-                    await db.packaging_movements.insert_one({
+                    # Record inventory movement for packaging product
+                    await db.inventory_movements.insert_one({
                         "id": str(uuid.uuid4()),
                         "company_id": current_user["company_id"],
-                        "packaging_item_id": packaging_item["id"],
-                        "type": "out",
+                        "product_id": pkg_product["id"],
+                        "product_name": pkg_product["name"],
+                        "movement_type": "out",
                         "quantity": qty_to_deduct,
-                        "reason": f"Sales Order {order_number} - {item.product_name} x {item.quantity}",
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                        "created_by": current_user["user_id"]
+                        "previous_stock": pkg_product["stock_quantity"],
+                        "new_stock": new_pkg_stock,
+                        "reason": f"Packaging for {order_number} - {item.product_name} x {item.quantity}",
+                        "reference_type": "sales_order",
+                        "reference_id": order_id,
+                        "created_by": current_user["user_id"],
+                        "created_at": datetime.now(timezone.utc).isoformat()
                     })
     
     # Calculate total COGS from product cost prices
@@ -3139,107 +3135,6 @@ async def transfer_between_accounts(data: BankTransferCreate, current_user: dict
         "from_new_balance": from_new_balance,
         "to_new_balance": to_new_balance
     }
-
-# ============== PACKAGING ITEMS ==============
-
-@api_router.get("/packaging-items")
-async def get_packaging_items(current_user: dict = Depends(get_current_user)):
-    """Get all packaging items configuration for the company"""
-    company_id = current_user["company_id"]
-    
-    items = await db.packaging_items.find(
-        {"company_id": company_id},
-        {"_id": 0}
-    ).sort("name", 1).to_list(100)
-    
-    # Enrich with product details
-    for item in items:
-        if item.get("product_id"):
-            product = await db.products.find_one({"id": item["product_id"]}, {"_id": 0})
-            if product:
-                item["product_name"] = product.get("name")
-                item["product_sku"] = product.get("sku")
-                item["stock_quantity"] = product.get("stock_quantity", 0)
-                item["cost_price"] = product.get("cost_price", 0)
-    
-    return [serialize_doc(item) for item in items]
-
-@api_router.post("/packaging-items")
-async def create_packaging_item(data: PackagingItemCreate, current_user: dict = Depends(get_current_user)):
-    """Add a new packaging item to be deducted on sales"""
-    company_id = current_user["company_id"]
-    
-    # Verify product exists
-    product = await db.products.find_one({"id": data.product_id, "company_id": company_id})
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    
-    # Check if already configured
-    existing = await db.packaging_items.find_one({
-        "company_id": company_id,
-        "product_id": data.product_id
-    })
-    if existing:
-        raise HTTPException(status_code=400, detail="This product is already configured as a packaging item")
-    
-    item_id = str(uuid.uuid4())
-    item = {
-        "id": item_id,
-        "company_id": company_id,
-        "product_id": data.product_id,
-        "name": data.name,
-        "description": data.description,
-        "is_active": data.is_active,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "created_by": current_user["user_id"]
-    }
-    
-    await db.packaging_items.insert_one(item)
-    
-    # Return with product details
-    item["product_name"] = product.get("name")
-    item["product_sku"] = product.get("sku")
-    item["stock_quantity"] = product.get("stock_quantity", 0)
-    item["cost_price"] = product.get("cost_price", 0)
-    
-    return serialize_doc(item)
-
-@api_router.put("/packaging-items/{item_id}")
-async def update_packaging_item(item_id: str, data: PackagingItemUpdate, current_user: dict = Depends(get_current_user)):
-    """Update a packaging item configuration"""
-    company_id = current_user["company_id"]
-    
-    item = await db.packaging_items.find_one({"id": item_id, "company_id": company_id})
-    if not item:
-        raise HTTPException(status_code=404, detail="Packaging item not found")
-    
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    
-    if "product_id" in update_data:
-        product = await db.products.find_one({"id": update_data["product_id"], "company_id": company_id})
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
-    
-    if update_data:
-        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-        await db.packaging_items.update_one(
-            {"id": item_id},
-            {"$set": update_data}
-        )
-    
-    updated = await db.packaging_items.find_one({"id": item_id}, {"_id": 0})
-    return serialize_doc(updated)
-
-@api_router.delete("/packaging-items/{item_id}")
-async def delete_packaging_item(item_id: str, current_user: dict = Depends(get_current_user)):
-    """Remove a packaging item from configuration"""
-    company_id = current_user["company_id"]
-    
-    result = await db.packaging_items.delete_one({"id": item_id, "company_id": company_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Packaging item not found")
-    
-    return {"message": "Packaging item removed"}
 
 # ============== DASHBOARD & REPORTS ==============
 

@@ -8,7 +8,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://attendance-ot.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://inventory-rules-live.preview.emergentagent.com').rstrip('/')
 
 # Test data tracking for cleanup
 created_departments = []

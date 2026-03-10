@@ -7,7 +7,7 @@ from datetime import datetime
 import uuid
 
 class ERPSystemTester:
-    def __init__(self, base_url="https://attendance-ot.preview.emergentagent.com"):
+    def __init__(self, base_url="https://inventory-rules-live.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
