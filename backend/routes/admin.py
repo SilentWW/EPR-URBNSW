@@ -47,7 +47,8 @@ TRANSACTIONAL_COLLECTIONS = [
     "journal_entries", "accounting_entries", "bank_transactions",
     "audit_logs", "notifications", "grn", "grn_items", "invoices",
     "payroll", "payroll_items", "attendance", "employee_tasks", "leaves",
-    "advances", "work_orders", "bom", "raw_material_requirements"
+    "advances", "work_orders", "bom", "raw_material_requirements",
+    "packaging_movements"
 ]
 ALL_COLLECTIONS = MASTER_COLLECTIONS + TRANSACTIONAL_COLLECTIONS
 

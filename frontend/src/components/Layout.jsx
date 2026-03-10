@@ -54,7 +54,7 @@ const menuItems = [
   { icon: Package, label: 'Products', path: '/products' },
   { icon: Boxes, label: 'Inventory', path: '/inventory' },
   { icon: PackageCheck, label: 'GRN', path: '/grn' },
-  { icon: PackageOpen, label: 'Packaging Items', path: '/packaging-items' },
+  { icon: PackageOpen, label: 'Packaging Rules', path: '/packaging-rules' },
   { icon: Users, label: 'Customers', path: '/customers' },
   { icon: Truck, label: 'Suppliers', path: '/suppliers' },
   { icon: ShoppingCart, label: 'Sales Orders', path: '/sales-orders' },

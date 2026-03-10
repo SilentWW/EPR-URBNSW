@@ -1374,46 +1374,45 @@ async def create_sales_order(data: SalesOrderCreate, current_user: dict = Depend
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
     
-    # Calculate total quantity of products sold (for packaging items)
-    total_items_sold = sum(item.quantity for item in data.items)
-    
-    # Get active packaging items and reduce their inventory
-    packaging_items = await db.packaging_items.find({
-        "company_id": current_user["company_id"],
-        "is_active": True
-    }).to_list(100)
-    
+    # Deduct packaging materials based on packaging rules
     packaging_cost = 0
-    for pkg_item in packaging_items:
-        pkg_product = await db.products.find_one({"id": pkg_item["product_id"]})
-        if pkg_product:
-            # Reduce packaging item inventory by total items sold
-            new_stock = max(0, pkg_product.get("stock_quantity", 0) - total_items_sold)
-            await db.products.update_one(
-                {"id": pkg_item["product_id"]},
-                {"$set": {"stock_quantity": new_stock, "updated_at": datetime.now(timezone.utc).isoformat()}}
-            )
-            
-            # Calculate packaging cost for COGS
-            pkg_cost = pkg_product.get("cost_price", 0) * total_items_sold
-            packaging_cost += pkg_cost
-            
-            # Record inventory movement for packaging item
-            await db.inventory_movements.insert_one({
-                "id": str(uuid.uuid4()),
-                "company_id": current_user["company_id"],
-                "product_id": pkg_item["product_id"],
-                "product_name": pkg_item["name"],
-                "movement_type": "out",
-                "quantity": total_items_sold,
-                "previous_stock": pkg_product.get("stock_quantity", 0),
-                "new_stock": new_stock,
-                "reason": f"Packaging for {order_number} ({total_items_sold} items)",
-                "reference_type": "sales_order",
-                "reference_id": order_id,
-                "created_by": current_user["user_id"],
-                "created_at": datetime.now(timezone.utc).isoformat()
-            })
+    for item in data.items:
+        # Find packaging rule for this product
+        packaging_rule = await db.packaging_rules.find_one({
+            "product_id": item.product_id,
+            "company_id": current_user["company_id"],
+            "is_active": True
+        })
+        
+        if packaging_rule:
+            # Deduct each packaging item according to the rule
+            for pkg_rule_item in packaging_rule.get("items", []):
+                packaging_item = await db.packaging_items.find_one({
+                    "id": pkg_rule_item["packaging_item_id"],
+                    "company_id": current_user["company_id"]
+                })
+                
+                if packaging_item:
+                    qty_to_deduct = pkg_rule_item["quantity"] * item.quantity
+                    new_pkg_stock = packaging_item["stock_quantity"] - qty_to_deduct
+                    
+                    # Update packaging item stock
+                    await db.packaging_items.update_one(
+                        {"id": packaging_item["id"]},
+                        {"$set": {"stock_quantity": new_pkg_stock, "updated_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                    
+                    # Record packaging movement
+                    await db.packaging_movements.insert_one({
+                        "id": str(uuid.uuid4()),
+                        "company_id": current_user["company_id"],
+                        "packaging_item_id": packaging_item["id"],
+                        "type": "out",
+                        "quantity": qty_to_deduct,
+                        "reason": f"Sales Order {order_number} - {item.product_name} x {item.quantity}",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "created_by": current_user["user_id"]
+                    })
     
     # Calculate total COGS from product cost prices
     total_cogs = 0
@@ -4625,6 +4624,11 @@ app.include_router(rm_procurement.router, prefix="/api")
 # Set database for payroll router
 payroll.set_db(db)
 app.include_router(payroll.router, prefix="/api")
+
+# Import and include packaging router
+from routes import packaging
+packaging.db = db
+app.include_router(packaging.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

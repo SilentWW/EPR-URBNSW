@@ -31,6 +31,7 @@ import FinancialReports from './pages/FinancialReports';
 import SystemAdmin from './pages/SystemAdmin';
 import AuditLogs from './pages/AuditLogs';
 import UserManagement from './pages/UserManagement';
+import PackagingRules from './pages/PackagingRules';
 
 // Documentation
 import Documentation from './pages/Documentation';
@@ -167,6 +168,7 @@ function AppRoutes() {
       <Route path="/documentation" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
       <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
       <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+      <Route path="/packaging-rules" element={<ProtectedRoute><PackagingRules /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
