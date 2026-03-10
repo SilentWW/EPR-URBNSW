@@ -285,6 +285,40 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Rules link products to packaging using product IDs
   - [x] Fixed `packaging_cost` undefined bug in sales order creation
 
+### Employee Self-Service Portal - Phase 1 (COMPLETED ✅) - March 10, 2026
+- [x] **Role-Based Access Control**
+  - [x] Roles: admin, manager, employee
+  - [x] Employees see only their own tasks
+  - [x] Managers see department tasks, can verify completions
+  - [x] Admins have full access
+- [x] **Task Categories System**
+  - [x] Managers create custom categories (Production, Packing, QC, etc.)
+  - [x] Color-coded categories for visual organization
+  - [x] Backend API: `/api/portal/task-categories` (CRUD)
+- [x] **Enhanced Task System**
+  - [x] Advanced fields: Title, Description, Due Date, Priority, Category, Amount
+  - [x] Subtasks with checklist functionality
+  - [x] Comments thread on each task
+  - [x] Time tracking (log hours, description)
+  - [x] Task workflow: Assigned → In Progress → Completed → Verified
+  - [x] Manager verification required after employee completes task
+  - [x] Rejection sends task back to In Progress with comment
+  - [x] Backend API: `/api/portal/tasks` (CRUD + workflow actions)
+- [x] **Employee Dashboard** (`/my-dashboard`)
+  - [x] Task stats (pending, in progress, completed, verified)
+  - [x] Attendance summary (today, this month)
+  - [x] Leave balance display
+  - [x] Recent tasks quick view
+  - [x] Quick action cards
+- [x] **My Tasks Page** (`/my-tasks`)
+  - [x] Kanban-style board grouped by status
+  - [x] Filters: status, priority
+  - [x] Task detail modal with tabs (Details, Subtasks, Time, Comments)
+  - [x] Start/Complete task actions
+- [x] **Sidebar Navigation**
+  - [x] New "My Portal" section with My Dashboard and My Tasks links
+  - [x] Task Categories link under HR/Payroll (manager only)
+
 ### Phase 10 - Two-Way WooCommerce Product Sync (COMPLETED ✅) - Feb 2026
 - [x] **ERP to WooCommerce Product Sync**
   - [x] When editing a product in ERP that is linked to WooCommerce, changes are automatically pushed to WooCommerce
@@ -950,4 +984,4 @@ Build a cloud-based ERP system for business operations with the intention of sel
 
 ---
 *Last Updated: March 10, 2026*
-*Version: 4.2.0*
+*Version: 4.3.0*
