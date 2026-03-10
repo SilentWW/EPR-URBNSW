@@ -171,6 +171,28 @@ export const Layout = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications] = useState(3);
+  
+  // Collapsible menu state - stored in localStorage for persistence
+  const [expandedSections, setExpandedSections] = useState(() => {
+    const saved = localStorage.getItem('erp_menu_expanded');
+    return saved ? JSON.parse(saved) : {
+      main: true,
+      manufacturing: false,
+      finance: false,
+      payroll: false,
+      portal: true,
+      admin: false
+    };
+  });
+
+  // Save expanded state to localStorage
+  useEffect(() => {
+    localStorage.setItem('erp_menu_expanded', JSON.stringify(expandedSections));
+  }, [expandedSections]);
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   // Dynamic page title based on company name
   useEffect(() => {
@@ -227,91 +249,166 @@ export const Layout = ({ children }) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 overflow-y-auto">
             {/* Main Menu - filtered by role */}
             {filterMenuByRole(menuItems, user?.role).length > 0 && (
-              <ul className="space-y-1">
-                {filterMenuByRole(menuItems, user?.role).map((item) => {
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                        onClick={() => setSidebarOpen(false)}
-                        data-testid={`nav-${item.path.slice(1)}`}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="mb-2">
+                <button
+                  onClick={() => toggleSection('main')}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <LayoutDashboard className="w-4 h-4" />
+                    Main Menu
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expandedSections.main ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.main && (
+                  <ul className="mt-1 space-y-0.5 pl-2">
+                    {filterMenuByRole(menuItems, user?.role).map((item) => {
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                            onClick={() => setSidebarOpen(false)}
+                            data-testid={`nav-${item.path.slice(1)}`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="text-sm">{item.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             )}
 
             {/* Manufacturing Section - filtered by role */}
             {filterMenuByRole(manufacturingMenuItems, user?.role).length > 0 && (
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Manufacturing
-                </p>
-                <ul className="space-y-1">
-                  {filterMenuByRole(manufacturingMenuItems, user?.role).map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <li key={item.path}>
-                        <Link
-                          to={item.path}
-                          className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                          onClick={() => setSidebarOpen(false)}
-                          data-testid={`nav-${item.path.slice(1)}`}
-                        >
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.label}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+              <div className="mb-2">
+                <button
+                  onClick={() => toggleSection('manufacturing')}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Factory className="w-4 h-4" />
+                    Manufacturing
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expandedSections.manufacturing ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.manufacturing && (
+                  <ul className="mt-1 space-y-0.5 pl-2">
+                    {filterMenuByRole(manufacturingMenuItems, user?.role).map((item) => {
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                            onClick={() => setSidebarOpen(false)}
+                            data-testid={`nav-${item.path.slice(1)}`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="text-sm">{item.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             )}
 
             {/* Finance Section - filtered by role */}
             {filterMenuByRole(financeMenuItems, user?.role).length > 0 && (
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Finance
-                </p>
-                <ul className="space-y-1">
-                  {filterMenuByRole(financeMenuItems, user?.role).map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <li key={item.path}>
-                        <Link
-                          to={item.path}
-                          className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                          onClick={() => setSidebarOpen(false)}
-                          data-testid={`nav-${item.path.slice(1)}`}
-                        >
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.label}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+              <div className="mb-2">
+                <button
+                  onClick={() => toggleSection('finance')}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Finance
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expandedSections.finance ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.finance && (
+                  <ul className="mt-1 space-y-0.5 pl-2">
+                    {filterMenuByRole(financeMenuItems, user?.role).map((item) => {
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                            onClick={() => setSidebarOpen(false)}
+                            data-testid={`nav-${item.path.slice(1)}`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="text-sm">{item.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             )}
 
             {/* HR/Payroll Section - filtered by role */}
             {filterMenuByRole(payrollMenuItems, user?.role).length > 0 && (
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  HR / Payroll
-                </p>
-                <ul className="space-y-1">
-                  {filterMenuByRole(payrollMenuItems, user?.role).map((item) => {
+              <div className="mb-2">
+                <button
+                  onClick={() => toggleSection('payroll')}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    HR / Payroll
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expandedSections.payroll ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.payroll && (
+                  <ul className="mt-1 space-y-0.5 pl-2">
+                    {filterMenuByRole(payrollMenuItems, user?.role).map((item) => {
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                            onClick={() => setSidebarOpen(false)}
+                            data-testid={`nav-${item.path.slice(1)}`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="text-sm">{item.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Employee Portal Section */}
+            <div className="mb-2">
+              <button
+                onClick={() => toggleSection('portal')}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4" />
+                  My Portal
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expandedSections.portal ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedSections.portal && (
+                <ul className="mt-1 space-y-0.5 pl-2">
+                  {filterMenuByRole(employeePortalItems, user?.role).map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
                       <li key={item.path}>
@@ -321,65 +418,49 @@ export const Layout = ({ children }) => {
                           onClick={() => setSidebarOpen(false)}
                           data-testid={`nav-${item.path.slice(1)}`}
                         >
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.label}</span>
+                          <item.icon className="w-4 h-4" />
+                          <span className="text-sm">{item.label}</span>
                         </Link>
                       </li>
                     );
                   })}
                 </ul>
-              </div>
-            )}
-
-            {/* Employee Portal Section - always visible */}
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                My Portal
-              </p>
-              <ul className="space-y-1">
-                {filterMenuByRole(employeePortalItems, user?.role).map((item) => {
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                        onClick={() => setSidebarOpen(false)}
-                        data-testid={`nav-${item.path.slice(1)}`}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              )}
             </div>
 
             {/* Admin Section - filtered by role */}
             {filterMenuByRole(adminMenuItems, user?.role).length > 0 && (
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Administration
-                </p>
-                <ul className="space-y-1">
-                  {filterMenuByRole(adminMenuItems, user?.role).map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <li key={item.path}>
-                        <Link
-                          to={item.path}
-                          className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                          onClick={() => setSidebarOpen(false)}
-                          data-testid={`nav-${item.path.slice(1)}`}
-                        >
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.label}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+              <div className="mb-2">
+                <button
+                  onClick={() => toggleSection('admin')}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Administration
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expandedSections.admin ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.admin && (
+                  <ul className="mt-1 space-y-0.5 pl-2">
+                    {filterMenuByRole(adminMenuItems, user?.role).map((item) => {
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                            onClick={() => setSidebarOpen(false)}
+                            data-testid={`nav-${item.path.slice(1)}`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="text-sm">{item.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             )}
           </nav>
