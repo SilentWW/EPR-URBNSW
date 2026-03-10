@@ -879,3 +879,101 @@ async def get_employee_dashboard(
         },
         "recent_tasks": recent_tasks
     }
+
+
+
+# ============== PROFILE MANAGEMENT ==============
+
+class EmergencyContactUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    relationship: Optional[str] = None
+
+class ProfileUpdate(BaseModel):
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    emergency_contact: Optional[EmergencyContactUpdate] = None
+
+@router.get("/my-profile")
+async def get_my_profile(current_user: dict = Depends(get_current_user)):
+    """Get the current user's employee profile"""
+    company_id = current_user["company_id"]
+    
+    # Get employee record linked to this user
+    employee = await db.employees.find_one({
+        "user_id": current_user["user_id"],
+        "company_id": company_id
+    }, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee profile not found. Please contact your administrator.")
+    
+    # Get department info
+    if employee.get("department_id"):
+        dept = await db.departments.find_one({"id": employee["department_id"]}, {"_id": 0, "name": 1})
+        employee["department_name"] = dept["name"] if dept else ""
+    
+    # Get user info
+    user = await db.users.find_one({"id": current_user["user_id"]}, {"_id": 0, "email": 1, "full_name": 1})
+    if user:
+        employee["email"] = user.get("email")
+        employee["user_name"] = user.get("full_name")
+    
+    return employee
+
+@router.put("/my-profile")
+async def update_my_profile(
+    data: ProfileUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update the current user's employee profile (limited fields)"""
+    company_id = current_user["company_id"]
+    
+    # Get employee record
+    employee = await db.employees.find_one({
+        "user_id": current_user["user_id"],
+        "company_id": company_id
+    })
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee profile not found")
+    
+    # Build update data - only allow specific fields
+    update_data = {}
+    
+    if data.phone is not None:
+        update_data["phone"] = data.phone
+    if data.address is not None:
+        update_data["address"] = data.address
+    if data.city is not None:
+        update_data["city"] = data.city
+    if data.state is not None:
+        update_data["state"] = data.state
+    if data.postal_code is not None:
+        update_data["postal_code"] = data.postal_code
+    
+    # Handle emergency contact as nested object
+    if data.emergency_contact is not None:
+        ec = data.emergency_contact
+        emergency_contact = employee.get("emergency_contact", {}) or {}
+        if ec.name is not None:
+            emergency_contact["name"] = ec.name
+        if ec.phone is not None:
+            emergency_contact["phone"] = ec.phone
+        if ec.relationship is not None:
+            emergency_contact["relationship"] = ec.relationship
+        update_data["emergency_contact"] = emergency_contact
+    
+    if update_data:
+        update_data["updated_at"] = get_current_timestamp()
+        await db.employees.update_one(
+            {"id": employee["id"]},
+            {"$set": update_data}
+        )
+    
+    # Return updated profile
+    updated = await db.employees.find_one({"id": employee["id"]}, {"_id": 0})
+    return updated

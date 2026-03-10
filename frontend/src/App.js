@@ -68,6 +68,7 @@ import AttendanceTracking from './pages/payroll/AttendanceTracking';
 import MyDashboard from './pages/MyDashboard';
 import MyTasks from './pages/MyTasks';
 import TaskCategories from './pages/TaskCategories';
+import MyProfile from './pages/MyProfile';
 
 // Layout
 import Layout from './components/Layout';
@@ -176,6 +177,7 @@ function AppRoutes() {
       {/* Employee Portal Routes */}
       <Route path="/my-dashboard" element={<ProtectedRoute><MyDashboard /></ProtectedRoute>} />
       <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
+      <Route path="/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
       <Route path="/task-categories" element={<ProtectedRoute><TaskCategories /></ProtectedRoute>} />
 
       {/* Default redirect */}

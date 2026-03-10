@@ -51,67 +51,119 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: Package, label: 'Products', path: '/products' },
-  { icon: Boxes, label: 'Inventory', path: '/inventory' },
-  { icon: PackageCheck, label: 'GRN', path: '/grn' },
-  { icon: PackageOpen, label: 'Packaging Rules', path: '/packaging-rules' },
-  { icon: Users, label: 'Customers', path: '/customers' },
-  { icon: Truck, label: 'Suppliers', path: '/suppliers' },
-  { icon: ShoppingCart, label: 'Sales Orders', path: '/sales-orders' },
-  { icon: FileText, label: 'Invoices', path: '/invoices' },
-  { icon: ClipboardList, label: 'Purchase Orders', path: '/purchase-orders' },
-  { icon: CreditCard, label: 'Payments', path: '/payments' },
-  { icon: TrendingUp, label: 'Accounting', path: '/accounting' },
-  { icon: PieChart, label: 'Reports', path: '/reports' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', module: 'dashboard' },
+  { icon: Package, label: 'Products', path: '/products', module: 'products' },
+  { icon: Boxes, label: 'Inventory', path: '/inventory', module: 'inventory' },
+  { icon: PackageCheck, label: 'GRN', path: '/grn', module: 'grn' },
+  { icon: PackageOpen, label: 'Packaging Rules', path: '/packaging-rules', module: 'packaging-rules' },
+  { icon: Users, label: 'Customers', path: '/customers', module: 'customers' },
+  { icon: Truck, label: 'Suppliers', path: '/suppliers', module: 'suppliers' },
+  { icon: ShoppingCart, label: 'Sales Orders', path: '/sales-orders', module: 'sales-orders' },
+  { icon: FileText, label: 'Invoices', path: '/invoices', module: 'invoices' },
+  { icon: ClipboardList, label: 'Purchase Orders', path: '/purchase-orders', module: 'purchase-orders' },
+  { icon: CreditCard, label: 'Payments', path: '/payments', module: 'payments' },
+  { icon: TrendingUp, label: 'Accounting', path: '/accounting', module: 'accounting' },
+  { icon: PieChart, label: 'Reports', path: '/reports', module: 'reports' },
 ];
 
 const manufacturingMenuItems = [
-  { icon: LayoutDashboard, label: 'Manufacturing', path: '/manufacturing' },
-  { icon: Hammer, label: 'Raw Materials', path: '/raw-materials' },
-  { icon: Truck, label: 'RM Suppliers', path: '/rm-suppliers' },
-  { icon: ClipboardList, label: 'RM Purchase Orders', path: '/rm-purchase-orders' },
-  { icon: PackageCheck, label: 'RM GRN', path: '/rm-grn' },
-  { icon: Receipt, label: 'RM GRN Returns', path: '/rm-grn-returns' },
-  { icon: ScrollText, label: 'Bill of Materials', path: '/bom' },
-  { icon: Factory, label: 'Work Orders', path: '/work-orders' },
+  { icon: LayoutDashboard, label: 'Manufacturing', path: '/manufacturing', module: 'manufacturing' },
+  { icon: Hammer, label: 'Raw Materials', path: '/raw-materials', module: 'raw-materials' },
+  { icon: Truck, label: 'RM Suppliers', path: '/rm-suppliers', module: 'rm-suppliers' },
+  { icon: ClipboardList, label: 'RM Purchase Orders', path: '/rm-purchase-orders', module: 'rm-purchase-orders' },
+  { icon: PackageCheck, label: 'RM GRN', path: '/rm-grn', module: 'rm-grn' },
+  { icon: Receipt, label: 'RM GRN Returns', path: '/rm-grn-returns', module: 'rm-grn-returns' },
+  { icon: ScrollText, label: 'Bill of Materials', path: '/bom', module: 'bill-of-materials' },
+  { icon: Factory, label: 'Work Orders', path: '/work-orders', module: 'work-orders' },
 ];
 
 const financeMenuItems = [
-  { icon: Zap, label: 'Quick Transactions', path: '/quick-transactions', highlight: true },
-  { icon: UserPlus, label: 'Investors', path: '/investors' },
-  { icon: Wallet, label: 'Bank Accounts', path: '/bank-accounts' },
-  { icon: BookOpen, label: 'Chart of Accounts', path: '/chart-of-accounts' },
-  { icon: Calculator, label: 'General Ledger', path: '/general-ledger' },
-  { icon: BarChart3, label: 'Financial Reports', path: '/financial-reports' },
+  { icon: Zap, label: 'Quick Transactions', path: '/quick-transactions', highlight: true, module: 'quick-transactions' },
+  { icon: UserPlus, label: 'Investors', path: '/investors', module: 'investors' },
+  { icon: Wallet, label: 'Bank Accounts', path: '/bank-accounts', module: 'bank-accounts' },
+  { icon: BookOpen, label: 'Chart of Accounts', path: '/chart-of-accounts', module: 'chart-of-accounts' },
+  { icon: Calculator, label: 'General Ledger', path: '/general-ledger', module: 'general-ledger' },
+  { icon: BarChart3, label: 'Financial Reports', path: '/financial-reports', module: 'financial-reports' },
 ];
 
 const payrollMenuItems = [
-  { icon: Building2, label: 'Departments', path: '/departments' },
-  { icon: Users, label: 'Employees', path: '/employees' },
-  { icon: Clock, label: 'Attendance', path: '/attendance' },
-  { icon: Calculator, label: 'Salary Structure', path: '/salary-structure' },
-  { icon: Receipt, label: 'Leave Management', path: '/leave-management' },
-  { icon: Wallet, label: 'Advances & Loans', path: '/advances' },
-  { icon: ClipboardList, label: 'Task Assignments', path: '/task-assignments' },
-  { icon: CreditCard, label: 'Payroll', path: '/payroll' },
-  { icon: BarChart3, label: 'Payroll Reports', path: '/payroll-reports' },
-  { icon: Tags, label: 'Task Categories', path: '/task-categories', managerOnly: true },
+  { icon: Building2, label: 'Departments', path: '/departments', module: 'departments' },
+  { icon: Users, label: 'Employees', path: '/employees', module: 'employees' },
+  { icon: Clock, label: 'Attendance', path: '/attendance', module: 'attendance' },
+  { icon: Calculator, label: 'Salary Structure', path: '/salary-structure', module: 'salary-structure' },
+  { icon: Receipt, label: 'Leave Management', path: '/leave-management', module: 'leave-management' },
+  { icon: Wallet, label: 'Advances & Loans', path: '/advances', module: 'advances' },
+  { icon: ClipboardList, label: 'Task Assignments', path: '/task-assignments', module: 'task-assignments' },
+  { icon: CreditCard, label: 'Payroll', path: '/payroll', module: 'payroll' },
+  { icon: BarChart3, label: 'Payroll Reports', path: '/payroll-reports', module: 'payroll-reports' },
+  { icon: Tags, label: 'Task Categories', path: '/task-categories', module: 'task-categories' },
 ];
 
 // Employee Portal menu items (visible to all employees)
 const employeePortalItems = [
-  { icon: LayoutDashboard, label: 'My Dashboard', path: '/my-dashboard' },
-  { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks' },
+  { icon: LayoutDashboard, label: 'My Dashboard', path: '/my-dashboard', module: 'my-dashboard' },
+  { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', module: 'my-tasks' },
+  { icon: Users, label: 'My Profile', path: '/my-profile', module: 'my-dashboard' },
 ];
 
 const adminMenuItems = [
-  { icon: Settings, label: 'Settings', path: '/settings' },
-  { icon: Users, label: 'User Management', path: '/user-management', adminOnly: true },
-  { icon: Shield, label: 'System Admin', path: '/system-admin' },
-  { icon: FileSearch, label: 'Audit Logs', path: '/audit-logs', adminOnly: true },
-  { icon: BookOpen, label: 'Documentation', path: '/documentation' },
+  { icon: Settings, label: 'Settings', path: '/settings', module: 'settings' },
+  { icon: Users, label: 'User Management', path: '/user-management', module: 'user-management' },
+  { icon: Shield, label: 'System Admin', path: '/system-admin', module: 'system-admin' },
+  { icon: FileSearch, label: 'Audit Logs', path: '/audit-logs', module: 'audit-logs' },
+  { icon: BookOpen, label: 'Documentation', path: '/documentation', module: 'documentation' },
 ];
+
+// Role-based module access configuration
+const ROLE_MODULES = {
+  admin: ['*'], // All access
+  manager: [
+    'dashboard', 'products', 'inventory', 'grn', 'packaging-rules',
+    'customers', 'suppliers', 'sales-orders', 'invoices', 'purchase-orders', 'payments',
+    'manufacturing', 'raw-materials', 'bill-of-materials', 'work-orders',
+    'rm-suppliers', 'rm-purchase-orders', 'rm-grn', 'rm-grn-returns',
+    'departments', 'employees', 'attendance', 'salary-structure',
+    'leave-management', 'advances', 'task-assignments', 'payroll', 'payroll-reports',
+    'task-categories', 'reports', 'my-dashboard', 'my-tasks', 'settings',
+    'user-management', 'documentation'
+  ],
+  accountant: [
+    'dashboard', 'accounting', 'chart-of-accounts', 'general-ledger', 'financial-reports',
+    'invoices', 'payments', 'investors', 'quick-transactions', 'bank-accounts',
+    'reports', 'my-dashboard', 'my-tasks', 'documentation'
+  ],
+  accounts: [ // Legacy alias
+    'dashboard', 'accounting', 'chart-of-accounts', 'general-ledger', 'financial-reports',
+    'invoices', 'payments', 'investors', 'quick-transactions', 'bank-accounts',
+    'reports', 'my-dashboard', 'my-tasks', 'documentation'
+  ],
+  store: [
+    'dashboard', 'products', 'inventory', 'grn', 'packaging-rules',
+    'suppliers', 'purchase-orders',
+    'raw-materials', 'rm-suppliers', 'rm-purchase-orders', 'rm-grn', 'rm-grn-returns',
+    'my-dashboard', 'my-tasks', 'documentation'
+  ],
+  employee: [
+    'my-dashboard', 'my-tasks', 'attendance', 'leave-management', 'documentation'
+  ],
+  staff: [ // Legacy alias
+    'my-dashboard', 'my-tasks', 'attendance', 'leave-management', 'documentation'
+  ]
+};
+
+// Check if user has access to a module
+const hasModuleAccess = (role, module) => {
+  const modules = ROLE_MODULES[role] || ROLE_MODULES.employee;
+  return modules.includes('*') || modules.includes(module);
+};
+
+// Filter menu items based on role
+const filterMenuByRole = (items, role) => {
+  return items.filter(item => {
+    if (!item.module) return true;
+    return hasModuleAccess(role, item.module);
+  });
+};
 
 export const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -176,32 +228,10 @@ export const Layout = ({ children }) => {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 overflow-y-auto">
-            <ul className="space-y-1">
-              {menuItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                      onClick={() => setSidebarOpen(false)}
-                      data-testid={`nav-${item.path.slice(1)}`}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {/* Manufacturing Section */}
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Manufacturing
-              </p>
+            {/* Main Menu - filtered by role */}
+            {filterMenuByRole(menuItems, user?.role).length > 0 && (
               <ul className="space-y-1">
-                {manufacturingMenuItems.map((item) => {
+                {filterMenuByRole(menuItems, user?.role).map((item) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <li key={item.path}>
@@ -218,67 +248,96 @@ export const Layout = ({ children }) => {
                   );
                 })}
               </ul>
-            </div>
+            )}
 
-            {/* Finance Section */}
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Finance
-              </p>
-              <ul className="space-y-1">
-                {financeMenuItems.map((item) => {
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                        onClick={() => setSidebarOpen(false)}
-                        data-testid={`nav-${item.path.slice(1)}`}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+            {/* Manufacturing Section - filtered by role */}
+            {filterMenuByRole(manufacturingMenuItems, user?.role).length > 0 && (
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Manufacturing
+                </p>
+                <ul className="space-y-1">
+                  {filterMenuByRole(manufacturingMenuItems, user?.role).map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                          onClick={() => setSidebarOpen(false)}
+                          data-testid={`nav-${item.path.slice(1)}`}
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
 
-            {/* HR/Payroll Section */}
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                HR / Payroll
-              </p>
-              <ul className="space-y-1">
-                {payrollMenuItems.map((item) => {
-                  // Hide manager-only items from employees
-                  if (item.managerOnly && user?.role === 'employee') return null;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
-                        onClick={() => setSidebarOpen(false)}
-                        data-testid={`nav-${item.path.slice(1)}`}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+            {/* Finance Section - filtered by role */}
+            {filterMenuByRole(financeMenuItems, user?.role).length > 0 && (
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Finance
+                </p>
+                <ul className="space-y-1">
+                  {filterMenuByRole(financeMenuItems, user?.role).map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                          onClick={() => setSidebarOpen(false)}
+                          data-testid={`nav-${item.path.slice(1)}`}
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
 
-            {/* Employee Portal Section */}
+            {/* HR/Payroll Section - filtered by role */}
+            {filterMenuByRole(payrollMenuItems, user?.role).length > 0 && (
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  HR / Payroll
+                </p>
+                <ul className="space-y-1">
+                  {filterMenuByRole(payrollMenuItems, user?.role).map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+                          onClick={() => setSidebarOpen(false)}
+                          data-testid={`nav-${item.path.slice(1)}`}
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* Employee Portal Section - always visible */}
             <div className="mt-6 pt-4 border-t border-slate-100">
               <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 My Portal
               </p>
               <ul className="space-y-1">
-                {employeePortalItems.map((item) => {
+                {filterMenuByRole(employeePortalItems, user?.role).map((item) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <li key={item.path}>
@@ -297,14 +356,14 @@ export const Layout = ({ children }) => {
               </ul>
             </div>
 
-            {/* Admin Section */}
-            {user?.role === 'admin' && (
+            {/* Admin Section - filtered by role */}
+            {filterMenuByRole(adminMenuItems, user?.role).length > 0 && (
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Administration
                 </p>
                 <ul className="space-y-1">
-                  {adminMenuItems.map((item) => {
+                  {filterMenuByRole(adminMenuItems, user?.role).map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
                       <li key={item.path}>

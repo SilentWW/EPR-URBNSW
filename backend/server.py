@@ -743,10 +743,14 @@ async def create_user(user_data: UserCreate, current_user: dict = Depends(get_cu
 
 @api_router.put("/users/{user_id}/role")
 async def update_user_role(user_id: str, role: str, current_user: dict = Depends(get_current_user)):
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
+    from utils.permissions import can_create_role, AVAILABLE_ROLES
     
-    if role not in ["admin", "manager", "accounts", "store", "staff"]:
+    # Check if current user can assign this role
+    if not can_create_role(current_user["role"], role):
+        raise HTTPException(status_code=403, detail=f"You don't have permission to assign the '{role}' role")
+    
+    valid_roles = [r["value"] for r in AVAILABLE_ROLES]
+    if role not in valid_roles:
         raise HTTPException(status_code=400, detail="Invalid role")
     
     result = await db.users.update_one(
@@ -773,6 +777,37 @@ async def delete_user(user_id: str, current_user: dict = Depends(get_current_use
         raise HTTPException(status_code=404, detail="User not found")
     
     return {"message": "User deleted successfully"}
+
+@api_router.get("/roles")
+async def get_available_roles(current_user: dict = Depends(get_current_user)):
+    """Get available roles that the current user can assign"""
+    from utils.permissions import AVAILABLE_ROLES, get_role_permissions
+    
+    user_permissions = get_role_permissions(current_user["role"])
+    can_create = user_permissions.get("can_create_roles", [])
+    
+    # Filter roles to only those the user can create
+    if "*" in user_permissions.get("modules", []):
+        # Admin can see all roles
+        return {"roles": AVAILABLE_ROLES}
+    
+    filtered_roles = [r for r in AVAILABLE_ROLES if r["value"] in can_create]
+    return {"roles": filtered_roles}
+
+@api_router.get("/my-permissions")
+async def get_my_permissions(current_user: dict = Depends(get_current_user)):
+    """Get the current user's role permissions"""
+    from utils.permissions import get_role_permissions, get_allowed_modules
+    
+    permissions = get_role_permissions(current_user["role"])
+    modules = get_allowed_modules(current_user["role"])
+    
+    return {
+        "role": current_user["role"],
+        "description": permissions.get("description", ""),
+        "modules": modules,
+        "is_admin": "*" in modules
+    }
 
 @api_router.get("/users/pending")
 async def get_pending_users(current_user: dict = Depends(get_current_user)):

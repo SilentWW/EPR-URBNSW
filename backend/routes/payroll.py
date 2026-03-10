@@ -139,6 +139,7 @@ class EmployeeUpdate(BaseModel):
     contract_end_date: Optional[str] = None
     status: Optional[EmployeeStatus] = None
     notes: Optional[str] = None
+    user_id: Optional[str] = None  # Link employee to user account
 
 # Allowance/Deduction Models
 class AllowanceCreate(BaseModel):
