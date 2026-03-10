@@ -944,6 +944,81 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Frontend tests: 100% pass
   - [x] Manual API testing verified
 
+### Phase 26 - Notification System (COMPLETED ✅) - March 10, 2026
+- [x] **In-App Notifications**
+  - [x] Real-time notifications via WebSocket connection
+  - [x] Bell icon in header with unread badge count
+  - [x] Dropdown showing recent notifications with actions
+  - [x] Mark individual notifications as read
+  - [x] Mark all notifications as read
+  - [x] Auto-reconnect on WebSocket disconnect
+- [x] **Notification Types Supported**
+  - [x] Task assignments & updates
+  - [x] Payroll processed & payslip ready
+  - [x] Leave request approvals/rejections
+  - [x] Low inventory alerts
+  - [x] New WooCommerce orders
+  - [x] System announcements
+- [x] **Notifications Page** (`/notifications`)
+  - [x] All Notifications tab with full list
+  - [x] Unread tab filtering unread only
+  - [x] Preferences tab for user settings
+  - [x] Email Settings tab (Admin only) for SMTP config
+  - [x] Clear all notifications option
+- [x] **User Notification Preferences**
+  - [x] Toggle in-app notifications on/off
+  - [x] Toggle email notifications on/off
+  - [x] Configure individual notification types
+- [x] **Email Notifications**
+  - [x] Admin SMTP configuration page
+  - [x] Support for Gmail, Outlook, SendGrid, etc.
+  - [x] TLS/SSL encryption options
+  - [x] Test email functionality
+  - [x] Beautiful HTML email templates
+- [x] **Backend APIs** (`/api/notifications`)
+  - [x] `GET /` - Get notifications with pagination
+  - [x] `GET /unread-count` - Get unread count
+  - [x] `PUT /{id}/read` - Mark as read
+  - [x] `PUT /mark-all-read` - Mark all as read
+  - [x] `DELETE /{id}` - Delete notification
+  - [x] `DELETE /` - Clear all notifications
+  - [x] `GET /preferences` - Get user preferences
+  - [x] `PUT /preferences` - Update preferences
+  - [x] `GET /smtp-settings` - Get SMTP config (admin)
+  - [x] `PUT /smtp-settings` - Update SMTP config (admin)
+  - [x] `POST /smtp-settings/test` - Test SMTP config
+  - [x] `POST /send` - Send notification (admin)
+  - [x] `WebSocket /ws/{token}` - Real-time connection
+- [x] **Role-Based Access**
+  - [x] All users can manage their own notifications/preferences
+  - [x] Admin/Manager only can configure SMTP settings
+  - [x] Admin/Manager only can send broadcast notifications
+- [x] **Files Created**
+  - [x] `backend/routes/notifications.py` - All notification APIs
+  - [x] `frontend/src/components/NotificationBell.jsx` - Header dropdown
+  - [x] `frontend/src/pages/Notifications.jsx` - Full notifications page (enhanced)
+
+### Collapsible Sidebar Menu (COMPLETED ✅) - March 10, 2026
+- [x] **Collapsible Navigation**
+  - [x] Menu sections collapse/expand on click
+  - [x] State persisted in localStorage
+  - [x] Smooth expand/collapse animations
+- [x] **Role-Based Menu Filtering**
+  - [x] `ROLE_MODULES` configuration in Layout.jsx
+  - [x] Menu items filtered based on user role
+  - [x] Notifications added to all role menus
+
+### Designation Management System (COMPLETED ✅) - March 10, 2026
+- [x] **Designations Page** (`/hr/designations`)
+  - [x] Create/Edit/Delete designations
+  - [x] Assign system role (admin, manager, accountant, store, employee)
+  - [x] Assign hierarchy level
+  - [x] Link to department
+- [x] **Employee Form Integration**
+  - [x] Designation dropdown in employee form
+  - [x] Link user account dropdown (admin only)
+  - [x] Auto-assign role based on designation
+
 ## Future/Backlog (P2)
 - [ ] SaaS Subscription Billing
 - [ ] Multi-Warehouse Support
@@ -976,6 +1051,8 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │   │   ├── manufacturing.py # Manufacturing module routes
 │   │   ├── rm_procurement.py # Raw Material Procurement routes
 │   │   ├── payroll.py      # Payroll module routes
+│   │   ├── notifications.py # Notification system routes (NEW)
+│   │   ├── employee_portal.py # Employee self-service portal
 │   │   └── transactions.py # Consolidated transactions
 │   ├── models/
 │   │   ├── finance.py     # Finance data models
@@ -1007,13 +1084,15 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │       │   │   ├── Advances.jsx
 │       │   │   ├── Payroll.jsx
 │       │   │   └── PayrollReports.jsx
-│       │   └── SystemAdmin.jsx
+│       │   ├── SystemAdmin.jsx
+│       │   └── Notifications.jsx  # Enhanced notification center
 │       └── components/
-│           └── Layout.jsx # Main navigation
+│           ├── Layout.jsx         # Main navigation
+│           └── NotificationBell.jsx # Header notification dropdown
 └── memory/
     └── PRD.md            # This file
 ```
 
 ---
 *Last Updated: March 10, 2026*
-*Version: 4.5.0*
+*Version: 4.6.0*
