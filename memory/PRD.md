@@ -319,6 +319,38 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] New "My Portal" section with My Dashboard and My Tasks links
   - [x] Task Categories link under HR/Payroll (manager only)
 
+### Profile Management (COMPLETED ✅) - March 10, 2026
+- [x] **My Profile Page** (`/my-profile`)
+  - [x] View employment info (read-only): Department, Designation, Hire Date, Employment Type
+  - [x] Edit contact info: Phone number
+  - [x] Edit address: Street, City, State/Province, Postal Code
+  - [x] Edit emergency contact: Name, Phone, Relationship
+- [x] **Backend API**
+  - [x] `GET /api/portal/my-profile` - Returns employee profile linked to current user
+  - [x] `PUT /api/portal/my-profile` - Updates allowed fields only
+  - [x] Employee-user linking via `user_id` field in employees collection
+
+### User Roles & Permissions (COMPLETED ✅) - March 10, 2026
+- [x] **Role Definitions**
+  | Role | Access |
+  |------|--------|
+  | `admin` | Full access to everything |
+  | `manager` | HR, Inventory, Sales, Tasks, Reports, User Management |
+  | `accountant` | Finance, Payments, Reports only |
+  | `store` | Inventory, Products, GRN, Purchase Orders only |
+  | `employee` | My Portal only (Dashboard, Tasks, Attendance, Leave) |
+- [x] **Role Assignment**
+  - [x] Admins can assign any role
+  - [x] Managers can create manager/accountant/store/employee roles
+  - [x] API: `PUT /api/users/{id}/role?role=X`
+- [x] **Permission APIs**
+  - [x] `GET /api/roles` - Returns roles the current user can assign
+  - [x] `GET /api/my-permissions` - Returns current user's allowed modules
+- [x] **Frontend Role-Based Navigation**
+  - [x] Sidebar menu items filtered by user's role
+  - [x] Each menu item has a `module` property for permission checking
+  - [x] `ROLE_MODULES` configuration in Layout.jsx
+
 ### Phase 10 - Two-Way WooCommerce Product Sync (COMPLETED ✅) - Feb 2026
 - [x] **ERP to WooCommerce Product Sync**
   - [x] When editing a product in ERP that is linked to WooCommerce, changes are automatically pushed to WooCommerce
@@ -984,4 +1016,4 @@ Build a cloud-based ERP system for business operations with the intention of sel
 
 ---
 *Last Updated: March 10, 2026*
-*Version: 4.3.0*
+*Version: 4.4.0*
