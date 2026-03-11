@@ -957,8 +957,8 @@ async def get_balance_sheet(
     # Calculate Net Profit = Income - Expenses
     # Income accounts have positive (credit) balance
     # Expense accounts have positive (debit) balance
-    income_total = sum(acc.get("current_balance", 0) for acc in accounts if acc["account_type"] == "income")
-    expense_total = sum(acc.get("current_balance", 0) for acc in accounts if acc["account_type"] == "expense")
+    income_total = sum(acc.get("current_balance", 0) for acc in accounts if acc.get("account_type") == "income")
+    expense_total = sum(acc.get("current_balance", 0) for acc in accounts if acc.get("account_type") == "expense")
     net_profit = income_total - expense_total  # Positive = profit, Negative = loss
     
     equity["items"].append({

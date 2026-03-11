@@ -1116,9 +1116,9 @@ async def get_inventory_valuation(current_user: dict = Depends(get_current_user)
         {"_id": 0}
     ).to_list(1000)
     
-    total_cost = sum(p["cost_price"] * p["stock_quantity"] for p in products)
-    total_retail = sum(p["selling_price"] * p["stock_quantity"] for p in products)
-    total_items = sum(p["stock_quantity"] for p in products)
+    total_cost = sum(p.get("cost_price", 0) * p.get("stock_quantity", 0) for p in products)
+    total_retail = sum(p.get("selling_price", p.get("regular_price", 0)) * p.get("stock_quantity", 0) for p in products)
+    total_items = sum(p.get("stock_quantity", 0) for p in products)
     
     return {
         "total_cost_value": total_cost,
@@ -2693,12 +2693,12 @@ async def get_payables(current_user: dict = Depends(get_current_user)):
     
     payables = [{
         "order_id": o["id"],
-        "order_number": o["order_number"],
-        "supplier_name": o["supplier_name"],
-        "total": o["total"],
-        "paid": o["paid_amount"],
-        "balance": o["total"] - o["paid_amount"],
-        "date": o["created_at"]
+        "order_number": o.get("po_number", o.get("order_number", "N/A")),
+        "supplier_name": o.get("supplier_name", "Unknown"),
+        "total": o.get("total", 0),
+        "paid": o.get("paid_amount", 0),
+        "balance": o.get("total", 0) - o.get("paid_amount", 0),
+        "date": o.get("created_at")
     } for o in orders]
     
     total = sum(p["balance"] for p in payables)
