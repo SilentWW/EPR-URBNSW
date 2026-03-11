@@ -954,6 +954,17 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)):
         dept = await db.departments.find_one({"id": employee["department_id"]}, {"_id": 0, "name": 1})
         employee["department_name"] = dept["name"] if dept else ""
     
+    # Get designation info
+    if employee.get("designation_id"):
+        desig = await db.designations.find_one({"id": employee["designation_id"]}, {"_id": 0, "name": 1})
+        employee["designation"] = desig["name"] if desig else employee.get("designation", "")
+    elif not employee.get("designation"):
+        employee["designation"] = ""
+    
+    # Normalize employment_type field (could be stored as employee_type)
+    if not employee.get("employment_type") and employee.get("employee_type"):
+        employee["employment_type"] = employee["employee_type"]
+    
     # Get user info
     user = await db.users.find_one({"id": current_user["user_id"]}, {"_id": 0, "email": 1, "full_name": 1})
     if user:

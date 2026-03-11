@@ -175,12 +175,12 @@ export default function MyProfile() {
               <Label className="text-xs text-slate-500">Hire Date</Label>
               <p className="font-medium flex items-center gap-1">
                 <Calendar className="w-4 h-4 text-slate-400" />
-                {profile.hire_date ? new Date(profile.hire_date).toLocaleDateString() : 'Not specified'}
+                {(profile.hire_date || profile.join_date) ? new Date(profile.hire_date || profile.join_date).toLocaleDateString() : 'Not specified'}
               </p>
             </div>
             <div>
               <Label className="text-xs text-slate-500">Employment Type</Label>
-              <p className="font-medium capitalize">{profile.employment_type?.replace('_', ' ') || 'Not specified'}</p>
+              <p className="font-medium capitalize">{(profile.employment_type || profile.employee_type)?.replace('_', ' ') || 'Not specified'}</p>
             </div>
             <div>
               <Label className="text-xs text-slate-500">Email</Label>
