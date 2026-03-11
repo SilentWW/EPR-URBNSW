@@ -17,9 +17,16 @@ router = APIRouter(prefix="/payroll", tags=["Payroll"])
 # Database will be injected from main app
 db = None
 
+# Notification helper function - set from server.py
+notification_helper = None
+
 def set_db(database):
     global db
     db = database
+
+def set_notification_helper(helper):
+    global notification_helper
+    notification_helper = helper
 
 # ============== ENUMS ==============
 
@@ -2375,6 +2382,24 @@ async def create_task(
     }
     
     await db.employee_tasks.insert_one(task)
+    
+    # Send notification to the assigned employee
+    if employee.get("user_id") and notification_helper:
+        try:
+            await notification_helper(
+                company_id=company_id,
+                user_id=employee["user_id"],
+                title="New Task Assigned",
+                message=f"You have been assigned a new task: {data.title}",
+                notification_type="task_assignment",
+                severity="info",
+                reference_type="task",
+                reference_id=task_id,
+                send_email=True,
+                created_by=user_id
+            )
+        except Exception as e:
+            print(f"Failed to send task notification: {e}")
     
     return {
         "id": task_id,
