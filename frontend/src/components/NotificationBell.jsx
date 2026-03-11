@@ -80,6 +80,18 @@ export const NotificationBell = () => {
 
   // WebSocket connection for real-time updates
   const connectWebSocket = useCallback(() => {
+    // Prevent multiple connections
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected, skipping');
+      return;
+    }
+    
+    // Close existing connection if in connecting state
+    if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING) {
+      console.log('WebSocket connecting, skipping new connection');
+      return;
+    }
+
     const token = localStorage.getItem('erp_token');
     if (!token) return;
 
@@ -108,8 +120,12 @@ export const NotificationBell = () => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'new_notification') {
-            // Add to notifications list
-            setNotifications(prev => [data.notification, ...prev.slice(0, 9)]);
+            // Add to notifications list (prevent duplicates by checking id)
+            setNotifications(prev => {
+              const exists = prev.some(n => n.id === data.notification.id);
+              if (exists) return prev;
+              return [data.notification, ...prev.slice(0, 9)];
+            });
             setUnreadCount(prev => prev + 1);
             
             // Show toast notification
@@ -128,8 +144,10 @@ export const NotificationBell = () => {
 
       wsRef.current.onclose = (event) => {
         console.log('WebSocket closed:', event.code);
-        // Attempt reconnect after 5 seconds
-        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+        // Only reconnect if not intentionally closed (code 1000)
+        if (event.code !== 1000) {
+          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+        }
       };
 
       wsRef.current.onerror = (error) => {
@@ -142,21 +160,27 @@ export const NotificationBell = () => {
 
   useEffect(() => {
     fetchNotifications();
-    connectWebSocket();
+    
+    // Small delay to prevent race conditions with React strict mode
+    const connectTimeout = setTimeout(() => {
+      connectWebSocket();
+    }, 100);
 
     // Periodic refresh as fallback
     const interval = setInterval(fetchUnreadCount, 30000);
 
     return () => {
+      clearTimeout(connectTimeout);
       clearInterval(interval);
       if (wsRef.current) {
-        wsRef.current.close();
+        wsRef.current.close(1000, 'Component unmounting');
+        wsRef.current = null;
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [fetchNotifications, fetchUnreadCount, connectWebSocket]);
+  }, []);
 
   const handleMarkRead = async (notificationId, e) => {
     e.stopPropagation();
