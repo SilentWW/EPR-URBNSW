@@ -660,8 +660,27 @@ async def get_accounts_receivable(current_user: dict = Depends(get_current_user)
         if balance <= 0:
             continue
         
-        # Calculate age
-        order_date = datetime.fromisoformat(order["created_at"].replace('Z', '+00:00'))
+        # Calculate age - handle both timezone-aware and naive datetimes
+        try:
+            order_date_str = order.get("created_at", "")
+            if order_date_str:
+                # Handle ISO format with or without timezone
+                if 'Z' in order_date_str:
+                    order_date = datetime.fromisoformat(order_date_str.replace('Z', '+00:00'))
+                elif '+' in order_date_str or order_date_str.endswith('00'):
+                    order_date = datetime.fromisoformat(order_date_str)
+                else:
+                    # Naive datetime - assume UTC
+                    order_date = datetime.fromisoformat(order_date_str).replace(tzinfo=timezone.utc)
+            else:
+                order_date = today
+        except Exception:
+            order_date = today
+        
+        # Ensure both are timezone-aware for comparison
+        if order_date.tzinfo is None:
+            order_date = order_date.replace(tzinfo=timezone.utc)
+        
         days_old = (today - order_date).days
         
         # Categorize by aging bucket
@@ -685,7 +704,7 @@ async def get_accounts_receivable(current_user: dict = Depends(get_current_user)
             "order_id": order["id"],
             "order_number": order["order_number"],
             "customer_name": order["customer_name"],
-            "date": order["created_at"][:10],
+            "date": order.get("created_at", "")[:10] if order.get("created_at") else "",
             "total": order["total"],
             "paid": order.get("paid_amount", 0),
             "balance": balance,
@@ -726,7 +745,24 @@ async def get_accounts_payable(current_user: dict = Depends(get_current_user)):
         if balance <= 0:
             continue
         
-        order_date = datetime.fromisoformat(order["created_at"].replace('Z', '+00:00'))
+        # Handle datetime parsing safely
+        try:
+            order_date_str = order.get("created_at", "")
+            if order_date_str:
+                if 'Z' in order_date_str:
+                    order_date = datetime.fromisoformat(order_date_str.replace('Z', '+00:00'))
+                elif '+' in order_date_str or order_date_str.endswith('00'):
+                    order_date = datetime.fromisoformat(order_date_str)
+                else:
+                    order_date = datetime.fromisoformat(order_date_str).replace(tzinfo=timezone.utc)
+            else:
+                order_date = today
+        except Exception:
+            order_date = today
+        
+        if order_date.tzinfo is None:
+            order_date = order_date.replace(tzinfo=timezone.utc)
+        
         days_old = (today - order_date).days
         
         if days_old <= 0:
@@ -747,9 +783,9 @@ async def get_accounts_payable(current_user: dict = Depends(get_current_user)):
         
         payables.append({
             "order_id": order["id"],
-            "order_number": order["order_number"],
-            "supplier_name": order["supplier_name"],
-            "date": order["created_at"][:10],
+            "order_number": order.get("po_number", order.get("order_number", "")),
+            "supplier_name": order.get("supplier_name", ""),
+            "date": order.get("created_at", "")[:10] if order.get("created_at") else "",
             "total": order["total"],
             "paid": order.get("paid_amount", 0),
             "balance": balance,
