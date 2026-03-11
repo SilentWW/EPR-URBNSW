@@ -305,7 +305,7 @@ export default function ChartOfAccounts() {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {['asset', 'liability', 'equity', 'income', 'expense'].map(type => {
           const Icon = accountTypeIcons[type];
-          const typeAccounts = (groupedAccounts[type] || []).sort((a, b) => a.code.localeCompare(b.code));
+          const typeAccounts = (groupedAccounts[type] || []).sort((a, b) => (a.code || '').localeCompare(b.code || ''));
           
           return (
             <div key={type} className="border-b border-slate-200 last:border-b-0">
@@ -346,7 +346,7 @@ export default function ChartOfAccounts() {
                             </div>
                           </td>
                           <td className="p-3 text-sm text-slate-600 capitalize">
-                            {account.category.replace(/_/g, ' ')}
+                            {(account.category || account.account_type || type || '').replace(/_/g, ' ')}
                           </td>
                           <td className="p-3 text-right font-medium">
                             {formatCurrency(account.current_balance || 0)}
