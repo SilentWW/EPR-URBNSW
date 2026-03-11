@@ -334,6 +334,7 @@ async def get_task_detail(
 @router.post("/tasks")
 async def create_enhanced_task(
     data: EnhancedTaskCreate,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new task with enhanced features (Manager/Admin only)"""
@@ -409,16 +410,23 @@ async def create_enhanced_task(
     await db.employee_tasks.insert_one(task)
     task.pop("_id", None)
     
-    # Send notification to the assigned employee (non-blocking)
-    if employee.get("user_id"):
-        asyncio.create_task(send_task_notification_async(
-            company_id=company_id,
-            user_id=employee["user_id"],
-            title="New Task Assigned",
-            message=f"You have been assigned a new task: {data.title}",
-            task_id=task_id,
-            created_by=current_user["user_id"]
-        ))
+    # Send notification to the assigned employee
+    if employee.get("user_id") and notification_helper:
+        try:
+            await notification_helper(
+                company_id=company_id,
+                user_id=employee["user_id"],
+                title="New Task Assigned",
+                message=f"You have been assigned a new task: {data.title}",
+                notification_type="task_assignment",
+                severity="info",
+                reference_type="task",
+                reference_id=task_id,
+                send_email=True,
+                created_by=current_user["user_id"]
+            )
+        except Exception as e:
+            print(f"Failed to send task notification: {e}")
     
     return {
         "id": task_id,
