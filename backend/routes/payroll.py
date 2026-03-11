@@ -1188,6 +1188,25 @@ async def approve_leave_request(
         }}
     )
     
+    # Send notification to the employee
+    employee = await db.employees.find_one({"id": request["employee_id"]}, {"_id": 0, "user_id": 1, "first_name": 1})
+    if employee and employee.get("user_id") and notification_helper:
+        try:
+            await notification_helper(
+                company_id=company_id,
+                user_id=employee["user_id"],
+                title="Leave Request Approved",
+                message=f"Your {request['leave_type']} leave request for {request['days']} day(s) has been approved.",
+                notification_type="leave_approval",
+                severity="success",
+                reference_type="leave_request",
+                reference_id=request_id,
+                send_email=True,
+                created_by=current_user["user_id"]
+            )
+        except Exception as e:
+            print(f"Failed to send leave approval notification: {e}")
+    
     return {"message": "Leave request approved"}
 
 @router.post("/leave/requests/{request_id}/reject")
@@ -1197,8 +1216,18 @@ async def reject_leave_request(
     current_user: dict = Depends(get_current_user)
 ):
     """Reject a leave request"""
+    company_id = current_user["company_id"]
+    
+    # Get request first to access employee_id
+    request = await db.leave_requests.find_one({
+        "id": request_id,
+        "company_id": company_id
+    })
+    if not request:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    
     result = await db.leave_requests.update_one(
-        {"id": request_id, "company_id": current_user["company_id"]},
+        {"id": request_id, "company_id": company_id},
         {"$set": {
             "status": LeaveStatus.REJECTED.value,
             "rejection_reason": reason,
@@ -1207,8 +1236,27 @@ async def reject_leave_request(
         }}
     )
     
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Leave request not found")
+    # Send notification to the employee
+    employee = await db.employees.find_one({"id": request["employee_id"]}, {"_id": 0, "user_id": 1})
+    if employee and employee.get("user_id") and notification_helper:
+        try:
+            message = f"Your {request['leave_type']} leave request for {request['days']} day(s) has been rejected."
+            if reason:
+                message += f" Reason: {reason}"
+            await notification_helper(
+                company_id=company_id,
+                user_id=employee["user_id"],
+                title="Leave Request Rejected",
+                message=message,
+                notification_type="leave_rejection",
+                severity="warning",
+                reference_type="leave_request",
+                reference_id=request_id,
+                send_email=True,
+                created_by=current_user["user_id"]
+            )
+        except Exception as e:
+            print(f"Failed to send leave rejection notification: {e}")
     
     return {"message": "Leave request rejected"}
 
@@ -1735,6 +1783,27 @@ async def process_payroll(
                         "updated_at": timestamp
                     }}
                 )
+    
+    # Send "Payslip Ready" notification to all employees in this payroll
+    if notification_helper:
+        for item in items:
+            employee = await db.employees.find_one({"id": item["employee_id"]}, {"_id": 0, "user_id": 1, "first_name": 1})
+            if employee and employee.get("user_id"):
+                try:
+                    await notification_helper(
+                        company_id=company_id,
+                        user_id=employee["user_id"],
+                        title="Payslip Ready",
+                        message=f"Your payslip for {payroll['period_start']} to {payroll['period_end']} is ready. Net salary: LKR {item['net_salary']:,.2f}",
+                        notification_type="payslip_ready",
+                        severity="success",
+                        reference_type="payroll",
+                        reference_id=payroll_id,
+                        send_email=True,
+                        created_by=user_id
+                    )
+                except Exception as e:
+                    print(f"Failed to send payslip notification to {employee.get('first_name', 'employee')}: {e}")
     
     return {"message": "Payroll processed and paid successfully", "journal_entry_id": entry_id}
 
@@ -2417,9 +2486,10 @@ async def update_task(
     if current_user["role"] not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Only admin or manager can update tasks")
     
+    company_id = current_user["company_id"]
     task = await db.employee_tasks.find_one({
         "id": task_id,
-        "company_id": current_user["company_id"]
+        "company_id": company_id
     })
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -2438,6 +2508,25 @@ async def update_task(
     update_data["updated_at"] = get_current_timestamp()
     
     await db.employee_tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    # Send task update notification to the assigned employee
+    employee = await db.employees.find_one({"id": task["employee_id"]}, {"_id": 0, "user_id": 1})
+    if employee and employee.get("user_id") and notification_helper:
+        try:
+            await notification_helper(
+                company_id=company_id,
+                user_id=employee["user_id"],
+                title="Task Updated",
+                message=f"Your task '{task['title']}' has been updated.",
+                notification_type="task_update",
+                severity="info",
+                reference_type="task",
+                reference_id=task_id,
+                send_email=False,
+                created_by=current_user["user_id"]
+            )
+        except Exception as e:
+            print(f"Failed to send task update notification: {e}")
     
     return {"message": "Task updated successfully"}
 

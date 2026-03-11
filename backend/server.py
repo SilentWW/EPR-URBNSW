@@ -1583,6 +1583,53 @@ async def create_sales_order(data: SalesOrderCreate, current_user: dict = Depend
         "created_at": timestamp
     })
     
+    # Send "New Order" notification to admin/managers
+    try:
+        admin_users = await db.users.find({
+            "company_id": company_id,
+            "role": {"$in": ["admin", "manager"]}
+        }, {"_id": 0, "id": 1}).to_list(50)
+        
+        for admin_user in admin_users:
+            if admin_user["id"] != user_id:  # Don't notify the creator
+                await notifications.create_notification(
+                    company_id=company_id,
+                    user_id=admin_user["id"],
+                    title="New Sales Order",
+                    message=f"New order {order_number} created for {customer['name']}. Total: LKR {total:,.2f}",
+                    notification_type="new_order",
+                    severity="info",
+                    reference_type="sales_order",
+                    reference_id=order_id,
+                    send_email=False,
+                    created_by=user_id
+                )
+    except Exception as e:
+        print(f"Failed to send new order notification: {e}")
+    
+    # Check for Low Inventory and notify
+    try:
+        LOW_STOCK_THRESHOLD = 10  # Configurable threshold
+        for item in data.items:
+            product = await db.products.find_one({"id": item.product_id})
+            if product and product["stock_quantity"] <= LOW_STOCK_THRESHOLD:
+                # Notify admin/managers about low stock
+                for admin_user in admin_users:
+                    await notifications.create_notification(
+                        company_id=company_id,
+                        user_id=admin_user["id"],
+                        title="Low Inventory Alert",
+                        message=f"Product '{product['name']}' is running low. Current stock: {product['stock_quantity']} units.",
+                        notification_type="low_inventory",
+                        severity="warning",
+                        reference_type="product",
+                        reference_id=product["id"],
+                        send_email=True,
+                        created_by=user_id
+                    )
+    except Exception as e:
+        print(f"Failed to send low inventory notification: {e}")
+    
     return serialize_doc(order)
 
 @api_router.put("/sales-orders/{order_id}")

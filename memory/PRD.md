@@ -131,6 +131,19 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] "Join Company" tab allows joining existing company with company code
   - [x] Proper form validation and success/error feedback
 
+### Notification System Enhancement (COMPLETED ✅) - March 2026
+- [x] **Notification Triggers Implemented:**
+  - [x] Task Assignments - When admin/manager assigns task to employee
+  - [x] Task Updates - When task details are modified
+  - [x] Leave Approvals - When leave request is approved
+  - [x] Leave Rejections - When leave request is rejected
+  - [x] Payslip Ready - When payroll is processed, employees receive notification
+  - [x] New Orders - When sales order is created, admin/managers notified
+  - [x] Low Inventory - When stock falls below 10 units threshold
+- [x] **User Preferences:** All notification types configurable in Notifications > Preferences
+- [x] **Real-time Delivery:** WebSocket for instant in-app notifications
+- [x] **Email Delivery:** Optional email notifications (depends on SMTP config)
+
 ### Seed Organization Structure (COMPLETED ✅) - March 2026
 - [x] **Seed Departments & Designations API**
   - [x] Backend endpoint `POST /api/payroll/seed-org-structure` (admin only)

@@ -345,9 +345,12 @@ async def create_notification(
         "task_update": "task_updates",
         "payroll": "payroll_processed",
         "payslip": "payslip_ready",
+        "payslip_ready": "payslip_ready",
         "leave_approval": "leave_approvals",
         "leave_rejection": "leave_rejections",
+        "low_inventory": "low_inventory",
         "inventory": "low_inventory",
+        "new_order": "new_orders",
         "order": "new_orders",
         "system": None
     }
