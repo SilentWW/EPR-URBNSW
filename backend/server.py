@@ -4536,6 +4536,9 @@ notifications.set_db(db)
 notifications.set_jwt_config(JWT_SECRET, JWT_ALGORITHM)
 app.include_router(notifications.router, prefix="/api")
 
+# Set notification helper for employee portal
+employee_portal.set_notification_helper(notifications.create_notification)
+
 # WebSocket endpoint for real-time notifications
 @app.websocket("/api/notifications/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str):

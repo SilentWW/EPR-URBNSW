@@ -150,6 +150,55 @@ async def get_smtp_settings(company_id: str) -> Optional[dict]:
     settings = await db.smtp_settings.find_one({"company_id": company_id}, {"_id": 0})
     return settings
 
+async def send_email_notification_fire_and_forget(
+    company_id: str,
+    to_email: str,
+    to_name: str,
+    subject: str,
+    body_html: str,
+    body_text: str = None
+):
+    """Send email in background without waiting - fire and forget"""
+    import subprocess
+    import json
+    import os
+    
+    settings = await get_smtp_settings(company_id)
+    if not settings or not settings.get("enabled"):
+        logging.info(f"Email not sent - SMTP not configured or disabled for company {company_id}")
+        return False
+    
+    try:
+        config = {
+            "smtp_host": settings["smtp_host"],
+            "smtp_port": settings["smtp_port"],
+            "smtp_user": settings["smtp_username"],
+            "smtp_pass": settings["smtp_password"],
+            "from_email": settings["from_email"],
+            "from_name": settings.get("from_name", "ERP System"),
+            "to_email": to_email,
+            "subject": subject,
+            "body_html": body_html,
+            "body_text": body_text,
+            "use_tls": settings.get("use_tls", True)
+        }
+        
+        script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "send_email.py")
+        
+        # Fire and forget - don't wait for result
+        subprocess.Popen(
+            ["python3", script_path, json.dumps(config)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        
+        logging.info(f"Email queued for sending to {to_email}")
+        return True
+            
+    except Exception as e:
+        logging.error(f"Failed to queue email: {str(e)}")
+        return False
+
 async def send_email_notification(
     company_id: str,
     to_email: str,
@@ -158,36 +207,54 @@ async def send_email_notification(
     body_html: str,
     body_text: str = None
 ):
-    """Send email using company's SMTP settings"""
+    """Send email using company's SMTP settings via subprocess"""
+    import asyncio
+    import subprocess
+    import json
+    import os
+    
     settings = await get_smtp_settings(company_id)
     if not settings or not settings.get("enabled"):
         logging.info(f"Email not sent - SMTP not configured or disabled for company {company_id}")
         return False
     
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{settings.get('from_name', 'ERP System')} <{settings['from_email']}>"
-        msg["To"] = f"{to_name} <{to_email}>"
+        config = {
+            "smtp_host": settings["smtp_host"],
+            "smtp_port": settings["smtp_port"],
+            "smtp_user": settings["smtp_username"],
+            "smtp_pass": settings["smtp_password"],
+            "from_email": settings["from_email"],
+            "from_name": settings.get("from_name", "ERP System"),
+            "to_email": to_email,
+            "subject": subject,
+            "body_html": body_html,
+            "body_text": body_text,
+            "use_tls": settings.get("use_tls", True)
+        }
         
-        if body_text:
-            msg.attach(MIMEText(body_text, "plain"))
-        msg.attach(MIMEText(body_html, "html"))
+        script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "send_email.py")
         
-        context = ssl.create_default_context()
+        # Run as subprocess
+        process = await asyncio.create_subprocess_exec(
+            "python3", script_path, json.dumps(config),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
         
-        if settings.get("use_tls", True):
-            with smtplib.SMTP(settings["smtp_host"], settings["smtp_port"]) as server:
-                server.starttls(context=context)
-                server.login(settings["smtp_username"], settings["smtp_password"])
-                server.sendmail(settings["from_email"], to_email, msg.as_string())
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=90.0)
+        
+        result = json.loads(stdout.decode())
+        if result.get("success"):
+            logging.info(f"Email sent successfully to {to_email}")
+            return True
         else:
-            with smtplib.SMTP_SSL(settings["smtp_host"], settings["smtp_port"], context=context) as server:
-                server.login(settings["smtp_username"], settings["smtp_password"])
-                server.sendmail(settings["from_email"], to_email, msg.as_string())
-        
-        logging.info(f"Email sent successfully to {to_email}")
-        return True
+            logging.error(f"Failed to send email: {result.get('error')}")
+            return False
+            
+    except asyncio.TimeoutError:
+        logging.error("Email sending timed out")
+        return False
     except Exception as e:
         logging.error(f"Failed to send email: {str(e)}")
         return False
@@ -324,7 +391,8 @@ async def create_notification(
                 "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             }
             html, text = generate_notification_email(notification_data, user.get("full_name", "User"))
-            await send_email_notification(
+            # Use fire-and-forget for task notifications (non-blocking)
+            await send_email_notification_fire_and_forget(
                 company_id,
                 user["email"],
                 user.get("full_name", "User"),
@@ -566,14 +634,23 @@ async def test_smtp_settings(
     
     html, text = generate_notification_email(test_notification, user.get("full_name", "Admin"))
     
-    success = await send_email_notification(
-        current_user["company_id"],
-        test_email,
-        user.get("full_name", "Admin"),
-        "[ERP] SMTP Test Email",
-        html,
-        text
-    )
+    # For test email, we wait for it to complete
+    # Using a longer timeout since SMTP can be slow
+    import asyncio
+    try:
+        success = await asyncio.wait_for(
+            send_email_notification(
+                current_user["company_id"],
+                test_email,
+                user.get("full_name", "Admin"),
+                "[ERP] SMTP Test Email",
+                html,
+                text
+            ),
+            timeout=120.0  # 2 minute timeout for test
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=500, detail="Email sending timed out. Please check your SMTP settings.")
     
     if success:
         return {"message": "Test email sent successfully! Please check your inbox."}

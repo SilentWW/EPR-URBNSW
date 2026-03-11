@@ -6,13 +6,14 @@ Handles Employee Self-Service features:
 - Employee Dashboard
 - My Tasks (employee-specific view)
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from typing import Optional, List
 from datetime import datetime, timezone
 from pydantic import BaseModel
 from enum import Enum
 import uuid
 import os
+import asyncio
 
 from utils.helpers import serialize_doc, generate_id, get_current_timestamp
 from utils.auth import get_current_user
@@ -22,9 +23,35 @@ router = APIRouter(prefix="/portal", tags=["Employee Portal"])
 # Database will be injected from main app
 db = None
 
+# Notification helper will be set from main app
+notification_helper = None
+
 def set_db(database):
     global db
     db = database
+
+def set_notification_helper(helper):
+    global notification_helper
+    notification_helper = helper
+
+async def send_task_notification_async(company_id, user_id, title, message, task_id, created_by):
+    """Send task notification in background"""
+    if notification_helper:
+        try:
+            await notification_helper(
+                company_id=company_id,
+                user_id=user_id,
+                title=title,
+                message=message,
+                notification_type="task_assignment",
+                severity="info",
+                reference_type="task",
+                reference_id=task_id,
+                send_email=True,
+                created_by=created_by
+            )
+        except Exception as e:
+            print(f"Failed to send notification: {e}")
 
 
 # ============== ENUMS ==============
@@ -381,6 +408,17 @@ async def create_enhanced_task(
     
     await db.employee_tasks.insert_one(task)
     task.pop("_id", None)
+    
+    # Send notification to the assigned employee (non-blocking)
+    if employee.get("user_id"):
+        asyncio.create_task(send_task_notification_async(
+            company_id=company_id,
+            user_id=employee["user_id"],
+            title="New Task Assigned",
+            message=f"You have been assigned a new task: {data.title}",
+            task_id=task_id,
+            created_by=current_user["user_id"]
+        ))
     
     return {
         "id": task_id,
