@@ -1089,10 +1089,47 @@ Build a cloud-based ERP system for business operations with the intention of sel
 │       └── components/
 │           ├── Layout.jsx         # Main navigation
 │           └── NotificationBell.jsx # Header notification dropdown
+├── scripts/
+│   ├── seed_test_data.py     # Comprehensive test data seeder
+│   └── create_designations_urbnsw.py # Org structure creator
+├── tests/
+│   └── test_comprehensive_erp.py # Full system test suite
 └── memory/
     └── PRD.md            # This file
 ```
 
 ---
-*Last Updated: March 10, 2026*
-*Version: 4.6.0*
+
+## Test Data Summary (For Manual Testing)
+
+### Login Credentials
+- **Email:** lahiruraja97@gmail.com
+- **Password:** password123
+- **Role:** Admin
+
+### Seeded Data
+| Module | Count | Examples |
+|--------|-------|----------|
+| Departments | 10 | Executive, Design, Production, Marketing, etc. |
+| Designations | 18 | CEO, Production Manager, Fashion Designer, etc. |
+| Employees | 10 | Lahiru, Kasun, Nimali, Saman, Priya, etc. |
+| Products | 12 | T-Shirts, Hoodies, Jackets, Pants, Accessories |
+| Suppliers | 5 | Fabric World, Print Masters, Thread & Needle, etc. |
+| Customers | 5 | Fashion Hub, Style Station, Urban Outfitters, etc. |
+| Purchase Orders | 5 | PO-2026-0001 to PO-2026-0005 |
+| GRNs | 5 | GRN-2026-0001 to GRN-2026-0005 |
+| Sales Orders | 8 | SO-2026-0001 to SO-2026-0008 |
+| Journal Entries | 8 | Revenue receipts, Expense payments |
+| Bank Accounts | 3 | Cash, Commercial Bank, Petty Cash |
+| Chart of Accounts | 22 | Assets, Liabilities, Income, Expenses |
+| Employee Advances | 3 | Personal loan, Medical, Education |
+| Leave Requests | 4 | Annual, Sick, Casual leaves |
+| Task Assignments | 6 | Design, Production, QC tasks |
+| Payroll | 1 | February 2026 (LKR 830,000 gross) |
+| Attendance | 100 | Last 10 days for all employees |
+| Allowances | 3 | Transport, Meal, Performance Bonus |
+| Deductions | 3 | EPF, ETF, PAYE Tax |
+
+---
+*Last Updated: March 11, 2026*
+*Version: 5.0.0 - Production Ready*
