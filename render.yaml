@@ -1,0 +1,40 @@
+# E1 ERP System - Render.com Deployment Configuration
+
+services:
+  # Backend API Service
+  - type: web
+    name: erp-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGO_URL
+        sync: false  # Set manually in Render dashboard
+      - key: DB_NAME
+        value: erp_system
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: PYTHON_VERSION
+        value: "3.11"
+    healthCheckPath: /api/health
+    rootDir: backend
+
+  # Frontend React App
+  - type: web
+    name: erp-frontend
+    runtime: static
+    buildCommand: yarn install && yarn build
+    staticPublishPath: ./build
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        fromService:
+          type: web
+          name: erp-backend
+          property: url
+    rootDir: frontend
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
