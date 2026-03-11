@@ -129,6 +129,7 @@ class EmployeeCreate(BaseModel):
     contract_end_date: Optional[str] = None
     notes: Optional[str] = None
     user_id: Optional[str] = None  # Link to user account for portal access
+    permissions: Optional[List[str]] = None  # List of permitted module names
 
 class EmployeeUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -152,6 +153,7 @@ class EmployeeUpdate(BaseModel):
     status: Optional[EmployeeStatus] = None
     notes: Optional[str] = None
     user_id: Optional[str] = None  # Link employee to user account
+    permissions: Optional[List[str]] = None  # List of permitted module names
 
 # Allowance/Deduction Models
 class AllowanceCreate(BaseModel):
@@ -825,6 +827,7 @@ async def create_employee(
         "nic": data.nic,
         "address": data.address,
         "department_id": data.department_id,
+        "designation_id": data.designation_id,
         "employee_type": data.employee_type.value,
         "payment_frequency": data.payment_frequency.value,
         "basic_salary": data.basic_salary,
@@ -836,6 +839,8 @@ async def create_employee(
         "join_date": data.join_date,
         "contract_end_date": data.contract_end_date,
         "notes": data.notes,
+        "user_id": data.user_id,
+        "permissions": data.permissions or [],  # Employee-specific permissions
         "status": EmployeeStatus.ACTIVE.value,
         "created_at": get_current_timestamp(),
         "updated_at": get_current_timestamp()

@@ -131,6 +131,28 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] "Join Company" tab allows joining existing company with company code
   - [x] Proper form validation and success/error feedback
 
+### Employee Permission Control System (COMPLETED ✅) - March 2026
+- [x] **Permission Tab in Employee Form:**
+  - [x] Added 4th tab "Permissions" with shield icon
+  - [x] Organized by module categories: Main Menu, Manufacturing, Finance/Accounts, HR/Payroll, Employee Portal, Admin/Settings
+  - [x] Checkbox for each sub-module
+  - [x] "Select All" option per category
+  - [x] "Select All / Clear All" global buttons
+  - [x] Permission counter showing selected/total
+- [x] **Permission Enforcement:**
+  - [x] Backend stores `permissions` array in employee record
+  - [x] `/auth/me` endpoint returns `employee_permissions`
+  - [x] Layout.jsx filters menu items based on employee permissions
+  - [x] Hidden menus are completely removed (not just disabled)
+  - [x] Admin role bypasses permission checks (full access)
+- [x] **Module Coverage:**
+  - Main Menu: Dashboard, Products, Inventory, GRN, Packaging Rules, Customers, Suppliers, Sales Orders, Invoices, Purchase Orders, Payments, Reports
+  - Manufacturing: Dashboard, Raw Materials, RM Suppliers, RM Purchase Orders, RM GRN, RM GRN Returns, Bill of Materials, Work Orders
+  - Finance: Quick Transactions, Investors, Bank Accounts, Chart of Accounts, General Ledger, Financial Reports, Accounting
+  - HR/Payroll: Departments, Designations, Employees, Attendance, Salary Structure, Leave Management, Advances, Task Assignments, Payroll, Payroll Reports, Task Categories
+  - Employee Portal: My Dashboard, My Tasks
+  - Admin: Settings, Notifications, User Management, System Admin, Audit Logs, Documentation
+
 ### Notification System Enhancement (COMPLETED ✅) - March 2026
 - [x] **Notification Triggers Implemented:**
   - [x] Task Assignments - When admin/manager assigns task to employee

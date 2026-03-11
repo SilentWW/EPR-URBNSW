@@ -156,16 +156,25 @@ const ROLE_MODULES = {
 };
 
 // Check if user has access to a module
-const hasModuleAccess = (role, module) => {
+const hasModuleAccess = (role, module, employeePermissions = null) => {
+  // Admin always has full access
+  if (role === 'admin') return true;
+  
+  // If employee has specific permissions set, use those
+  if (employeePermissions && Array.isArray(employeePermissions) && employeePermissions.length > 0) {
+    return employeePermissions.includes(module);
+  }
+  
+  // Otherwise fall back to role-based access
   const modules = ROLE_MODULES[role] || ROLE_MODULES.employee;
   return modules.includes('*') || modules.includes(module);
 };
 
-// Filter menu items based on role
-const filterMenuByRole = (items, role) => {
+// Filter menu items based on role and employee permissions
+const filterMenuByRole = (items, role, employeePermissions = null) => {
   return items.filter(item => {
     if (!item.module) return true;
-    return hasModuleAccess(role, item.module);
+    return hasModuleAccess(role, item.module, employeePermissions);
   });
 };
 
@@ -174,6 +183,9 @@ export const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Get employee permissions from user object
+  const employeePermissions = user?.employee_permissions;
   
   // Collapsible menu state - stored in localStorage for persistence
   const [expandedSections, setExpandedSections] = useState(() => {
@@ -254,7 +266,7 @@ export const Layout = ({ children }) => {
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 overflow-y-auto">
             {/* Main Menu - filtered by role */}
-            {filterMenuByRole(menuItems, user?.role).length > 0 && (
+            {filterMenuByRole(menuItems, user?.role, employeePermissions).length > 0 && (
               <div className="mb-2">
                 <button
                   onClick={() => toggleSection('main')}
@@ -268,7 +280,7 @@ export const Layout = ({ children }) => {
                 </button>
                 {expandedSections.main && (
                   <ul className="mt-1 space-y-0.5 pl-2">
-                    {filterMenuByRole(menuItems, user?.role).map((item) => {
+                    {filterMenuByRole(menuItems, user?.role, employeePermissions).map((item) => {
                       const isActive = location.pathname === item.path;
                       return (
                         <li key={item.path}>
@@ -290,7 +302,7 @@ export const Layout = ({ children }) => {
             )}
 
             {/* Manufacturing Section - filtered by role */}
-            {filterMenuByRole(manufacturingMenuItems, user?.role).length > 0 && (
+            {filterMenuByRole(manufacturingMenuItems, user?.role, employeePermissions).length > 0 && (
               <div className="mb-2">
                 <button
                   onClick={() => toggleSection('manufacturing')}
@@ -304,7 +316,7 @@ export const Layout = ({ children }) => {
                 </button>
                 {expandedSections.manufacturing && (
                   <ul className="mt-1 space-y-0.5 pl-2">
-                    {filterMenuByRole(manufacturingMenuItems, user?.role).map((item) => {
+                    {filterMenuByRole(manufacturingMenuItems, user?.role, employeePermissions).map((item) => {
                       const isActive = location.pathname === item.path;
                       return (
                         <li key={item.path}>
@@ -326,7 +338,7 @@ export const Layout = ({ children }) => {
             )}
 
             {/* Finance Section - filtered by role */}
-            {filterMenuByRole(financeMenuItems, user?.role).length > 0 && (
+            {filterMenuByRole(financeMenuItems, user?.role, employeePermissions).length > 0 && (
               <div className="mb-2">
                 <button
                   onClick={() => toggleSection('finance')}
@@ -340,7 +352,7 @@ export const Layout = ({ children }) => {
                 </button>
                 {expandedSections.finance && (
                   <ul className="mt-1 space-y-0.5 pl-2">
-                    {filterMenuByRole(financeMenuItems, user?.role).map((item) => {
+                    {filterMenuByRole(financeMenuItems, user?.role, employeePermissions).map((item) => {
                       const isActive = location.pathname === item.path;
                       return (
                         <li key={item.path}>
@@ -362,7 +374,7 @@ export const Layout = ({ children }) => {
             )}
 
             {/* HR/Payroll Section - filtered by role */}
-            {filterMenuByRole(payrollMenuItems, user?.role).length > 0 && (
+            {filterMenuByRole(payrollMenuItems, user?.role, employeePermissions).length > 0 && (
               <div className="mb-2">
                 <button
                   onClick={() => toggleSection('payroll')}
@@ -376,7 +388,7 @@ export const Layout = ({ children }) => {
                 </button>
                 {expandedSections.payroll && (
                   <ul className="mt-1 space-y-0.5 pl-2">
-                    {filterMenuByRole(payrollMenuItems, user?.role).map((item) => {
+                    {filterMenuByRole(payrollMenuItems, user?.role, employeePermissions).map((item) => {
                       const isActive = location.pathname === item.path;
                       return (
                         <li key={item.path}>
@@ -411,7 +423,7 @@ export const Layout = ({ children }) => {
               </button>
               {expandedSections.portal && (
                 <ul className="mt-1 space-y-0.5 pl-2">
-                  {filterMenuByRole(employeePortalItems, user?.role).map((item) => {
+                  {filterMenuByRole(employeePortalItems, user?.role, employeePermissions).map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
                       <li key={item.path}>
@@ -432,7 +444,7 @@ export const Layout = ({ children }) => {
             </div>
 
             {/* Admin Section - filtered by role */}
-            {filterMenuByRole(adminMenuItems, user?.role).length > 0 && (
+            {filterMenuByRole(adminMenuItems, user?.role, employeePermissions).length > 0 && (
               <div className="mb-2">
                 <button
                   onClick={() => toggleSection('admin')}
@@ -446,7 +458,7 @@ export const Layout = ({ children }) => {
                 </button>
                 {expandedSections.admin && (
                   <ul className="mt-1 space-y-0.5 pl-2">
-                    {filterMenuByRole(adminMenuItems, user?.role).map((item) => {
+                    {filterMenuByRole(adminMenuItems, user?.role, employeePermissions).map((item) => {
                       const isActive = location.pathname === item.path;
                       return (
                         <li key={item.path}>

@@ -38,9 +38,10 @@ import {
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Checkbox } from '../../components/ui/checkbox';
 import { 
   Plus, MoreHorizontal, Pencil, Trash2, Loader2, Users, Eye, Search, 
-  UserCheck, UserX, Briefcase, AlertTriangle
+  UserCheck, UserX, Briefcase, AlertTriangle, Shield, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,6 +51,68 @@ const formatCurrency = (amount) => {
     currency: 'LKR',
     minimumFractionDigits: 0,
   }).format(amount || 0);
+};
+
+// Permission modules configuration
+const PERMISSION_MODULES = {
+  'Main Menu': [
+    { module: 'dashboard', label: 'Dashboard' },
+    { module: 'products', label: 'Products' },
+    { module: 'inventory', label: 'Inventory' },
+    { module: 'grn', label: 'GRN' },
+    { module: 'packaging-rules', label: 'Packaging Rules' },
+    { module: 'customers', label: 'Customers' },
+    { module: 'suppliers', label: 'Suppliers' },
+    { module: 'sales-orders', label: 'Sales Orders' },
+    { module: 'invoices', label: 'Invoices' },
+    { module: 'purchase-orders', label: 'Purchase Orders' },
+    { module: 'payments', label: 'Payments' },
+    { module: 'reports', label: 'Reports' },
+  ],
+  'Manufacturing': [
+    { module: 'manufacturing', label: 'Manufacturing Dashboard' },
+    { module: 'raw-materials', label: 'Raw Materials' },
+    { module: 'rm-suppliers', label: 'RM Suppliers' },
+    { module: 'rm-purchase-orders', label: 'RM Purchase Orders' },
+    { module: 'rm-grn', label: 'RM GRN' },
+    { module: 'rm-grn-returns', label: 'RM GRN Returns' },
+    { module: 'bill-of-materials', label: 'Bill of Materials' },
+    { module: 'work-orders', label: 'Work Orders' },
+  ],
+  'Finance / Accounts': [
+    { module: 'quick-transactions', label: 'Quick Transactions' },
+    { module: 'investors', label: 'Investors' },
+    { module: 'bank-accounts', label: 'Bank Accounts' },
+    { module: 'chart-of-accounts', label: 'Chart of Accounts' },
+    { module: 'general-ledger', label: 'General Ledger' },
+    { module: 'financial-reports', label: 'Financial Reports' },
+    { module: 'accounting', label: 'Accounting' },
+  ],
+  'HR / Payroll': [
+    { module: 'departments', label: 'Departments' },
+    { module: 'designations', label: 'Designations' },
+    { module: 'employees', label: 'Employees' },
+    { module: 'attendance', label: 'Attendance' },
+    { module: 'salary-structure', label: 'Salary Structure' },
+    { module: 'leave-management', label: 'Leave Management' },
+    { module: 'advances', label: 'Advances & Loans' },
+    { module: 'task-assignments', label: 'Task Assignments' },
+    { module: 'payroll', label: 'Payroll' },
+    { module: 'payroll-reports', label: 'Payroll Reports' },
+    { module: 'task-categories', label: 'Task Categories' },
+  ],
+  'Employee Portal': [
+    { module: 'my-dashboard', label: 'My Dashboard' },
+    { module: 'my-tasks', label: 'My Tasks' },
+  ],
+  'Admin / Settings': [
+    { module: 'settings', label: 'Settings' },
+    { module: 'notifications', label: 'Notifications' },
+    { module: 'user-management', label: 'User Management' },
+    { module: 'system-admin', label: 'System Admin' },
+    { module: 'audit-logs', label: 'Audit Logs' },
+    { module: 'documentation', label: 'Documentation' },
+  ],
 };
 
 const employeeTypeColors = {
@@ -101,6 +164,7 @@ const initialFormData = {
   contract_end_date: '',
   notes: '',
   user_id: 'none',  // Link to user account
+  permissions: [],  // Employee-specific permissions
 };
 
 export const Employees = () => {
@@ -168,6 +232,7 @@ export const Employees = () => {
         contract_end_date: employee.contract_end_date || '',
         notes: employee.notes || '',
         user_id: employee.user_id || 'none',
+        permissions: employee.permissions || [],
       });
     } else {
       setSelectedEmployee(null);
@@ -447,10 +512,13 @@ export const Employees = () => {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="salary">Salary & Bank</TabsTrigger>
-                <TabsTrigger value="other">Other Details</TabsTrigger>
+                <TabsTrigger value="other">Other</TabsTrigger>
+                <TabsTrigger value="permissions" className="flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Permissions
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4 mt-4">
@@ -705,6 +773,111 @@ export const Employees = () => {
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={2}
                   />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="permissions" className="space-y-4 mt-4">
+                <div className="text-sm text-slate-500 mb-4">
+                  Select which modules this employee can access. Only checked items will be visible in their menu.
+                </div>
+                
+                {Object.entries(PERMISSION_MODULES).map(([category, modules]) => {
+                  const categoryModules = modules.map(m => m.module);
+                  const checkedInCategory = categoryModules.filter(m => formData.permissions?.includes(m));
+                  const allChecked = checkedInCategory.length === categoryModules.length;
+                  const someChecked = checkedInCategory.length > 0 && !allChecked;
+                  
+                  return (
+                    <div key={category} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={allChecked}
+                            ref={(el) => {
+                              if (el && someChecked) {
+                                el.dataset.state = 'indeterminate';
+                              }
+                            }}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({
+                                  ...formData,
+                                  permissions: [...new Set([...(formData.permissions || []), ...categoryModules])]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  permissions: (formData.permissions || []).filter(p => !categoryModules.includes(p))
+                                });
+                              }
+                            }}
+                          />
+                          <span className="font-medium text-slate-900">{category}</span>
+                          <span className="text-xs text-slate-400">
+                            ({checkedInCategory.length}/{categoryModules.length})
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-500">Select All</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-6">
+                        {modules.map(({ module, label }) => (
+                          <div key={module} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`perm-${module}`}
+                              checked={formData.permissions?.includes(module)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFormData({
+                                    ...formData,
+                                    permissions: [...(formData.permissions || []), module]
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    permissions: (formData.permissions || []).filter(p => p !== module)
+                                  });
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`perm-${module}`}
+                              className="text-sm cursor-pointer select-none"
+                            >
+                              {label}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                <div className="pt-3 border-t">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allPermissions = Object.values(PERMISSION_MODULES).flat().map(m => m.module);
+                        setFormData({ ...formData, permissions: allPermissions });
+                      }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, permissions: [] })}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {formData.permissions?.length || 0} permissions selected
+                  </p>
                 </div>
               </TabsContent>
             </Tabs>

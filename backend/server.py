@@ -653,9 +653,21 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     company = await db.companies.find_one({"id": current_user["company_id"]}, {"_id": 0, "name": 1})
     company_name = company.get("name", "My Business") if company else "My Business"
     
+    # Get employee permissions if user is linked to an employee
+    employee_permissions = None
+    employee = await db.employees.find_one({
+        "user_id": current_user["user_id"],
+        "company_id": current_user["company_id"],
+        "status": "active"
+    }, {"_id": 0, "permissions": 1, "id": 1})
+    
+    if employee:
+        employee_permissions = employee.get("permissions", [])
+    
     return {
         **user,
-        "company_name": company_name
+        "company_name": company_name,
+        "employee_permissions": employee_permissions
     }
 
 # ============== COMPANY ROUTES ==============
