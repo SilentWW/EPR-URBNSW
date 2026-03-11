@@ -144,11 +144,23 @@ export default function UserManagement() {
     const colors = {
       admin: 'bg-purple-100 text-purple-700',
       manager: 'bg-blue-100 text-blue-700',
+      accountant: 'bg-cyan-100 text-cyan-700',
       accounts: 'bg-cyan-100 text-cyan-700',
       store: 'bg-orange-100 text-orange-700',
+      employee: 'bg-slate-100 text-slate-700',
       staff: 'bg-slate-100 text-slate-700'
     };
-    return <Badge className={colors[role] || colors.staff}>{role}</Badge>;
+    // Display friendly name
+    const labels = {
+      admin: 'Admin',
+      manager: 'Manager',
+      accountant: 'Accountant',
+      accounts: 'Accountant',
+      store: 'Store',
+      employee: 'Employee',
+      staff: 'Employee'
+    };
+    return <Badge className={colors[role] || colors.employee}>{labels[role] || role}</Badge>;
   };
 
   return (
@@ -279,15 +291,15 @@ export default function UserManagement() {
                           value={user.role} 
                           onValueChange={(value) => handleRoleChange(user.id, value)}
                         >
-                          <SelectTrigger className="w-[120px]" data-testid={`role-select-${user.id}`}>
+                          <SelectTrigger className="w-[130px]" data-testid={`role-select-${user.id}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="manager">Manager</SelectItem>
-                            <SelectItem value="accounts">Accounts</SelectItem>
-                            <SelectItem value="store">Store</SelectItem>
-                            <SelectItem value="staff">Staff</SelectItem>
+                            <SelectItem value="accountant">Accountant</SelectItem>
+                            <SelectItem value="store">Store Keeper</SelectItem>
+                            <SelectItem value="employee">Employee</SelectItem>
                           </SelectContent>
                         </Select>
                       </td>

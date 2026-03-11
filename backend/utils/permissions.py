@@ -8,7 +8,7 @@ ROLE_PERMISSIONS = {
     "admin": {
         "description": "Full access to everything",
         "modules": ["*"],  # Wildcard = all access
-        "can_create_roles": ["admin", "manager", "accountant", "store", "employee"],
+        "can_create_roles": ["admin", "manager", "accountant", "accounts", "store", "employee", "staff"],
     },
     "manager": {
         "description": "HR, Inventory, Sales, Tasks, Reports (no System Admin)",
@@ -25,7 +25,7 @@ ROLE_PERMISSIONS = {
             "my-dashboard", "my-tasks",
             "settings",
         ],
-        "can_create_roles": ["manager", "accountant", "store", "employee"],
+        "can_create_roles": ["manager", "accountant", "accounts", "store", "employee", "staff"],
     },
     "accountant": {
         "description": "Finance, Payments, Reports only",
@@ -194,6 +194,8 @@ AVAILABLE_ROLES = [
     {"value": "admin", "label": "Admin", "description": "Full access to everything"},
     {"value": "manager", "label": "Manager", "description": "HR, Inventory, Sales, Tasks, Reports"},
     {"value": "accountant", "label": "Accountant", "description": "Finance, Payments, Reports"},
+    {"value": "accounts", "label": "Accounts", "description": "Finance, Payments, Reports (Legacy)"},
     {"value": "store", "label": "Store Keeper", "description": "Inventory, Products, GRN, PO"},
     {"value": "employee", "label": "Employee", "description": "My Portal only"},
+    {"value": "staff", "label": "Staff", "description": "My Portal only (Legacy)"},
 ]
