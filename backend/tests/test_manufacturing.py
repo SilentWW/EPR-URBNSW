@@ -13,7 +13,7 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://rbac-system-14.preview.emergentagent.com"
+    BASE_URL = "https://multi-tenant-hub-30.preview.emergentagent.com"
 
 # Test credentials
 TEST_EMAIL = "lahiruraja97@gmail.com"

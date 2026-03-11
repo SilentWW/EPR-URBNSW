@@ -123,6 +123,14 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] Sidebar displays user's company name instead of static "E1 ERP"
   - [x] Company name truncated with ellipsis if too long
 
+### Multi-Tenant Registration (COMPLETED ✅) - March 2026
+- [x] **Create New Company Registration Option**
+  - [x] Tabbed registration interface with "New Company" and "Join Company" options
+  - [x] "New Company" tab is default for first-time users
+  - [x] Backend API `/api/auth/register` creates company + admin user
+  - [x] "Join Company" tab allows joining existing company with company code
+  - [x] Proper form validation and success/error feedback
+
 ### Phase 7 - Bank & Cash Account Integration (COMPLETED ✅) - Feb 2026
 - [x] **Bank & Cash Account Management Module** (`/bank-accounts`)
   - [x] Create multiple bank accounts and cash accounts
