@@ -496,6 +496,168 @@ async def delete_designation(
     return {"message": "Designation deleted successfully"}
 
 
+# ============== SEED DATA ENDPOINT ==============
+
+# Pre-defined org structure for clothing brand
+SEED_DEPARTMENTS = [
+    {"name": "Executive / Leadership", "description": "Decision-making level of the company"},
+    {"name": "Design & Product Development", "description": "Heart of the clothing brand - designs and product creation"},
+    {"name": "Production & Manufacturing", "description": "Garment production and quality control"},
+    {"name": "Marketing & Brand", "description": "Brand identity and marketing campaigns"},
+    {"name": "E-Commerce & Sales", "description": "Online store and sales management"},
+    {"name": "Logistics & Inventory", "description": "Stock management and order fulfillment"},
+    {"name": "Customer Experience", "description": "Customer support and satisfaction"},
+    {"name": "Finance & Accounting", "description": "Financial management and records"},
+    {"name": "Human Resources", "description": "Employee recruitment and management"},
+    {"name": "Legal & Compliance", "description": "Legal matters and regulatory compliance"},
+]
+
+SEED_DESIGNATIONS = {
+    "Executive / Leadership": [
+        ("Founder / Creative Director", "Define brand vision, approve designs, set strategy, lead creative teams", "admin", 10),
+        ("Chief Executive Officer (CEO)", "Manage entire business, lead department heads, set goals, build partnerships", "admin", 10),
+        ("Operations Director", "Oversee daily operations, ensure efficiency, manage timelines", "manager", 9),
+    ],
+    "Design & Product Development": [
+        ("Head of Design", "Lead design team, plan collections, approve final designs", "manager", 8),
+        ("Fashion Designer", "Create clothing concepts, develop silhouettes, work on collections", "employee", 6),
+        ("Graphic Designer", "Create t-shirt artwork, prepare print files, design packaging", "employee", 5),
+        ("Product Developer", "Convert designs to products, choose fabrics, coordinate with manufacturers", "employee", 6),
+        ("Technical Designer", "Create technical specs, size charts, fit corrections", "employee", 5),
+    ],
+    "Production & Manufacturing": [
+        ("Production Manager", "Manage garment production, coordinate factories, control schedules", "manager", 7),
+        ("Print Production Specialist", "Handle screen printing/DTF, ensure print quality", "employee", 5),
+        ("Quality Control Manager", "Inspect garments, check stitching/prints/fabric, approve products", "manager", 6),
+        ("Sourcing Manager", "Find fabric suppliers, negotiate prices with manufacturers", "employee", 6),
+    ],
+    "Marketing & Brand": [
+        ("Brand Manager", "Maintain brand identity, plan campaigns, control messaging", "manager", 7),
+        ("Social Media Manager", "Manage Instagram/TikTok/Facebook, post content, engage audience", "employee", 5),
+        ("Content Creator", "Shoot photos/videos, create reels and campaign visuals", "employee", 4),
+        ("Influencer & Partnership Manager", "Manage influencer collaborations, arrange brand partnerships", "employee", 5),
+        ("Marketing Analyst", "Study customer behavior, track marketing performance", "employee", 5),
+    ],
+    "E-Commerce & Sales": [
+        ("E-Commerce Manager", "Manage online store, handle website performance, track sales", "manager", 7),
+        ("Sales Manager", "Manage retail/wholesale sales, build store partnerships", "manager", 7),
+        ("Order Management Executive", "Process customer orders, handle shipping updates", "employee", 4),
+    ],
+    "Logistics & Inventory": [
+        ("Inventory Manager", "Track stock levels, manage warehouse storage", "store", 6),
+        ("Fulfillment Coordinator", "Pack and ship orders, coordinate courier deliveries", "store", 4),
+        ("Supply Chain Manager", "Manage product movement, ensure smooth supply chain", "manager", 7),
+    ],
+    "Customer Experience": [
+        ("Customer Support Manager", "Handle customer inquiries, manage returns and exchanges", "manager", 6),
+        ("Customer Experience Specialist", "Improve customer satisfaction, manage loyalty programs", "employee", 5),
+    ],
+    "Finance & Accounting": [
+        ("Finance Manager", "Manage budgets and profits, control company spending", "accountant", 7),
+        ("Accountant", "Maintain financial records, manage tax payments", "accountant", 5),
+        ("Financial Analyst", "Analyze company performance, plan growth strategies", "accountant", 6),
+    ],
+    "Human Resources": [
+        ("HR Manager", "Recruit employees, manage staff performance", "manager", 7),
+        ("HR Executive", "Handle payroll and employee relations", "employee", 5),
+    ],
+    "Legal & Compliance": [
+        ("Legal Advisor", "Handle contracts, protect intellectual property", "manager", 7),
+        ("Compliance Officer", "Ensure company follows laws and regulations", "employee", 6),
+    ],
+}
+
+
+@router.post("/seed-org-structure")
+async def seed_org_structure(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Seed departments and designations for clothing brand.
+    Admin only. Skips existing items to avoid duplicates.
+    """
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can seed organization structure")
+    
+    company_id = current_user["company_id"]
+    created_depts = 0
+    skipped_depts = 0
+    created_desigs = 0
+    skipped_desigs = 0
+    
+    department_ids = {}
+    
+    # Step 1: Create departments
+    for dept_data in SEED_DEPARTMENTS:
+        existing = await db.departments.find_one({
+            "company_id": company_id,
+            "name": {"$regex": f"^{dept_data['name']}$", "$options": "i"}
+        })
+        
+        if existing:
+            department_ids[dept_data["name"]] = existing["id"]
+            skipped_depts += 1
+        else:
+            dept_id = generate_id()
+            department = {
+                "id": dept_id,
+                "company_id": company_id,
+                "name": dept_data["name"],
+                "description": dept_data["description"],
+                "manager_id": None,
+                "created_at": get_current_timestamp(),
+                "updated_at": get_current_timestamp()
+            }
+            await db.departments.insert_one(department)
+            department_ids[dept_data["name"]] = dept_id
+            created_depts += 1
+    
+    # Step 2: Create designations
+    for dept_name, designations in SEED_DESIGNATIONS.items():
+        dept_id = department_ids.get(dept_name)
+        if not dept_id:
+            continue
+        
+        for name, description, role, level in designations:
+            existing = await db.designations.find_one({
+                "company_id": company_id,
+                "name": {"$regex": f"^{name}$", "$options": "i"}
+            })
+            
+            if existing:
+                skipped_desigs += 1
+            else:
+                designation_id = generate_id()
+                designation = {
+                    "id": designation_id,
+                    "company_id": company_id,
+                    "name": name,
+                    "department_id": dept_id,
+                    "role": role,
+                    "description": description,
+                    "level": level,
+                    "is_active": True,
+                    "created_by": current_user["user_id"],
+                    "created_at": get_current_timestamp()
+                }
+                await db.designations.insert_one(designation)
+                created_desigs += 1
+    
+    return {
+        "message": "Organization structure seeded successfully",
+        "departments": {
+            "created": created_depts,
+            "skipped": skipped_depts,
+            "total": created_depts + skipped_depts
+        },
+        "designations": {
+            "created": created_desigs,
+            "skipped": skipped_desigs,
+            "total": created_desigs + skipped_desigs
+        }
+    }
+
+
 # ============== EMPLOYEES ENDPOINTS ==============
 
 @router.get("/employees")

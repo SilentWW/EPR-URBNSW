@@ -213,6 +213,15 @@ export const payrollAPI = {
   updateDepartment: (id, data) => api.put(`/payroll/departments/${id}`, data),
   deleteDepartment: (id) => api.delete(`/payroll/departments/${id}`),
   
+  // Designations
+  getDesignations: (params) => api.get('/payroll/designations', { params }),
+  createDesignation: (data) => api.post('/payroll/designations', data),
+  updateDesignation: (id, data) => api.put(`/payroll/designations/${id}`, data),
+  deleteDesignation: (id) => api.delete(`/payroll/designations/${id}`),
+  
+  // Seed Organization Structure
+  seedOrgStructure: () => api.post('/payroll/seed-org-structure'),
+  
   // Employees
   getEmployees: (params) => api.get('/payroll/employees', { params }),
   getEmployee: (id) => api.get(`/payroll/employees/${id}`),

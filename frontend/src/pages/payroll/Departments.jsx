@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Pencil, Trash2, Loader2, Building2, Users, AlertTriangle } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Trash2, Loader2, Building2, Users, AlertTriangle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Departments = () => {
@@ -35,8 +35,10 @@ export const Departments = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [seedDialogOpen, setSeedDialogOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '' });
 
   const fetchDepartments = async () => {
@@ -96,6 +98,24 @@ export const Departments = () => {
     }
   };
 
+  const handleSeedOrgStructure = async () => {
+    setSeeding(true);
+    try {
+      const response = await payrollAPI.seedOrgStructure();
+      const data = response.data;
+      toast.success(
+        `Seeded ${data.departments.created} departments and ${data.designations.created} designations!`,
+        { duration: 5000 }
+      );
+      setSeedDialogOpen(false);
+      fetchDepartments();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to seed organization structure');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="departments-page">
       {/* Header */}
@@ -106,10 +126,21 @@ export const Departments = () => {
           </h2>
           <p className="text-slate-500 mt-1">{departments.length} departments</p>
         </div>
-        <Button onClick={() => handleOpenDialog()} className="gap-2 bg-indigo-600 hover:bg-indigo-700" data-testid="add-department-btn">
-          <Plus className="w-4 h-4" />
-          Add Department
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setSeedDialogOpen(true)} 
+            className="gap-2"
+            data-testid="seed-org-btn"
+          >
+            <Sparkles className="w-4 h-4" />
+            Seed Org Structure
+          </Button>
+          <Button onClick={() => handleOpenDialog()} className="gap-2 bg-indigo-600 hover:bg-indigo-700" data-testid="add-department-btn">
+            <Plus className="w-4 h-4" />
+            Add Department
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -274,6 +305,38 @@ export const Departments = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Seed Organization Structure Dialog */}
+      <Dialog open={seedDialogOpen} onOpenChange={setSeedDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+              Seed Organization Structure
+            </DialogTitle>
+            <DialogDescription className="text-left space-y-3 pt-2">
+              <p>This will create the following for your clothing brand:</p>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li><strong>10 Departments:</strong> Executive, Design, Production, Marketing, E-Commerce, Logistics, Customer Experience, Finance, HR, Legal</li>
+                <li><strong>32 Designations:</strong> CEO, Fashion Designer, Production Manager, Brand Manager, etc.</li>
+              </ul>
+              <p className="text-amber-600 text-sm">Existing departments/designations will be skipped (no duplicates).</p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSeedDialogOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleSeedOrgStructure} 
+              disabled={seeding}
+              className="bg-indigo-600 hover:bg-indigo-700"
+              data-testid="confirm-seed-btn"
+            >
+              {seeding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+              {seeding ? 'Seeding...' : 'Seed Now'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

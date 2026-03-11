@@ -131,6 +131,17 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] "Join Company" tab allows joining existing company with company code
   - [x] Proper form validation and success/error feedback
 
+### Seed Organization Structure (COMPLETED ✅) - March 2026
+- [x] **Seed Departments & Designations API**
+  - [x] Backend endpoint `POST /api/payroll/seed-org-structure` (admin only)
+  - [x] Seeds 10 departments for clothing brand
+  - [x] Seeds 32 designations with roles and levels
+  - [x] Skips duplicates to avoid errors on re-run
+- [x] **UI Button for Seeding**
+  - [x] "Seed Org Structure" button on Departments page
+  - [x] Confirmation dialog with preview of what will be created
+  - [x] Works on any environment including production after deployment
+
 ### Phase 7 - Bank & Cash Account Integration (COMPLETED ✅) - Feb 2026
 - [x] **Bank & Cash Account Management Module** (`/bank-accounts`)
   - [x] Create multiple bank accounts and cash accounts
