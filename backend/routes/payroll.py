@@ -1627,9 +1627,24 @@ async def download_payslip_pdf(
     payroll_id: str,
     employee_id: str,
     token: Optional[str] = None,
-    current_user: dict = Depends(get_current_user)
 ):
     """Download payslip PDF for a specific employee in a payroll run"""
+    import jwt
+    import os
+    
+    # Get token from query parameter (for direct URL access)
+    if not token:
+        raise HTTPException(status_code=401, detail="Token required")
+    
+    # Decode the token
+    JWT_SECRET = os.environ.get('JWT_SECRET', 'erp-secret-key-change-in-production')
+    try:
+        current_user = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
     company_id = current_user["company_id"]
     
     # Get payroll
