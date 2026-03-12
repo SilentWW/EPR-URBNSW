@@ -41,14 +41,21 @@ def set_auth_dependency(auth_func):
     pass
 
 # Collections categorized
-MASTER_COLLECTIONS = ["users", "accounts", "tax_rates", "products", "customers", "suppliers"]
+MASTER_COLLECTIONS = [
+    "users", "accounts", "tax_rates", "products", "customers", "suppliers",
+    "departments", "designations", "employees", "product_categories", "product_variations",
+    "raw_materials", "rm_suppliers", "packaging_rules"
+]
 TRANSACTIONAL_COLLECTIONS = [
     "sales_orders", "purchase_orders", "payments", "inventory_movements",
-    "journal_entries", "accounting_entries", "bank_transactions",
-    "audit_logs", "notifications", "grn", "grn_items", "invoices",
-    "payroll", "payroll_items", "attendance", "employee_tasks", "leaves",
-    "advances", "work_orders", "bom", "raw_material_requirements",
-    "packaging_movements"
+    "journal_entries", "accounting_entries", "bank_transactions", "bank_accounts",
+    "audit_logs", "notifications", "grns", "grn_items", "invoices",
+    "payroll", "payrolls", "payroll_items", "attendance", "employee_tasks", "leaves",
+    "advances", "employee_advances", "leave_requests", "leave_balances",
+    "work_orders", "work_order_materials", "bom", "bill_of_materials",
+    "raw_material_movements", "rm_grn", "rm_grn_returns", "rm_purchase_orders",
+    "rm_accounts_payable", "rm_supplier_credits", "supplier_credits",
+    "quality_inspections", "packaging_movements", "task_payments"
 ]
 ALL_COLLECTIONS = MASTER_COLLECTIONS + TRANSACTIONAL_COLLECTIONS
 
