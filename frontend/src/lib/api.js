@@ -292,6 +292,16 @@ export const payrollAPI = {
   getPayrollSummary: (params) => api.get('/payroll/reports/summary', { params }),
   getEpfEtfReport: (params) => api.get('/payroll/reports/epf-etf', { params }),
   getDepartmentReport: (params) => api.get('/payroll/reports/department', { params }),
+  
+  // Payslip PDF Download
+  downloadPayslipPdf: (payrollId, employeeId) => {
+    const token = localStorage.getItem('erp_token');
+    const baseUrl = process.env.REACT_APP_BACKEND_URL;
+    window.open(`${baseUrl}/api/payroll/payslips/${payrollId}/${employeeId}/pdf?token=${token}`, '_blank');
+  },
+  
+  // My Payslips (Employee Self-Service)
+  getMyPayslips: () => api.get('/payroll/my-payslips'),
 };
 
 // Seed Demo Data

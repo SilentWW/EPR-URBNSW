@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
-import api from '../lib/api';
+import api, { payrollAPI } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
+import { Badge } from '../components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
 import { toast } from 'sonner';
 import {
   User,
@@ -15,13 +24,18 @@ import {
   Calendar,
   AlertCircle,
   Save,
-  Loader2
+  Loader2,
+  Download,
+  FileText,
+  CreditCard
 } from 'lucide-react';
 
 export default function MyProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [payslips, setPayslips] = useState([]);
+  const [payslipsLoading, setPayslipsLoading] = useState(true);
   const [formData, setFormData] = useState({
     phone: '',
     address: '',
@@ -37,6 +51,7 @@ export default function MyProfile() {
 
   useEffect(() => {
     fetchProfile();
+    fetchPayslips();
   }, []);
 
   const fetchProfile = async () => {
@@ -65,6 +80,26 @@ export default function MyProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchPayslips = async () => {
+    try {
+      setPayslipsLoading(true);
+      const res = await payrollAPI.getMyPayslips();
+      setPayslips(res.data || []);
+    } catch (error) {
+      console.error('Failed to load payslips:', error);
+    } finally {
+      setPayslipsLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR',
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
   };
 
   const handleSave = async () => {
@@ -316,6 +351,81 @@ export default function MyProfile() {
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* My Payslips Section */}
+      <Card data-testid="my-payslips-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-green-600" />
+            My Payslips
+          </CardTitle>
+          <CardDescription>View and download your salary payslips</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {payslipsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            </div>
+          ) : payslips.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p>No payslips available yet</p>
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payslip #</TableHead>
+                    <TableHead>Pay Period</TableHead>
+                    <TableHead className="text-right">Gross Salary</TableHead>
+                    <TableHead className="text-right">Deductions</TableHead>
+                    <TableHead className="text-right">Net Salary</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Download</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payslips.map((payslip) => (
+                    <TableRow key={payslip.id}>
+                      <TableCell className="font-medium">{payslip.payroll_number}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {payslip.period_start} - {payslip.period_end}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(payslip.gross_salary)}</TableCell>
+                      <TableCell className="text-right text-amber-600">{formatCurrency(payslip.total_deductions)}</TableCell>
+                      <TableCell className="text-right font-medium text-green-600">{formatCurrency(payslip.net_salary)}</TableCell>
+                      <TableCell>
+                        <Badge className={
+                          payslip.payroll_status === 'paid' ? 'bg-green-100 text-green-700' :
+                          payslip.payroll_status === 'processed' ? 'bg-emerald-100 text-emerald-700' :
+                          'bg-slate-100 text-slate-700'
+                        }>
+                          {payslip.payroll_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => payrollAPI.downloadPayslipPdf(payslip.payroll_id, profile?.id)}
+                          className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                          data-testid={`download-my-payslip-${payslip.id}`}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          PDF
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

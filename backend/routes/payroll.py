@@ -3,14 +3,24 @@ Payroll Module Router
 Handles Departments, Employees, Salary Structure, Leave, Advances, Payroll Processing
 """
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from datetime import datetime, timezone, date, timedelta
 from pydantic import BaseModel
 from enum import Enum
 from decimal import Decimal
+from io import BytesIO
 
 from utils.helpers import serialize_doc, generate_id, get_current_timestamp
 from utils.auth import get_current_user
+
+# PDF generation imports
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, mm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
@@ -1420,6 +1430,307 @@ async def get_payroll(
     
     payroll["items"] = items
     return payroll
+
+
+def generate_payslip_pdf(employee: dict, payroll_item: dict, payroll: dict, company: dict) -> BytesIO:
+    """Generate a professional PDF payslip"""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=15*mm, bottomMargin=15*mm)
+    
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, alignment=TA_CENTER, spaceAfter=5)
+    subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, alignment=TA_CENTER, textColor=colors.grey)
+    header_style = ParagraphStyle('Header', parent=styles['Heading2'], fontSize=12, spaceAfter=10, spaceBefore=15)
+    normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=9)
+    bold_style = ParagraphStyle('Bold', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold')
+    
+    # Company Header
+    company_name = company.get('name', 'Company')
+    elements.append(Paragraph(company_name, title_style))
+    elements.append(Paragraph("PAYSLIP", subtitle_style))
+    elements.append(Spacer(1, 5*mm))
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#4F46E5')))
+    elements.append(Spacer(1, 5*mm))
+    
+    # Payslip Info
+    payslip_info = [
+        ['Payslip No:', payroll.get('payroll_number', 'N/A'), 'Pay Period:', f"{payroll.get('period_start', '')} to {payroll.get('period_end', '')}"],
+        ['Payment Date:', payroll.get('payment_date', payroll.get('created_at', '')[:10]), 'Status:', payroll.get('status', 'processed').upper()],
+    ]
+    t = Table(payslip_info, colWidths=[70, 120, 70, 120])
+    t.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#374151')),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 8*mm))
+    
+    # Employee Details Section
+    elements.append(Paragraph("EMPLOYEE DETAILS", header_style))
+    emp_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}"
+    emp_details = [
+        ['Employee ID:', employee.get('employee_id', 'N/A'), 'Name:', emp_name],
+        ['Department:', employee.get('department_name', 'N/A'), 'Designation:', employee.get('designation', payroll_item.get('designation', 'N/A'))],
+        ['NIC:', employee.get('nic', 'N/A'), 'Bank Account:', employee.get('bank_account_number', 'N/A')],
+    ]
+    t = Table(emp_details, colWidths=[70, 120, 70, 120])
+    t.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F9FAFB')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 8*mm))
+    
+    # Earnings & Deductions in two columns
+    elements.append(Paragraph("SALARY BREAKDOWN", header_style))
+    
+    # Prepare earnings data
+    earnings_data = [['EARNINGS', 'Amount (LKR)']]
+    earnings_data.append(['Basic Salary', f"{payroll_item.get('basic_salary', 0):,.2f}"])
+    
+    # Add allowances
+    allowances = payroll_item.get('allowances', {})
+    if isinstance(allowances, dict):
+        for name, amount in allowances.items():
+            if amount and amount > 0:
+                earnings_data.append([name.replace('_', ' ').title(), f"{amount:,.2f}"])
+    
+    # Add task earnings
+    task_earnings = payroll_item.get('task_earnings', 0)
+    if task_earnings and task_earnings > 0:
+        earnings_data.append(['Task Earnings', f"{task_earnings:,.2f}"])
+    
+    # OT if any
+    ot_amount = payroll_item.get('ot_amount', 0)
+    if ot_amount and ot_amount > 0:
+        earnings_data.append(['Overtime', f"{ot_amount:,.2f}"])
+    
+    earnings_data.append(['', ''])
+    earnings_data.append(['Gross Salary', f"{payroll_item.get('gross_salary', 0):,.2f}"])
+    
+    # Prepare deductions data
+    deductions_data = [['DEDUCTIONS', 'Amount (LKR)']]
+    deductions = payroll_item.get('deductions', {})
+    if isinstance(deductions, dict):
+        for name, amount in deductions.items():
+            if amount and amount > 0:
+                deductions_data.append([name.replace('_', ' ').title(), f"{amount:,.2f}"])
+    
+    # Add advance deductions
+    advance_deduction = payroll_item.get('advance_deduction', 0)
+    if advance_deduction and advance_deduction > 0:
+        deductions_data.append(['Advance Repayment', f"{advance_deduction:,.2f}"])
+    
+    # Loan deduction
+    loan_deduction = payroll_item.get('loan_deduction', 0)
+    if loan_deduction and loan_deduction > 0:
+        deductions_data.append(['Loan Repayment', f"{loan_deduction:,.2f}"])
+    
+    deductions_data.append(['', ''])
+    deductions_data.append(['Total Deductions', f"{payroll_item.get('total_deductions', 0):,.2f}"])
+    
+    # Make both tables same length
+    while len(earnings_data) < len(deductions_data):
+        earnings_data.insert(-2, ['', ''])
+    while len(deductions_data) < len(earnings_data):
+        deductions_data.insert(-2, ['', ''])
+    
+    # Create side-by-side table
+    combined_data = []
+    for i, (e_row, d_row) in enumerate(zip(earnings_data, deductions_data)):
+        combined_data.append([e_row[0], e_row[1], '', d_row[0], d_row[1]])
+    
+    col_widths = [100, 70, 20, 100, 70]
+    t = Table(combined_data, colWidths=col_widths)
+    
+    # Style the table
+    table_style = [
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTNAME', (0, 0), (1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (3, 0), (4, 0), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, 0), (1, 0), colors.HexColor('#4F46E5')),
+        ('BACKGROUND', (3, 0), (4, 0), colors.HexColor('#DC2626')),
+        ('TEXTCOLOR', (0, 0), (1, 0), colors.white),
+        ('TEXTCOLOR', (3, 0), (4, 0), colors.white),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('ALIGN', (4, 0), (4, -1), 'RIGHT'),
+        ('GRID', (0, 0), (1, -1), 0.5, colors.HexColor('#E5E7EB')),
+        ('GRID', (3, 0), (4, -1), 0.5, colors.HexColor('#E5E7EB')),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]
+    
+    # Bold the totals row
+    total_row = len(combined_data) - 1
+    table_style.extend([
+        ('FONTNAME', (0, total_row), (1, total_row), 'Helvetica-Bold'),
+        ('FONTNAME', (3, total_row), (4, total_row), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, total_row), (1, total_row), colors.HexColor('#E0E7FF')),
+        ('BACKGROUND', (3, total_row), (4, total_row), colors.HexColor('#FEE2E2')),
+    ])
+    
+    t.setStyle(TableStyle(table_style))
+    elements.append(t)
+    elements.append(Spacer(1, 10*mm))
+    
+    # Net Salary Box
+    net_salary = payroll_item.get('net_salary', 0)
+    net_data = [
+        ['NET SALARY PAYABLE', f"LKR {net_salary:,.2f}"]
+    ]
+    t = Table(net_data, colWidths=[200, 160])
+    t.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 14),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#10B981')),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 15),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 15*mm))
+    
+    # Footer
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#D1D5DB')))
+    elements.append(Spacer(1, 3*mm))
+    footer_text = f"This is a computer-generated payslip and does not require a signature. Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=colors.grey, alignment=TA_CENTER)
+    elements.append(Paragraph(footer_text, footer_style))
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+@router.get("/payslips/{payroll_id}/{employee_id}/pdf")
+async def download_payslip_pdf(
+    payroll_id: str,
+    employee_id: str,
+    token: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Download payslip PDF for a specific employee in a payroll run"""
+    company_id = current_user["company_id"]
+    
+    # Get payroll
+    payroll = await db.payrolls.find_one(
+        {"id": payroll_id, "company_id": company_id},
+        {"_id": 0}
+    )
+    if not payroll:
+        raise HTTPException(status_code=404, detail="Payroll not found")
+    
+    # Get payroll item for this employee
+    payroll_item = await db.payroll_items.find_one(
+        {"payroll_id": payroll_id, "employee_id": employee_id},
+        {"_id": 0}
+    )
+    if not payroll_item:
+        raise HTTPException(status_code=404, detail="Payslip not found for this employee")
+    
+    # Check access - admin/manager can download any, employees can only download their own
+    if current_user["role"] not in ["admin", "manager"]:
+        # Check if this is the employee's own payslip
+        employee = await db.employees.find_one(
+            {"id": employee_id, "user_id": current_user["user_id"]},
+            {"_id": 0}
+        )
+        if not employee:
+            raise HTTPException(status_code=403, detail="You can only download your own payslip")
+    
+    # Get employee details
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Get department name
+    if employee.get("department_id"):
+        dept = await db.departments.find_one({"id": employee["department_id"]}, {"_id": 0, "name": 1})
+        employee["department_name"] = dept["name"] if dept else "N/A"
+    
+    # Get designation name
+    if employee.get("designation_id"):
+        desig = await db.designations.find_one({"id": employee["designation_id"]}, {"_id": 0, "name": 1})
+        employee["designation"] = desig["name"] if desig else employee.get("designation", "N/A")
+    
+    # Get company details
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    
+    # Generate PDF
+    pdf_buffer = generate_payslip_pdf(employee, payroll_item, payroll, company)
+    
+    # Create filename
+    emp_name = f"{employee.get('first_name', '')}_{employee.get('last_name', '')}".replace(' ', '_')
+    filename = f"Payslip_{emp_name}_{payroll.get('period_start', '')}_{payroll.get('period_end', '')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/my-payslips")
+async def get_my_payslips(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get payslips for the current logged-in employee"""
+    company_id = current_user["company_id"]
+    
+    # Get employee record for current user
+    employee = await db.employees.find_one(
+        {"user_id": current_user["user_id"], "company_id": company_id},
+        {"_id": 0}
+    )
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee profile not found")
+    
+    # Get all payroll items for this employee
+    payroll_items = await db.payroll_items.find(
+        {"employee_id": employee["id"], "company_id": company_id}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with payroll details
+    result = []
+    for item in payroll_items:
+        payroll = await db.payrolls.find_one(
+            {"id": item["payroll_id"]},
+            {"_id": 0, "payroll_number": 1, "period_start": 1, "period_end": 1, "status": 1, "payment_date": 1}
+        )
+        if payroll:
+            item.pop("_id", None)
+            result.append({
+                **item,
+                "payroll_number": payroll.get("payroll_number"),
+                "period_start": payroll.get("period_start"),
+                "period_end": payroll.get("period_end"),
+                "payroll_status": payroll.get("status"),
+                "payment_date": payroll.get("payment_date")
+            })
+    
+    return result
+
 
 @router.post("/payrolls")
 async def create_payroll(

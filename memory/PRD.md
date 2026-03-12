@@ -131,6 +131,27 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] "Join Company" tab allows joining existing company with company code
   - [x] Proper form validation and success/error feedback
 
+### Payslip PDF Generation (COMPLETED ✅) - March 2026
+- [x] **PDF Generation Backend:**
+  - [x] ReportLab library integration for professional PDFs
+  - [x] Endpoint: `GET /api/payroll/payslips/{payroll_id}/{employee_id}/pdf`
+  - [x] Company header with name
+  - [x] Employee details section (ID, Name, Department, Designation, NIC, Bank Account)
+  - [x] Earnings breakdown (Basic, Allowances, Task Pay, OT)
+  - [x] Deductions breakdown (EPF, Tax, Advances, Loans)
+  - [x] Net Salary box with green highlight
+  - [x] Professional styling with color-coded sections
+  - [x] Auto-generated footer with timestamp
+- [x] **My Payslips (Employee Self-Service):**
+  - [x] New "My Payslips" section in My Profile page
+  - [x] List of all payslips with period, gross, deductions, net salary
+  - [x] Status badges (paid, processed, etc.)
+  - [x] PDF download button for each payslip
+  - [x] Backend endpoint: `GET /api/payroll/my-payslips`
+- [x] **Admin Payslip Download:**
+  - [x] Download button in Payroll View Details modal
+  - [x] Can download any employee's payslip
+
 ### Employee Permission Control System (COMPLETED ✅) - March 2026
 - [x] **Permission Tab in Employee Form:**
   - [x] Added 4th tab "Permissions" with shield icon

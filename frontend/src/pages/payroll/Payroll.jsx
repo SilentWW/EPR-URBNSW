@@ -39,7 +39,7 @@ import {
 } from '../../components/ui/dropdown-menu';
 import { 
   Plus, MoreHorizontal, Eye, Loader2, Calculator, CheckCircle, Send, 
-  CreditCard, Trash2, FileText, AlertTriangle, Clock
+  CreditCard, Trash2, FileText, AlertTriangle, Clock, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -520,6 +520,7 @@ export const Payroll = () => {
                       <TableHead className="text-right">Tax</TableHead>
                       <TableHead className="text-right">Advances</TableHead>
                       <TableHead className="text-right">Net Pay</TableHead>
+                      <TableHead className="text-center">Payslip</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -555,6 +556,17 @@ export const Payroll = () => {
                           {item.advance_deduction > 0 ? formatCurrency(item.advance_deduction) : '-'}
                         </TableCell>
                         <TableCell className="text-right font-medium text-green-600">{formatCurrency(item.net_salary)}</TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => payrollAPI.downloadPayslipPdf(payrollDetails.id, item.employee_id)}
+                            className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                            data-testid={`download-payslip-${item.employee_id}`}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
