@@ -129,11 +129,20 @@ async def reset_data(request: DataResetRequest, current_user: dict = Depends(get
                 if result.deleted_count > 0:
                     collections_cleared.append(collection)
             
-            # Clear transactional data
+            # Clear transactional data (includes GRN, grn_items)
             for collection in collections_to_clear:
                 result = await db[collection].delete_many({"company_id": company_id})
                 if result.deleted_count > 0:
                     collections_cleared.append(collection)
+            
+            # Also reset any remaining account balances to zero (Bank, Cash, etc.)
+            # This handles any accounts that weren't deleted above
+            remaining_accounts = await db.accounts.update_many(
+                {"company_id": company_id},
+                {"$set": {"current_balance": 0, "updated_at": get_current_timestamp()}}
+            )
+            if remaining_accounts.modified_count > 0:
+                collections_cleared.append("account balances reset to zero")
         
         # Log the reset action
         await db.audit_logs.insert_one({
@@ -187,6 +196,8 @@ async def preview_reset(
     else:
         collections = ALL_COLLECTIONS
         preview["warnings"].append("All master data including products, customers, suppliers will be deleted")
+        preview["warnings"].append("All GRN (Goods Received Notes) records will be deleted")
+        preview["warnings"].append("Bank and Cash account balances will be reset to zero")
         preview["warnings"].append("Chart of accounts will need to be re-initialized")
     
     for collection in collections:

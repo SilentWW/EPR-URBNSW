@@ -453,7 +453,7 @@ export default function SystemAdmin() {
               <p className="text-sm font-medium">Reset Options:</p>
               <ul className="text-sm text-slate-600 space-y-1">
                 <li>• <strong>Transactional Reset:</strong> Clears orders, payments, journal entries. Keeps products, customers, accounts.</li>
-                <li>• <strong>Full Reset:</strong> Clears all data except your user account and company settings.</li>
+                <li>• <strong>Full Reset:</strong> Clears ALL data including GRN, Bank/Cash account balances, products, customers, suppliers. Only keeps your user account and company settings.</li>
               </ul>
             </div>
             <Button 
