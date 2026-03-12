@@ -131,6 +131,24 @@ Build a cloud-based ERP system for business operations with the intention of sel
   - [x] "Join Company" tab allows joining existing company with company code
   - [x] Proper form validation and success/error feedback
 
+### Purchase Order Accounting Fix (COMPLETED ✅) - March 2026
+- [x] **Fixed Double Inventory Counting Bug:**
+  - Issue: Inventory was being counted twice - once on payment and again on GRN
+  - Root cause: Payment against PO was debiting Inventory instead of Advance to Suppliers
+- [x] **Corrected Accounting Flow:**
+  - **Scenario 1 - Payment BEFORE GRN (Advance/Prepayment):**
+    - Payment: Debit Advance to Suppliers, Credit Cash/Bank
+    - GRN: Debit Inventory, Credit Accounts Payable
+    - Auto-clear: Debit Accounts Payable, Credit Advance to Suppliers
+  - **Scenario 2 - GRN BEFORE Payment (Standard):**
+    - GRN: Debit Inventory, Credit Accounts Payable
+    - Payment: Debit Accounts Payable, Credit Cash/Bank
+- [x] **New Account Created:**
+  - Code 1350 - "Advance to Suppliers" (Current Asset)
+  - Auto-created if not exists when advance payment is made
+- [x] **Automatic Advance Clearing:**
+  - When GRN is created for a PO with advance payments, system automatically creates clearing entry
+
 ### Payslip PDF Generation (COMPLETED ✅) - March 2026
 - [x] **PDF Generation Backend:**
   - [x] ReportLab library integration for professional PDFs

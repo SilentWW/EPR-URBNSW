@@ -373,8 +373,8 @@ async def create_grn(
             {"$set": {"status": "received", "updated_at": get_current_timestamp()}}
         )
     
-    # Create automatic finance entries
-    await create_grn_finance_entries(company_id, grn_id, grn_number, supplier["name"], total_cost, user_id)
+    # Create automatic finance entries (pass PO ID to handle advance payments)
+    await create_grn_finance_entries(company_id, grn_id, grn_number, supplier["name"], total_cost, user_id, data.po_id)
     
     # Sync to WooCommerce in background
     if data.sync_to_woo:
@@ -401,25 +401,30 @@ async def create_grn_finance_entries(
     grn_number: str,
     supplier_name: str,
     total_cost: float,
-    user_id: str
+    user_id: str,
+    purchase_order_id: str = None
 ):
-    """Create automatic journal entries for GRN"""
+    """Create automatic journal entries for GRN with proper accounting"""
     
     # Get account IDs
     inventory_account = await db.accounts.find_one(
         {"company_id": company_id, "code": "1400"},  # Inventory
-        {"id": 1}
+        {"_id": 0}
     )
     ap_account = await db.accounts.find_one(
         {"company_id": company_id, "code": "2100"},  # Accounts Payable
-        {"id": 1}
+        {"_id": 0}
+    )
+    advance_account = await db.accounts.find_one(
+        {"company_id": company_id, "code": "1350"},  # Advance to Suppliers
+        {"_id": 0}
     )
     
     if not inventory_account or not ap_account:
         print(f"Warning: Finance accounts not found for company {company_id}")
         return
     
-    # Create journal entry: Debit Inventory, Credit Accounts Payable
+    # Step 1: Create journal entry for GRN - Debit Inventory, Credit Accounts Payable
     entry_id = generate_id()
     entry_number = f"GRN-JE-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
     
@@ -471,6 +476,69 @@ async def create_grn_finance_entries(
         {"id": ap_account["id"]},
         {"$inc": {"current_balance": total_cost}}
     )
+    
+    # Step 2: Check if advance payments exist for this PO and clear them against AP
+    if purchase_order_id and advance_account:
+        po = await db.purchase_orders.find_one({"id": purchase_order_id}, {"_id": 0, "paid_amount": 1})
+        advance_paid = po.get("paid_amount", 0) if po else 0
+        
+        if advance_paid > 0:
+            # Clear advance against accounts payable
+            # Amount to clear is the lesser of advance paid or total cost
+            clear_amount = min(advance_paid, total_cost)
+            
+            clear_entry_id = generate_id()
+            clear_entry_number = f"ADV-CLR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{clear_entry_id[:4].upper()}"
+            
+            clear_lines = [
+                {
+                    "account_id": ap_account["id"],
+                    "account_code": "2100",
+                    "account_name": "Accounts Payable",
+                    "debit": clear_amount,
+                    "credit": 0,
+                    "description": f"Clear advance payment - {grn_number}"
+                },
+                {
+                    "account_id": advance_account["id"],
+                    "account_code": "1350",
+                    "account_name": "Advance to Suppliers",
+                    "debit": 0,
+                    "credit": clear_amount,
+                    "description": f"Apply advance to {supplier_name} - {grn_number}"
+                }
+            ]
+            
+            clear_entry = {
+                "id": clear_entry_id,
+                "entry_number": clear_entry_number,
+                "company_id": company_id,
+                "entry_date": get_current_timestamp()[:10],
+                "reference_number": grn_number,
+                "description": f"Apply advance payment - {supplier_name}",
+                "lines": clear_lines,
+                "total_debit": clear_amount,
+                "total_credit": clear_amount,
+                "is_balanced": True,
+                "is_auto_generated": True,
+                "is_reversed": False,
+                "reference_type": "grn_advance_clear",
+                "reference_id": grn_id,
+                "created_by": user_id,
+                "created_at": get_current_timestamp()
+            }
+            await db.journal_entries.insert_one(clear_entry)
+            
+            # Accounts Payable (liability): debit decreases balance
+            await db.accounts.update_one(
+                {"id": ap_account["id"]},
+                {"$inc": {"current_balance": -clear_amount}}
+            )
+            # Advance to Suppliers (asset): credit decreases balance
+            await db.accounts.update_one(
+                {"id": advance_account["id"]},
+                {"$inc": {"current_balance": -clear_amount}}
+            )
     
     # Also create accounting entry for reporting
     await db.accounting_entries.insert_one({

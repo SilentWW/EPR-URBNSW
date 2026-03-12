@@ -2497,49 +2497,109 @@ async def create_payment(data: PaymentCreate, current_user: dict = Depends(get_c
         cash_account = await db.accounts.find_one({"company_id": company_id, "category": "cash"})
     
     if data.reference_type == "purchase_order":
-        # Payment to supplier: Record as Inventory purchase
-        # Debit: Inventory (asset increases - we now own the goods)
-        # Credit: Cash (asset decreases - money goes out)
-        inventory_account = await db.accounts.find_one({"company_id": company_id, "code": "1400"})  # Inventory
-        if not inventory_account:
-            inventory_account = await db.accounts.find_one({"company_id": company_id, "category": "inventory"})
+        # Check if GRN already exists for this PO (goods already received)
+        grn_exists = await db.grn.find_one({
+            "purchase_order_id": data.reference_id,
+            "company_id": company_id,
+            "status": {"$ne": "cancelled"}
+        })
         
-        if cash_account and inventory_account:
-            entry_id = str(uuid.uuid4())
-            entry_number = f"PAY-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+        ap_account = await db.accounts.find_one({"company_id": company_id, "code": "2100"})  # Accounts Payable
+        if not ap_account:
+            ap_account = await db.accounts.find_one({"company_id": company_id, "account_type": "liability"})
+        
+        if grn_exists:
+            # GRN already created - this is payment to clear the payable
+            # Debit: Accounts Payable (liability decreases)
+            # Credit: Cash (asset decreases)
+            if cash_account and ap_account:
+                entry_id = str(uuid.uuid4())
+                entry_number = f"PAY-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+                
+                journal_entry = {
+                    "id": entry_id,
+                    "entry_number": entry_number,
+                    "company_id": company_id,
+                    "entry_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "reference_number": order.get("order_number"),
+                    "description": f"Payment to supplier - {order.get('order_number')}",
+                    "lines": [
+                        {"account_id": ap_account["id"], "account_code": ap_account["code"], "account_name": ap_account["name"], "debit": data.amount, "credit": 0, "description": "Clear accounts payable"},
+                        {"account_id": cash_account["id"], "account_code": cash_account["code"], "account_name": cash_account["name"], "debit": 0, "credit": data.amount, "description": "Cash payment to supplier"}
+                    ],
+                    "total_debit": data.amount,
+                    "total_credit": data.amount,
+                    "is_balanced": True,
+                    "is_auto_generated": True,
+                    "is_reversed": False,
+                    "reference_type": "payment",
+                    "reference_id": payment_id,
+                    "created_by": current_user["user_id"],
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.journal_entries.insert_one(journal_entry)
+                # Accounts Payable (liability): debit decreases balance
+                await db.accounts.update_one({"id": ap_account["id"]}, {"$inc": {"current_balance": -data.amount}})
+                # Cash (asset): credit decreases balance
+                await db.accounts.update_one({"id": cash_account["id"]}, {"$inc": {"current_balance": -data.amount}})
+        else:
+            # No GRN yet - this is an advance/prepayment
+            # Debit: Advance to Suppliers (asset - we have a claim on goods)
+            # Credit: Cash (asset decreases)
+            advance_account = await db.accounts.find_one({"company_id": company_id, "code": "1350"})  # Advance to Suppliers
+            if not advance_account:
+                # Create Advance to Suppliers account if it doesn't exist
+                advance_account = {
+                    "id": str(uuid.uuid4()),
+                    "company_id": company_id,
+                    "code": "1350",
+                    "name": "Advance to Suppliers",
+                    "account_type": "asset",
+                    "category": "current_asset",
+                    "description": "Prepayments made to suppliers before goods received",
+                    "current_balance": 0,
+                    "is_active": True,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.accounts.insert_one(advance_account)
             
-            journal_entry = {
-                "id": entry_id,
-                "entry_number": entry_number,
-                "company_id": company_id,
-                "entry_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                "reference_number": order.get("order_number"),
-                "description": f"Inventory purchase - {order.get('order_number')}",
-                "lines": [
-                    {"account_id": inventory_account["id"], "account_code": inventory_account["code"], "account_name": inventory_account["name"], "debit": data.amount, "credit": 0, "description": "Inventory received"},
-                    {"account_id": cash_account["id"], "account_code": cash_account["code"], "account_name": cash_account["name"], "debit": 0, "credit": data.amount, "description": "Cash payment to supplier"}
-                ],
-                "total_debit": data.amount,
-                "total_credit": data.amount,
-                "is_balanced": True,
-                "is_auto_generated": True,
-                "is_reversed": False,
-                "reference_type": "payment",
-                "reference_id": payment_id,
-                "created_by": current_user["user_id"],
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            await db.journal_entries.insert_one(journal_entry)
-            # Inventory (asset): debit increases balance
-            await db.accounts.update_one({"id": inventory_account["id"]}, {"$inc": {"current_balance": data.amount}})
-            # Cash (asset): credit decreases balance
-            await db.accounts.update_one({"id": cash_account["id"]}, {"$inc": {"current_balance": -data.amount}})
-            # Update bank account balance if specific account was selected
-            if data.bank_account_id:
-                await db.bank_accounts.update_one(
-                    {"id": data.bank_account_id},
-                    {"$inc": {"current_balance": -data.amount}}
-                )
+            if cash_account and advance_account:
+                entry_id = str(uuid.uuid4())
+                entry_number = f"PAY-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{entry_id[:4].upper()}"
+                
+                journal_entry = {
+                    "id": entry_id,
+                    "entry_number": entry_number,
+                    "company_id": company_id,
+                    "entry_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "reference_number": order.get("order_number"),
+                    "description": f"Advance payment to supplier - {order.get('order_number')}",
+                    "lines": [
+                        {"account_id": advance_account["id"], "account_code": advance_account.get("code", "1350"), "account_name": advance_account.get("name", "Advance to Suppliers"), "debit": data.amount, "credit": 0, "description": "Prepayment for purchase order"},
+                        {"account_id": cash_account["id"], "account_code": cash_account["code"], "account_name": cash_account["name"], "debit": 0, "credit": data.amount, "description": "Cash advance to supplier"}
+                    ],
+                    "total_debit": data.amount,
+                    "total_credit": data.amount,
+                    "is_balanced": True,
+                    "is_auto_generated": True,
+                    "is_reversed": False,
+                    "reference_type": "payment",
+                    "reference_id": payment_id,
+                    "created_by": current_user["user_id"],
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.journal_entries.insert_one(journal_entry)
+                # Advance to Suppliers (asset): debit increases balance
+                await db.accounts.update_one({"id": advance_account["id"]}, {"$inc": {"current_balance": data.amount}})
+                # Cash (asset): credit decreases balance
+                await db.accounts.update_one({"id": cash_account["id"]}, {"$inc": {"current_balance": -data.amount}})
+        
+        # Update bank account balance if specific account was selected
+        if data.bank_account_id:
+            await db.bank_accounts.update_one(
+                {"id": data.bank_account_id},
+                {"$inc": {"current_balance": -data.amount}}
+            )
     
     elif data.reference_type == "sales_order":
         # Payment from customer: Debit Cash, Credit AR
