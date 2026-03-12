@@ -1477,8 +1477,8 @@ def generate_payslip_pdf(employee: dict, payroll_item: dict, payroll: dict, comp
     emp_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}"
     emp_details = [
         ['Employee ID:', employee.get('employee_id', 'N/A'), 'Name:', emp_name],
-        ['Department:', employee.get('department_name', 'N/A'), 'Designation:', employee.get('designation', payroll_item.get('designation', 'N/A'))],
-        ['NIC:', employee.get('nic', 'N/A'), 'Bank Account:', employee.get('bank_account_number', 'N/A')],
+        ['Department:', employee.get('department_name', payroll_item.get('department_name', 'N/A')), 'Designation:', employee.get('designation', payroll_item.get('designation', 'N/A'))],
+        ['NIC:', employee.get('nic', 'N/A') or 'N/A', 'Bank Account:', employee.get('bank_account_number', 'N/A') or 'N/A'],
     ]
     t = Table(emp_details, colWidths=[70, 120, 70, 120])
     t.setStyle(TableStyle([
@@ -1502,35 +1502,72 @@ def generate_payslip_pdf(employee: dict, payroll_item: dict, payroll: dict, comp
     earnings_data = [['EARNINGS', 'Amount (LKR)']]
     earnings_data.append(['Basic Salary', f"{payroll_item.get('basic_salary', 0):,.2f}"])
     
-    # Add allowances
-    allowances = payroll_item.get('allowances', {})
-    if isinstance(allowances, dict):
+    # Add allowances (list of dicts with 'name' and 'amount')
+    allowances = payroll_item.get('allowances', [])
+    if isinstance(allowances, list):
+        for allowance in allowances:
+            if isinstance(allowance, dict) and allowance.get('amount', 0) > 0:
+                earnings_data.append([allowance.get('name', 'Allowance'), f"{allowance.get('amount', 0):,.2f}"])
+    elif isinstance(allowances, dict):
         for name, amount in allowances.items():
             if amount and amount > 0:
                 earnings_data.append([name.replace('_', ' ').title(), f"{amount:,.2f}"])
     
-    # Add task earnings
-    task_earnings = payroll_item.get('task_earnings', 0)
-    if task_earnings and task_earnings > 0:
-        earnings_data.append(['Task Earnings', f"{task_earnings:,.2f}"])
+    # Add other allowances
+    other_allowances = payroll_item.get('other_allowances', 0)
+    if other_allowances and other_allowances > 0:
+        earnings_data.append(['Other Allowances', f"{other_allowances:,.2f}"])
+    
+    # Add bonus
+    bonus = payroll_item.get('bonus', 0)
+    if bonus and bonus > 0:
+        earnings_data.append(['Bonus', f"{bonus:,.2f}"])
+    
+    # Add task earnings (list of dicts)
+    task_payments = payroll_item.get('task_payments', [])
+    task_total = payroll_item.get('task_payments_amount', 0)
+    if task_total and task_total > 0:
+        if isinstance(task_payments, list) and len(task_payments) > 0:
+            for task in task_payments[:3]:  # Show max 3 tasks
+                if isinstance(task, dict):
+                    earnings_data.append([f"Task: {task.get('title', 'Task')[:20]}", f"{task.get('amount', 0):,.2f}"])
+            if len(task_payments) > 3:
+                remaining = sum(t.get('amount', 0) for t in task_payments[3:])
+                earnings_data.append([f"Other Tasks ({len(task_payments)-3})", f"{remaining:,.2f}"])
+        else:
+            earnings_data.append(['Task Earnings', f"{task_total:,.2f}"])
     
     # OT if any
-    ot_amount = payroll_item.get('ot_amount', 0)
+    ot_amount = payroll_item.get('overtime_amount', 0)
+    ot_hours = payroll_item.get('overtime_hours', 0)
+    ot_weekend = payroll_item.get('overtime_weekend_hours', 0)
     if ot_amount and ot_amount > 0:
-        earnings_data.append(['Overtime', f"{ot_amount:,.2f}"])
+        ot_label = f"Overtime ({ot_hours:.1f}h + {ot_weekend:.1f}h wknd)" if ot_hours or ot_weekend else "Overtime"
+        earnings_data.append([ot_label, f"{ot_amount:,.2f}"])
+    
+    # Attendance days info
+    attendance_days = payroll_item.get('attendance_days', 0)
+    if attendance_days > 0:
+        earnings_data.append(['', ''])
+        earnings_data.append([f'Working Days: {attendance_days}', ''])
     
     earnings_data.append(['', ''])
     earnings_data.append(['Gross Salary', f"{payroll_item.get('gross_salary', 0):,.2f}"])
     
     # Prepare deductions data
     deductions_data = [['DEDUCTIONS', 'Amount (LKR)']]
-    deductions = payroll_item.get('deductions', {})
-    if isinstance(deductions, dict):
-        for name, amount in deductions.items():
-            if amount and amount > 0:
-                deductions_data.append([name.replace('_', ' ').title(), f"{amount:,.2f}"])
     
-    # Add advance deductions
+    # EPF Employee
+    epf_employee = payroll_item.get('epf_employee', 0)
+    if epf_employee and epf_employee > 0:
+        deductions_data.append(['EPF (Employee 8%)', f"{epf_employee:,.2f}"])
+    
+    # Tax
+    tax = payroll_item.get('tax', 0)
+    if tax and tax > 0:
+        deductions_data.append(['Tax (PAYE)', f"{tax:,.2f}"])
+    
+    # Advance deductions
     advance_deduction = payroll_item.get('advance_deduction', 0)
     if advance_deduction and advance_deduction > 0:
         deductions_data.append(['Advance Repayment', f"{advance_deduction:,.2f}"])
@@ -1539,6 +1576,17 @@ def generate_payslip_pdf(employee: dict, payroll_item: dict, payroll: dict, comp
     loan_deduction = payroll_item.get('loan_deduction', 0)
     if loan_deduction and loan_deduction > 0:
         deductions_data.append(['Loan Repayment', f"{loan_deduction:,.2f}"])
+    
+    # Unpaid leave deduction
+    unpaid_leave = payroll_item.get('unpaid_leave_deduction', 0)
+    if unpaid_leave and unpaid_leave > 0:
+        unpaid_days = payroll_item.get('unpaid_leave_days', 0)
+        deductions_data.append([f'Unpaid Leave ({unpaid_days} days)', f"{unpaid_leave:,.2f}"])
+    
+    # Other deductions
+    other_deductions = payroll_item.get('other_deductions', 0)
+    if other_deductions and other_deductions > 0:
+        deductions_data.append(['Other Deductions', f"{other_deductions:,.2f}"])
     
     deductions_data.append(['', ''])
     deductions_data.append(['Total Deductions', f"{payroll_item.get('total_deductions', 0):,.2f}"])
@@ -1586,7 +1634,31 @@ def generate_payslip_pdf(employee: dict, payroll_item: dict, payroll: dict, comp
     
     t.setStyle(TableStyle(table_style))
     elements.append(t)
-    elements.append(Spacer(1, 10*mm))
+    elements.append(Spacer(1, 8*mm))
+    
+    # Employer Contributions (for information)
+    epf_employer = payroll_item.get('epf_employer', 0)
+    etf = payroll_item.get('etf', 0)
+    if epf_employer > 0 or etf > 0:
+        employer_data = [['EMPLOYER CONTRIBUTIONS', '']]
+        if epf_employer > 0:
+            employer_data.append(['EPF (Employer 12%)', f"LKR {epf_employer:,.2f}"])
+        if etf > 0:
+            employer_data.append(['ETF (3%)', f"LKR {etf:,.2f}"])
+        
+        t = Table(employer_data, colWidths=[200, 100])
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('FONTNAME', (0, 0), (1, 0), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#6B7280')),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(t)
+        elements.append(Spacer(1, 5*mm))
     
     # Net Salary Box
     net_salary = payroll_item.get('net_salary', 0)
